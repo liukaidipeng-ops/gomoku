@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="带技能的五子棋：封印、迷雾、震荡、策反，四角能量泉。手机打开就能和朋友联机。">
+<meta name="theme-color" content="#0d1322">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23d8b277'/%3E%3Ccircle cx='12' cy='13' r='7' fill='%23111'/%3E%3Ccircle cx='21' cy='20' r='7' fill='%23f4efe3' stroke='%23999'/%3E%3C/svg%3E">
+<title>技能五子棋</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<style>
+/* Layout: one-screen night board, player strips above, skill bar below; single dark look by choice */
+:root{
+  --ink:#0d1322; --slab:#16203a; --slab2:#1d2a4a; --line:#c9a96b; --jade:#52d6b8; --cinnabar:#e2554b;
+  --moon:#ece6d8; --mute:#8d97ad; --panel:#141c31; --edge:#2a3757;
+  --wood1:#e4c48f; --wood2:#c99c5e; --grain:#9a6b34; --gridline:#3d2a16; --teal:#0f8f78;
+  --f-display:"Ma Shan Zheng","STKaiti","KaiTi",serif; --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--ink);color:var(--moon);font-family:var(--f-body);font-size:15px;-webkit-tap-highlight-color:transparent}
+#app{max-width:620px;margin:0 auto;padding-inline:16px;padding-block:12px 20px;display:flex;flex-direction:column;gap:12px;min-height:100%;box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--edge);background:var(--panel);border-radius:10px;padding:10px 14px}
+button:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
+button:disabled{opacity:.38;cursor:not-allowed}
+button.primary{background:var(--jade);color:var(--ink);border-color:var(--jade);font-weight:700}
+.screen[hidden]{display:none!important}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(44px,13vw,72px);line-height:1;margin:0;letter-spacing:.06em;text-wrap:balance}
+.sub{color:var(--mute);margin:0;line-height:1.6}
+.menu{display:flex;flex-direction:column;gap:22px;padding-block:6vh 0}
+.menu .hero{display:flex;flex-direction:column;gap:12px}
+.menu .hero h1 span{color:var(--jade)}
+.menu-btns{display:grid;gap:10px}
+.menu-btns button{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;text-align:left;font-size:17px}
+.menu-btns button small{color:var(--mute);font-size:13px}
+.menu-btns button.primary small{color:var(--ink);opacity:.75}
+.note{font-size:13px;color:var(--mute);line-height:1.6}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.topbar .brand{font-family:var(--f-display);font-size:26px;letter-spacing:.06em}
+.topbar .btns{display:flex;gap:6px}
+.topbar button{padding:6px 10px;font-size:13px}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pcard{border:1px solid var(--edge);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--panel);transition:border-color .2s,box-shadow .2s;min-width:0}
+.pcard.active{border-color:var(--jade);box-shadow:0 0 0 1px var(--jade),0 0 18px -6px var(--jade)}
+.pcard .who{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;min-width:0}
+.pcard .who span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:16px;height:16px;border-radius:50%;flex:none}
+.dot.b{background:radial-gradient(circle at 35% 30%,#59606f,#07090e 70%)}
+.dot.w{background:radial-gradient(circle at 35% 30%,#fff,#c9c2b2 75%)}
+.energy{display:flex;align-items:center;gap:5px}
+.pip{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--jade);box-sizing:border-box}
+.pip.on{background:var(--jade);box-shadow:0 0 8px var(--jade)}
+.pip.new{animation:gain .9s ease-out}
+@keyframes gain{0%{transform:scale(1.9);box-shadow:0 0 16px var(--jade)}100%{transform:scale(1)}}
+.springline{font-size:11px;color:var(--jade);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:15px}
+.energy small{color:var(--mute);font-size:11px;margin-left:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{font-family:var(--f-display);font-size:15px;width:24px;height:24px;display:grid;place-items:center;border-radius:5px;background:var(--cinnabar);color:var(--moon);line-height:1}
+.chip.used{opacity:.35}
+.boardwrap{position:relative;width:100%;display:flex;justify-content:center}
+canvas{display:block;touch-action:manipulation;border-radius:14px;max-width:100%}
+.hint{min-height:22px;text-align:center;color:var(--moon);font-size:14px;line-height:1.5}
+.hint b{color:var(--jade);font-weight:500}
+.skillbar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.skill{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 10px;min-width:0}
+.skill .g{font-family:var(--f-display);font-size:24px;width:38px;height:38px;flex:none;display:grid;place-items:center;border-radius:8px;background:var(--cinnabar);color:var(--moon);line-height:1}
+.skill .t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.skill .t b{font-size:15px}
+.skill .t small{color:var(--mute);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skill.sel{border-color:var(--jade);box-shadow:0 0 0 1px var(--jade)}
+.skill .cost{margin-left:auto;display:flex;gap:3px;flex:none}
+.skill .cost i{width:7px;height:7px;border-radius:50%;background:var(--jade)}
+.log{font-size:12px;color:var(--mute);text-align:center;min-height:18px;line-height:1.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.overlay{position:fixed;inset:0;background:rgba(6,9,18,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;overflow-y:auto}
+.sheet{background:var(--slab);border:1px solid var(--edge);border-radius:16px;padding:18px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:14px;max-height:calc(100% - 32px);overflow-y:auto;box-sizing:border-box}
+.sheet h2{font-family:var(--f-display);font-weight:400;font-size:30px;margin:0;letter-spacing:.04em}
+.picks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pick{display:flex;flex-direction:column;gap:6px;text-align:left;padding:10px;min-width:0}
+.pick .top{display:flex;align-items:center;gap:8px}
+.pick .g{font-family:var(--f-display);font-size:22px;width:32px;height:32px;display:grid;place-items:center;border-radius:7px;background:var(--cinnabar);line-height:1}
+.pick .tag{font-size:11px;color:var(--jade);border:1px solid var(--jade);border-radius:20px;padding:1px 6px;margin-left:auto;white-space:nowrap}
+.pick p{margin:0;font-size:12px;color:var(--mute);line-height:1.5}
+.pick.sel{border-color:var(--jade);box-shadow:0 0 0 1px var(--jade);background:var(--slab2)}
+.rules{font-size:14px;line-height:1.7;color:var(--moon)}
+.rules h3{font-size:15px;margin:10px 0 4px;color:var(--jade)}
+.rules ul{margin:0;padding-left:1.2em}
+.lobby{display:flex;flex-direction:column;gap:12px}
+.rooms{display:flex;flex-direction:column;gap:8px}
+.room{display:flex;justify-content:space-between;align-items:center;text-align:left}
+.room code{font-family:var(--f-display);font-size:22px;letter-spacing:.12em}
+.room small{color:var(--mute)}
+.joinrow{display:flex;gap:8px}
+.joinrow input{flex:1;min-width:0;font:inherit;font-size:18px;letter-spacing:.2em;text-transform:uppercase;background:var(--panel);color:var(--moon);border:1px solid var(--edge);border-radius:10px;padding:10px 12px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--cinnabar);color:var(--moon);padding:10px 16px;border-radius:10px;font-size:14px;z-index:20;max-width:calc(100% - 32px);text-align:center;transition:opacity .25s}
+.toast[hidden]{display:none}
+.result h2{font-size:44px;text-align:center}
+.linkbox{font:inherit;font-size:13px;background:var(--panel);color:var(--moon);border:1px solid var(--edge);border-radius:8px;padding:8px 10px;width:100%;box-sizing:border-box}
+.codebig{font-family:var(--f-display);font-size:46px;letter-spacing:.2em;text-align:center;color:var(--jade)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- MENU -->
+  <section class="screen menu" id="scMenu">
+    <div class="hero">
+      <h1>技能<span>五</span>子棋</h1>
+      <p class="sub">五子连珠的老规矩，加上封印、迷雾、震荡这些技能。能量要靠落子攒，角落的泉眼值得一抢。</p>
+    </div>
+    <div class="menu-btns">
+      <button class="primary" id="mOnline">在线对战 <small>和朋友各用一部手机</small></button>
+      <button id="mAI">对战电脑 <small>先熟悉规则</small></button>
+      <button id="mLocal">同机对战 <small>两人轮流用一部设备</small></button>
+      <button id="mRules">规则说明 <small>一分钟看懂</small></button>
+    </div>
+    <p class="note" id="onlineNote"></p>
+  </section>
+
+  <!-- LOBBY -->
+  <section class="screen lobby" id="scLobby" hidden>
+    <div class="topbar"><div class="brand">在线大厅</div><div class="btns"><button id="lBack">返回</button></div></div>
+    <button class="primary" id="lCreate">创建房间</button>
+    <div class="joinrow"><input id="joinCode" maxlength="4" placeholder="房间号" autocomplete="off"><button id="lJoin">加入</button></div>
+    <div class="note">最近的房间（点一下加入或回到对局）</div>
+    <div class="rooms" id="rooms"><div class="note">正在读取房间…</div></div>
+  </section>
+
+  <!-- PEER LOBBY (standalone hosting, no accounts) -->
+  <section class="screen lobby" id="scPeer" hidden>
+    <div class="topbar"><div class="brand">在线对战</div><div class="btns"><button id="pBack">返回</button></div></div>
+    <button class="primary" id="pCreate">创建房间</button>
+    <div class="joinrow"><input id="pCode" maxlength="4" placeholder="房间号" autocomplete="off"><button id="pJoin">加入</button></div>
+    <p class="note" id="pStatus">创建房间后，把房间号或邀请链接发给朋友。两部手机直接连接，不用注册任何账号。</p>
+  </section>
+
+  <!-- GAME -->
+  <section class="screen" id="scGame" hidden style="display:flex;flex-direction:column;gap:10px">
+    <div class="topbar">
+      <div class="brand" id="gTitle">技能五子棋</div>
+      <div class="btns"><button id="gRules">规则</button><button id="gResign">认输</button><button id="gMenu">菜单</button></div>
+    </div>
+    <div class="players">
+      <div class="pcard" id="p1"></div>
+      <div class="pcard" id="p2"></div>
+    </div>
+    <div class="boardwrap" id="boardwrap"><canvas id="cv" aria-label="棋盘"></canvas></div>
+    <div class="hint" id="hint"></div>
+    <div class="skillbar" id="skillbar"></div>
+    <div class="log" id="log"></div>
+  </section>
+</div>
+
+<div class="overlay" id="ovPick" hidden><div class="sheet">
+  <h2 id="pickTitle">选择两个技能</h2>
+  <div class="note" id="pickNote">技能双方公开。快速技能不占回合，主动技能会用掉这一回合。</div>
+  <div class="picks" id="picks"></div>
+  <button class="primary" id="pickOk" disabled>确定</button>
+</div></div>
+
+<div class="overlay" id="ovRules" hidden><div class="sheet">
+  <h2>规则说明</h2>
+  <div class="rules">
+    <h3>怎么赢</h3>
+    <ul><li>15×15 棋盘，黑先，横竖斜连成五子即胜（无禁手）。</li><li>只有普通落子能赢，技能不能直接连成五子。</li></ul>
+    <h3>能量</h3>
+    <ul><li>每下 3 手普通棋得 1 点能量，最多 3 点。白方开局有 1 点。</li><li>四个角的<b style="color:var(--jade)">泉眼</b>：占着它，每 3 个自己的回合多得 1 点能量。</li></ul>
+    <h3>回合</h3>
+    <ul><li>每回合可以先放一个快速技能，然后落子，或者改为放一个主动技能。</li></ul>
+    <h3>技能（开局选两个）</h3>
+    <ul id="rulesSkills"></ul>
+  </div>
+  <button class="primary" id="rulesOk">知道了</button>
+</div></div>
+
+<div class="overlay" id="ovResult" hidden><div class="sheet result">
+  <h2 id="resTitle"></h2>
+  <div class="note" id="resNote" style="text-align:center"></div>
+  <div class="row"><button class="primary" id="resAgain">再来一局</button><button id="resView">看棋盘</button><button id="resMenu">回菜单</button></div>
+</div></div>
+
+<div class="overlay" id="ovWait" hidden><div class="sheet">
+  <h2 id="waitTitle">等待对手加入</h2>
+  <div class="codebig" id="waitCode"></div>
+  <div class="note" id="waitNote"></div>
+  <input id="waitLink" class="linkbox" readonly hidden aria-label="邀请链接">
+  <div class="row"><button class="primary" id="waitCopy" hidden>复制邀请链接</button><button class="primary" id="waitRetry" hidden>重新连接</button><button id="waitLeave">离开房间</button></div>
+</div></div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// ENGINE START
+const N=15, NN=N*N;
+const SPRINGS=[1*N+1,1*N+13,13*N+1,13*N+13];
+const STARS=[3*N+3,3*N+11,11*N+3,11*N+11,7*N+7];
+const SK={
+  seal:{n:'封印',g:'封',c:2,q:1,d:'指定一个空位，对手下回合不能落在这里。放完还能落子。'},
+  rewind:{n:'回溯',g:'溯',c:3,q:1,once:1,d:'收回对手上一手，对手必须换个位置重下，然后你继续本回合。每局一次。'},
+  shift:{n:'移形',g:'移',c:1,d:'把自己的一颗棋子移到相邻空位。'},
+  fog:{n:'迷雾',g:'雾',c:2,d:'下一颗对手看不见的棋子，对手两回合后显形。对手下到那里，那一手作废。'},
+  shock:{n:'震荡',g:'震',c:3,d:'移除对手一颗棋子，不能是他刚下的那颗。'},
+  turn:{n:'策反',g:'策',c:2,d:'把对手一颗孤立棋子变成你的，占着的泉眼也归你。'}
+};
+const ORDER=['seal','rewind','shift','fog','shock','turn'];
+const DIRS=[[0,1],[1,0],[1,1],[1,-1]];
+const rc=i=>[Math.floor(i/N),i%N], ix=(r,c)=>r*N+c, inb=(r,c)=>r>=0&&r<N&&c>=0&&c<N;
+const isSpring=i=>SPRINGS.includes(i);
+const PN=x=>x===1?'黑方':'白方';
+function newState(){
+  return {v:1,phase:'pick',board:Array(NN).fill(0),hidden:{},energy:[0,0,1],place:[0,0,0],tick:{},loadout:{},once:{},
+    turn:1,actor:1,quick:false,replace:null,seal:null,last:[null,null,null],moveNo:0,winner:0,winLine:[],draw:false,
+    log:['对局开始，白方先拿 1 点能量'],fx:{seq:0},gain:{seq:0}};
+}
+function fiveAt(b,i,p){
+  const [r,c]=rc(i);
+  for(const [dr,dc] of DIRS){
+    const cells=[i];
+    for(const s of [1,-1]){let k=1;for(;;){const rr=r+dr*k*s,cc=c+dc*k*s;if(!inb(rr,cc)||b[ix(rr,cc)]!==p)break;cells.push(ix(rr,cc));k++;}}
+    if(cells.length>=5)return cells;
+  }
+  return null;
+}
+function endTurn(S,p,normal,L){
+  const o=3-p,b=S.board;
+  const gains=[];
+  if(normal){S.place[p]++;if(S.place[p]>=3){if(S.energy[p]<3){S.energy[p]++;S.place[p]=0;gains.push('place');}else S.place[p]=3;}}
+  else S.last[p]=null;
+  for(const sp of SPRINGS){
+    if(b[sp]!==p)continue;
+    const t=(S.tick[sp]||0)+1;
+    if(t>=3){if(S.energy[p]<3){S.energy[p]++;S.tick[sp]=0;gains.push(sp);L(`泉眼为${PN(p)}涌出 1 点能量`);}else S.tick[sp]=3;}
+    else S.tick[sp]=t;
+  }
+  for(const k of Object.keys(S.hidden)){
+    const i=+k;
+    if(b[i]===0){delete S.hidden[k];continue;}
+    if(b[i]!==o)continue;
+    S.hidden[k]--;
+    if(S.hidden[k]<=0){delete S.hidden[k];L(`${PN(o)}的一颗隐身棋子显形了`);}
+  }
+  if(gains.length)S.gain={seq:((S.gain&&S.gain.seq)||0)+1,p,src:gains};
+  if(S.seal&&S.seal.by!==p)S.seal=null;
+  S.moveNo++;
+  if(!b.includes(0)){S.phase='over';S.draw=true;L('棋盘下满，和棋');}
+  S.turn=o;S.actor=o;S.quick=false;
+}
+function apply(S0,a){
+  const S=JSON.parse(JSON.stringify(S0));
+  const E=m=>({err:m}), ok=()=>({state:S});
+  const p=a.p,o=3-p,b=S.board;
+  const L=t=>{S.log.push(t);if(S.log.length>40)S.log.shift();};
+  const fx=(kind,cells,extra)=>{S.fx=Object.assign({seq:((S0.fx&&S0.fx.seq)||0)+1,kind,cells,p},extra||{});};
+  if(a.t==='pick'){
+    if(S.phase!=='pick')return E('现在不能选技能');
+    if(!Array.isArray(a.skills)||a.skills.length!==2||!a.skills.every(k=>SK[k])||a.skills[0]===a.skills[1])return E('请选两个不同的技能');
+    S.loadout[p]=a.skills.slice();
+    if(S.loadout[1]&&S.loadout[2])S.phase='play';
+    return ok();
+  }
+  if(S.phase!=='play')return E('对局已经结束');
+  if(a.t==='resign'){S.phase='over';S.winner=o;L(`${PN(p)}认输`);return ok();}
+  if(S.actor!==p)return E('还没轮到你');
+  const hidOpp=i=>b[i]===o&&S.hidden[i]!=null;
+  const emptyFor=i=>b[i]===0||hidOpp(i);
+  const sealedFor=i=>!!(S.seal&&S.seal.i===i&&S.seal.by!==p);
+  const reveal=i=>{delete S.hidden[i];L(`${PN(p)}撞上了${PN(o)}的隐身棋子，这一手作废`);fx('reveal',[i]);};
+  const backToCaster=()=>{S.actor=S.replace.caster;S.replace=null;};
+  const valid=i=>Number.isInteger(i)&&i>=0&&i<NN;
+  if(a.t==='place'){
+    const i=a.i; if(!valid(i))return E('位置无效');
+    if(S.replace&&i===S.replace.forbid)return E('不能下回原来的位置');
+    if(sealedFor(i))return E('这里被封印了');
+    if(hidOpp(i)){reveal(i);if(S.replace)backToCaster();else endTurn(S,p,false,L);return ok();}
+    if(b[i]!==0)return E('这里已经有棋子了');
+    b[i]=p;S.last[p]=i;if(isSpring(i))S.tick[i]=0;
+    fx('place',[i]);
+    const f=fiveAt(b,i,p);
+    if(f){S.phase='over';S.winner=p;S.winLine=f;L(`${PN(p)}连成五子，获胜`);return ok();}
+    if(S.replace){backToCaster();return ok();}
+    endTurn(S,p,true,L);return ok();
+  }
+  const k=a.t,sk=SK[k];
+  if(!sk)return E('未知操作');
+  if(!(S.loadout[p]||[]).includes(k))return E('你没有带这个技能');
+  if(S.replace)return E('要先等对手重下');
+  if(S.energy[p]<sk.c)return E('能量不够');
+  if(sk.q&&S.quick)return E('这回合已经用过快速技能了');
+  if(sk.once&&S.once[p])return E('回溯每局只能用一次');
+  const pay=()=>{S.energy[p]-=sk.c;};
+  if(k==='seal'){
+    const i=a.i; if(!valid(i))return E('位置无效');
+    if(S.seal)return E('场上已经有一个封印了');
+    if(!emptyFor(i))return E('只能封印空位');
+    S.seal={i,by:p};pay();S.quick=true;fx('seal',[i]);L(`${PN(p)}封印了一个位置`);return ok();
+  }
+  if(k==='rewind'){
+    const t=S.last[o];
+    if(t==null||b[t]!==o)return E('对手上一手不是普通落子，不能回溯');
+    b[t]=0;if(isSpring(t))delete S.tick[t];
+    pay();S.once[p]=true;S.quick=true;S.replace={forbid:t,caster:p};S.actor=o;S.last[o]=null;
+    fx('rewind',[t]);L(`${PN(p)}回溯了${PN(o)}的上一手，${PN(o)}要换个位置重下`);return ok();
+  }
+  if(k==='shift'){
+    const {from,to}=a; if(!valid(from)||!valid(to))return E('位置无效');
+    if(b[from]!==p)return E('先选一颗自己的棋子');
+    const [r1,c1]=rc(from),[r2,c2]=rc(to);
+    if(Math.max(Math.abs(r1-r2),Math.abs(c1-c2))!==1)return E('只能移到相邻的位置');
+    if(sealedFor(to))return E('那里被封印了');
+    if(hidOpp(to)){pay();reveal(to);endTurn(S,p,false,L);return ok();}
+    if(b[to]!==0)return E('那里已经有棋子了');
+    b[to]=p;b[from]=0;
+    if(fiveAt(b,to,p))return E('技能不能直接连成五子');
+    const wasHidden=S.hidden[from]!=null;
+    if(wasHidden){S.hidden[to]=S.hidden[from];delete S.hidden[from];}
+    if(isSpring(from))delete S.tick[from];
+    if(isSpring(to))S.tick[to]=0;
+    pay();fx('shift',[from,to],{secret:wasHidden});L(`${PN(p)}使用移形挪动了一颗棋子`);endTurn(S,p,false,L);return ok();
+  }
+  if(k==='fog'){
+    const i=a.i; if(!valid(i))return E('位置无效');
+    if(sealedFor(i))return E('这里被封印了');
+    if(hidOpp(i)){pay();reveal(i);endTurn(S,p,false,L);return ok();}
+    if(b[i]!==0)return E('这里已经有棋子了');
+    b[i]=p;
+    if(fiveAt(b,i,p))return E('隐身棋子不能直接连成五子');
+    S.hidden[i]=2;if(isSpring(i))S.tick[i]=0;
+    pay();fx('fog',[i],{secret:true});L(`${PN(p)}施放迷雾，一颗棋子隐入雾中`);endTurn(S,p,false,L);return ok();
+  }
+  if(k==='shock'){
+    const i=a.i; if(!valid(i))return E('位置无效');
+    if(b[i]!==o||hidOpp(i))return E('请选对手的一颗棋子');
+    if(i===S.last[o])return E('不能移除对手刚下的那颗子');
+    b[i]=0;if(isSpring(i))delete S.tick[i];
+    pay();fx('shock',[i]);L(`${PN(p)}发动震荡，击碎了${PN(o)}一颗棋子`);endTurn(S,p,false,L);return ok();
+  }
+  if(k==='turn'){
+    const i=a.i; if(!valid(i))return E('位置无效');
+    if(b[i]!==o||hidOpp(i))return E('请选对手的一颗棋子');
+    const [r,c]=rc(i);
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(inb(rr,cc)&&b[ix(rr,cc)]===o)return E('只能策反孤立的棋子（周围八格没有它的同伴）');}
+    b[i]=p;
+    if(fiveAt(b,i,p))return E('策反后不能直接连成五子');
+    if(isSpring(i))S.tick[i]=0;
+    if(S.last[o]===i)S.last[o]=null;
+    pay();fx('turn',[i]);L(`${PN(p)}策反了${PN(o)}一颗棋子${isSpring(i)?'，夺下泉眼':''}`);endTurn(S,p,false,L);return ok();
+  }
+  return E('未知操作');
+}
+// --- simple AI: uses seal and shock, otherwise pattern scoring ---
+function aiDecide(S){
+  const p=S.actor,o=3-p;
+  const vb=S.board.map((x,i)=>x===o&&S.hidden[i]!=null?0:x);
+  const blockedForMe=i=>(S.seal&&S.seal.i===i&&S.seal.by!==p)||(S.replace&&S.replace.forbid===i);
+  const blockedForOpp=i=>S.seal&&S.seal.i===i&&S.seal.by===p;
+  const cands=[];
+  let any=false;
+  for(let i=0;i<NN;i++){if(vb[i])any=true;}
+  for(let i=0;i<NN;i++){
+    if(vb[i])continue;
+    const [r,c]=rc(i);let near=false;
+    for(let dr=-2;dr<=2&&!near;dr++)for(let dc=-2;dc<=2;dc++){const rr=r+dr,cc=c+dc;if(inb(rr,cc)&&vb[ix(rr,cc)]){near=true;break;}}
+    if(near||(!any&&i===7*N+7))cands.push(i);
+  }
+  const winPts=(q,skip)=>cands.filter(i=>{if(vb[i]||skip(i))return false;vb[i]=q;const f=fiveAt(vb,i,q);vb[i]=0;return !!f;});
+  const mine=winPts(p,blockedForMe);
+  if(mine.length)return {t:'place',i:mine[0]};
+  if(S.replace)return {t:'place',i:bestPlace(vb,cands.filter(i=>!blockedForMe(i)),p,S)};
+  const opp=winPts(o,blockedForOpp);
+  const lo=S.loadout[p]||[];
+  if(opp.length>=2){
+    if(lo.includes('seal')&&S.energy[p]>=2&&!S.quick&&!S.seal)return {t:'seal',i:opp[0]};
+    if(lo.includes('shock')&&S.energy[p]>=3){
+      let best=null,bestN=1e9;
+      for(let i=0;i<NN;i++){
+        if(vb[i]!==o||i===S.last[o])continue;
+        vb[i]=0;const n=winPts(o,blockedForOpp).length;vb[i]=o;
+        if(n<bestN){bestN=n;best=i;}
+      }
+      if(best!=null&&bestN<opp.length-0)return {t:'shock',i:best};
+    }
+  }
+  if(opp.length>=1){const t=opp.find(i=>!blockedForMe(i));if(t!=null)return {t:'place',i:t};}
+  return {t:'place',i:bestPlace(vb,cands.filter(i=>!blockedForMe(i)),p,S)};
+}
+function lineScore(vb,i,q){
+  const [r,c]=rc(i);let total=0;
+  for(const [dr,dc] of DIRS){
+    let cnt=1,open=0;
+    for(const s of [1,-1]){
+      let k=1;
+      for(;;){const rr=r+dr*k*s,cc=c+dc*k*s;if(!inb(rr,cc))break;const v=vb[ix(rr,cc)];if(v===q){cnt++;k++;continue;}if(v===0)open++;break;}
+    }
+    if(cnt>=5)total+=1e6;
+    else if(cnt===4)total+=open===2?1e5:open===1?1e4:0;
+    else if(cnt===3)total+=open===2?5e3:open===1?400:0;
+    else if(cnt===2)total+=open===2?200:open===1?30:0;
+    else total+=open===2?10:open===1?2:0;
+  }
+  return total;
+}
+function bestPlace(vb,cands,p,S){
+  const o=3-p;let best=cands[0],bs=-1;
+  for(const i of cands){
+    const [r,c]=rc(i);
+    let s=lineScore(vb,i,p)+lineScore(vb,i,o)*0.9-(Math.abs(r-7)+Math.abs(c-7))*0.5+Math.random()*3;
+    if(isSpring(i)&&S.moveNo<30)s+=60;
+    if(s>bs){bs=s;best=i;}
+  }
+  return best==null?7*N+7:best;
+}
+// ENGINE END
+</script>
+
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let mode=null;          // 'local' | 'ai' | 'online'
+let S=null;             // current state
+let sel=null;           // {skill, from}
+let hover=-1;
+let effects=[];         // {kind,cells,t0,secret,p}
+let lastFxSeq=0,lastGainSeq=0,prevEnergy=null;
+let showBoardAfterEnd=false;
+let pickBuf=[];
+let audioCtx=null;
+
+// ---------- online plumbing ----------
+let db=null,userCap=null,uid=null,roomCode=null,roomData=null,mySeat=0,unsubRoom=null,unsubRooms=null,writing=false;
+let net=null;  // active online transport: claude db (inside claude.ai) or peer-to-peer (anywhere else)
+const standalone=!window.claude;
+(async()=>{
+  try{
+    if(window.claude&&window.claude.use){
+      [db,userCap]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+      if(userCap)uid=await userCap.id();
+    }
+  }catch(e){db=null;}
+  updateOnlineNote();
+})();
+function updateOnlineNote(){
+  const ok=!!(db&&uid)||standalone;
+  $('mOnline').disabled=!ok;
+  $('onlineNote').textContent=ok?'':'在线对战需要登录 claude.ai，并且有这个页面的参与权限。现在可以先玩对战电脑或同机对战。';
+}
+
+// ---------- helpers ----------
+function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200);}
+function show(id){for(const s of ['scMenu','scLobby','scPeer','scGame'])$(s).hidden=s!==id;if(id==='scGame')resize();}
+function tryStore(fn){try{return fn();}catch(e){return null;}}
+function viewer(){ if(!S)return 1; if(mode==='online')return mySeat; if(mode==='ai')return 1; return S.actor; }
+function controls(){ if(!S||S.phase!=='play')return false; if(mode==='local')return true; if(mode==='ai')return S.actor===1; return S.actor===mySeat&&(!net||net.present()); }
+function who(p){
+  if(mode==='ai')return p===1?'你':'电脑';
+  if(mode==='online')return p===mySeat?'你':'对手';
+  return PN(p);
+}
+function tock(freq){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine';o.frequency.value=freq||520;g.gain.setValueAtTime(.12,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.18);
+    o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+.2);
+  }catch(e){}
+}
+
+// ---------- start modes ----------
+function startLocal(m){
+  mode=m;S=newState();sel=null;effects=[];lastFxSeq=0;lastGainSeq=0;prevEnergy=null;showBoardAfterEnd=false;
+  if(m==='ai'){S=apply(S,{t:'pick',p:2,skills:['seal','shock']}).state;}
+  show('scGame');render();
+}
+$('mLocal').onclick=()=>startLocal('local');
+$('mAI').onclick=()=>startLocal('ai');
+$('mRules').onclick=()=>$('ovRules').hidden=false;
+$('gRules').onclick=()=>$('ovRules').hidden=false;
+$('rulesOk').onclick=()=>$('ovRules').hidden=true;
+$('rulesSkills').innerHTML=ORDER.map(k=>`<li><b>${SK[k].n}</b>（${SK[k].c} 点，${SK[k].q?'快速':'主动'}）${SK[k].d}</li>`).join('');
+$('gMenu').onclick=()=>{leaveRoom();mode=null;S=null;show('scMenu');};
+$('gResign').onclick=()=>{
+  if(!S||S.phase!=='play')return;
+  const btn=$('gResign');
+  if(!btn.dataset.armed){btn.dataset.armed='1';btn.textContent='确认认输';setTimeout(()=>{delete btn.dataset.armed;btn.textContent='认输';},2500);return;}
+  delete btn.dataset.armed;btn.textContent='认输';
+  const p=mode==='online'?mySeat:mode==='ai'?1:S.actor;
+  dispatch({t:'resign',p});
+};
+
+// ---------- dispatch ----------
+function dispatch(a){
+  const r=apply(S,a);
+  if(r.err){toast(r.err);return false;}
+  commit(r.state);
+  return true;
+}
+function commit(ns){
+  S=ns;sel=null;
+  if(mode==='online'&&net)net.pushState(ns);
+  render();
+  maybeAI();
+}
+function maybeAI(){
+  if(mode!=='ai'||!S||S.phase!=='play'||S.actor!==2)return;
+  clearTimeout(maybeAI._t);
+  maybeAI._t=setTimeout(()=>{
+    if(mode!=='ai'||!S||S.phase!=='play'||S.actor!==2)return;
+    let a=Object.assign({p:2},aiDecide(S));
+    let r=apply(S,a);
+    if(r.err){const i=bestPlace(S.board.map(x=>x),[...Array(NN).keys()].filter(i=>S.board[i]===0),2,S);r=apply(S,{t:'place',p:2,i});}
+    if(!r.err)commit(r.state);
+  },650);
+}
+
+// ---------- pick overlay ----------
+function needPick(){
+  if(!S||S.phase!=='pick')return 0;
+  if(mode==='online')return S.loadout[mySeat]?0:mySeat;
+  if(mode==='ai')return S.loadout[1]?0:1;
+  return !S.loadout[1]?1:!S.loadout[2]?2:0;
+}
+function renderPick(){
+  const p=needPick();
+  const ov=$('ovPick');
+  if(!p){ov.hidden=true;return;}
+  ov.hidden=false;
+  $('pickTitle').textContent=mode==='local'?`${PN(p)}选择两个技能`:'选择两个技能';
+  const other=S.loadout[3-p];
+  $('pickNote').textContent=(other?`对方带了：${other.map(k=>SK[k].n).join('、')}。`:'')+'技能双方公开。快速技能不占回合，主动技能会用掉这一回合。';
+  $('picks').innerHTML=ORDER.map(k=>`<button class="pick${pickBuf.includes(k)?' sel':''}" data-k="${k}"><div class="top"><span class="g">${SK[k].g}</span><b>${SK[k].n}</b><span class="tag">${SK[k].c} 点 · ${SK[k].q?'快速':'主动'}</span></div><p>${SK[k].d}</p></button>`).join('');
+  $('pickOk').disabled=pickBuf.length!==2;
+  for(const b of $('picks').querySelectorAll('.pick'))b.onclick=()=>{
+    const k=b.dataset.k;
+    if(pickBuf.includes(k))pickBuf=pickBuf.filter(x=>x!==k);
+    else{pickBuf.push(k);if(pickBuf.length>2)pickBuf.shift();}
+    renderPick();
+  };
+}
+$('pickOk').onclick=()=>{
+  const p=needPick();if(!p||pickBuf.length!==2)return;
+  const skills=pickBuf.slice();pickBuf=[];
+  if(mode==='online'){
+    const r=apply(S,{t:'pick',p,skills});if(r.err){toast(r.err);return;}
+    S=r.state;render();
+    if(net)net.pushPick(p,skills);
+    return;
+  }
+  dispatch({t:'pick',p,skills});
+};
+
+// ---------- render UI ----------
+function render(){
+  if(!S)return;
+  renderPick();
+  for(const p of [1,2]){
+    const el=$('p'+p);
+    const active=S.phase==='play'&&S.actor===p;
+    el.classList.toggle('active',active);
+    const e=S.energy[p];
+    const need=Math.max(0,3-S.place[p]);
+    const lo=S.loadout[p]||[];
+    const prevE=prevEnergy?prevEnergy[p]:e;
+    const vw=viewer();
+    const mySprings=SPRINGS.filter(sp=>S.board[sp]===p&&(S.hidden[sp]==null||p===vw||S.phase==='over'));
+    let springTxt='';
+    if(mySprings.length){
+      const best=Math.max(...mySprings.map(sp=>Math.min(3,S.tick[sp]||0)));
+      springTxt=e>=3?`占泉眼 ${mySprings.length} 个 · 能量满时暂停`:`占泉眼 ${mySprings.length} 个 · 再 ${3-best} 回合 +1`;
+    }
+    el.innerHTML=`<div class="who"><span class="dot ${p===1?'b':'w'}"></span><span>${who(p)}${mode==='local'?'':(p===1?' · 黑':' · 白')}</span></div>
+      <div class="energy">${[0,1,2].map(k=>`<span class="pip${k<e?' on':''}${k<e&&k>=prevE?' new':''}"></span>`).join('')}<small>${e>=3?'能量已满':`再下 ${need} 手 +1`}</small></div>
+      <div class="springline">${springTxt}</div>
+      <div class="chips">${lo.map(k=>`<span class="chip${SK[k].once&&S.once[p]?' used':''}" title="${SK[k].n}">${SK[k].g}</span>`).join('')||'<small class="note">选技能中</small>'}</div>`;
+  }
+  prevEnergy=S.energy.slice();
+  // skill bar
+  const me=mode==='local'?S.actor:mode==='ai'?1:mySeat;
+  const lo=S.loadout[me]||[];
+  const canAct=controls();
+  $('skillbar').innerHTML=lo.map(k=>{
+    const sk=SK[k];
+    const dis=!canAct||S.replace||S.energy[me]<sk.c||(sk.q&&S.quick)||(sk.once&&S.once[me]);
+    return `<button class="skill${sel&&sel.skill===k?' sel':''}" data-k="${k}" ${dis?'disabled':''}><span class="g">${sk.g}</span><span class="t"><b>${sk.n}</b><small>${sk.q?'快速技能':'主动技能'}</small></span><span class="cost">${'<i></i>'.repeat(sk.c)}</span></button>`;
+  }).join('');
+  for(const b of $('skillbar').querySelectorAll('.skill'))b.onclick=()=>{
+    const k=b.dataset.k;
+    sel=sel&&sel.skill===k?null:{skill:k,from:null};
+    render();
+  };
+  $('hint').innerHTML=hintText();
+  $('log').textContent=S.log.slice(-2).join('　·　');
+  $('gResign').disabled=S.phase!=='play';
+  // title
+  $('gTitle').textContent=mode==='online'?`房间 ${roomCode}`:mode==='ai'?'对战电脑':'同机对战';
+  // wait overlay
+  renderWait();
+  // result
+  const ov=$('ovResult');
+  if(S.phase==='over'&&!showBoardAfterEnd){
+    ov.hidden=false;
+    const me2=viewer();
+    let t;
+    if(S.draw)t='和棋';
+    else if(mode==='local')t=`${PN(S.winner)}获胜`;
+    else t=S.winner===me2?'你赢了':'你输了';
+    $('resTitle').textContent=t;
+    $('resNote').textContent=S.log[S.log.length-1]||'';
+  }else ov.hidden=true;
+}
+function hintText(){
+  if(S.phase==='pick')return needPick()?'':'等待对手选技能…';
+  if(S.phase==='over')return S.draw?'和棋':`${who(S.winner)}${mode==='local'?'':''}获胜`;
+  if(!controls())return mode==='ai'?'电脑思考中…':`等待${who(S.actor)}行动…`;
+  const me=S.actor;
+  if(S.replace)return '你的上一手被<b>回溯</b>了，请换个位置重下';
+  if(sel){
+    const k=sel.skill;
+    if(k==='seal')return '点一个空位来<b>封印</b>它';
+    if(k==='rewind')return '点对手刚下的那颗子来<b>回溯</b>';
+    if(k==='shift')return sel.from==null?'点一颗你的棋子来<b>移形</b>':'点相邻的空位，把它挪过去';
+    if(k==='fog')return '点一个空位，放下<b>隐身棋子</b>';
+    if(k==='shock')return '点对手的一颗棋子来<b>震荡</b>';
+    if(k==='turn')return '点对手的一颗孤立棋子来<b>策反</b>';
+  }
+  return `${mode==='local'?PN(me):'轮到你'}落子${S.quick?'（已用快速技能）':''}`;
+}
+
+// ---------- board geometry & input ----------
+let G={size:0,cell:0,m:0,dpr:1};
+function resize(){
+  const w=$('boardwrap').clientWidth||360;
+  const h=window.innerHeight-330;
+  const size=Math.max(260,Math.min(w,560,Math.max(h,300)));
+  G.dpr=window.devicePixelRatio||1;G.size=size;G.cell=size/(N+0.6);G.m=G.cell*0.8;
+  cv.width=size*G.dpr;cv.height=size*G.dpr;cv.style.width=size+'px';cv.style.height=size+'px';
+  ctx.setTransform(G.dpr,0,0,G.dpr,0,0);
+}
+window.addEventListener('resize',()=>{if(!$('scGame').hidden)resize();});
+const pos=i=>{const [r,c]=rc(i);return [G.m+c*G.cell,G.m+r*G.cell];};
+function cellAt(ev){
+  const rect=cv.getBoundingClientRect();
+  const x=ev.clientX-rect.left,y=ev.clientY-rect.top;
+  const c=Math.round((x-G.m)/G.cell),r=Math.round((y-G.m)/G.cell);
+  if(!inb(r,c))return -1;
+  const [px,py]=pos(ix(r,c));
+  if(Math.hypot(px-x,py-y)>G.cell*0.55)return -1;
+  return ix(r,c);
+}
+cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){hover=cellAt(e);}});
+cv.addEventListener('pointerleave',()=>hover=-1);
+cv.addEventListener('click',e=>{
+  if(!S)return;
+  const i=cellAt(e);if(i<0)return;
+  if(S.phase!=='play'){return;}
+  if(!controls()){toast(mode==='ai'?'电脑正在思考':'还没轮到你');return;}
+  const p=S.actor,o=3-p;
+  if(!sel){if(dispatch({t:'place',p,i}))tock(560);return;}
+  const k=sel.skill;
+  if(k==='shift'){
+    if(sel.from==null||S.board[i]===p){
+      if(S.board[i]!==p){toast('先选一颗自己的棋子');return;}
+      sel.from=sel.from===i?null:i;render();return;
+    }
+    if(dispatch({t:'shift',p,from:sel.from,to:i}))tock(420);
+    return;
+  }
+  if(k==='rewind'){
+    if(i!==S.last[o]){toast('请点对手刚下的那颗子');return;}
+    if(dispatch({t:'rewind',p}))tock(300);return;
+  }
+  if(dispatch({t:k,p,i}))tock(k==='shock'?180:k==='seal'?340:460);
+});
+
+// ---------- effects ----------
+function syncFx(){
+  if(!S||!S.fx)return;
+  if(S.fx.seq===lastFxSeq)return;
+  if(S.fx.seq<lastFxSeq){lastFxSeq=S.fx.seq;return;}
+  lastFxSeq=S.fx.seq;
+  if(!S.fx.kind)return;
+  effects.push({...S.fx,t0:performance.now()});
+}
+function syncGain(){
+  if(!S||!S.gain)return;
+  const g=S.gain;
+  if(g.seq===lastGainSeq)return;
+  if(g.seq<lastGainSeq||lastGainSeq<0){lastGainSeq=g.seq;return;}
+  lastGainSeq=g.seq;
+  const v=viewer();
+  for(const sp of g.src||[]){
+    if(typeof sp!=='number')continue;
+    if(S.hidden[sp]!=null&&g.p!==v&&S.phase!=='over')continue; // a hidden stone's spring stays secret
+    effects.push({kind:'gain',cells:[sp],p:g.p,t0:performance.now(),dur:1400});
+  }
+  if(g.p===v)tock(880);
+}
+
+// ---------- draw ----------
+function draw(t){
+  requestAnimationFrame(draw);
+  if($('scGame').hidden||!S||!G.size)return;
+  syncFx();syncGain();
+  const s=G.size,cell=G.cell,m=G.m,v=viewer();
+  const C=cssVar;
+  const jade=C('--jade'),line=C('--gridline'),cin=C('--cinnabar'),teal=C('--teal');
+  ctx.clearRect(0,0,s,s);
+  // wooden board (grain is drawn once per resize)
+  ctx.drawImage(woodCanvas(),0,0,s,s);
+  // grid
+  ctx.strokeStyle=line;ctx.globalAlpha=.55;ctx.lineWidth=1;
+  for(let k=0;k<N;k++){
+    ctx.beginPath();ctx.moveTo(m,m+k*cell);ctx.lineTo(m+(N-1)*cell,m+k*cell);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(m+k*cell,m);ctx.lineTo(m+k*cell,m+(N-1)*cell);ctx.stroke();
+  }
+  ctx.globalAlpha=.85;ctx.lineWidth=1.8;ctx.strokeRect(m,m,(N-1)*cell,(N-1)*cell);ctx.globalAlpha=1;
+  ctx.fillStyle=line;for(const i of STARS){const [x,y]=pos(i);ctx.beginPath();ctx.arc(x,y,cell*.09,0,7);ctx.fill();}
+  // springs
+  const pulse=(Math.sin(t/520)+1)/2;
+  for(const sp of SPRINGS){
+    const [x,y]=pos(sp);
+    const owner=S.board[sp]&&(S.hidden[sp]==null||S.board[sp]===v||S.phase==='over')?S.board[sp]:0;
+    const rg=ctx.createRadialGradient(x,y,0,x,y,cell*(.95+pulse*.15));
+    rg.addColorStop(0,hexA(jade,.7));rg.addColorStop(1,hexA(jade,0));
+    ctx.fillStyle=rg;ctx.beginPath();ctx.arc(x,y,cell*1.1,0,7);ctx.fill();
+    // three arcs = three turns; lit arcs show how far the owner has charged
+    const tk=owner?Math.min(3,S.tick[sp]||0):0;
+    const R0=cell*.6;
+    for(let q=0;q<3;q++){
+      const a0=-Math.PI/2+q*2.094+.16,a1=-Math.PI/2+(q+1)*2.094-.16;
+      const lit=q<tk;
+      ctx.lineCap='round';
+      if(lit){ctx.shadowColor=jade;ctx.shadowBlur=10;ctx.strokeStyle=jade;ctx.lineWidth=cell*.16;}
+      else{ctx.shadowBlur=0;ctx.strokeStyle=hexA(teal,owner?.45:.8);ctx.lineWidth=owner?cell*.1:cell*.06;}
+      ctx.beginPath();ctx.arc(x,y,R0,a0,a1);ctx.stroke();
+      if(lit){ctx.shadowBlur=0;ctx.strokeStyle=teal;ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,R0+cell*.08,a0,a1);ctx.stroke();}
+    }
+    ctx.shadowBlur=0;ctx.lineCap='butt';
+  }
+  // seal
+  if(S.seal){
+    const [x,y]=pos(S.seal.i);const w=cell*.78;
+    ctx.fillStyle=hexA(cin,.9);roundRect(x-w/2,y-w/2,w,w,cell*.12);ctx.fill();
+    ctx.fillStyle='#f6efe2';ctx.font=`${cell*.6}px ${C('--f-display')}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('封',x,y+cell*.04);
+  }
+  if(S.replace){
+    const [x,y]=pos(S.replace.forbid);const w=cell*.25;
+    ctx.strokeStyle=cin;ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(x-w,y-w);ctx.lineTo(x+w,y+w);ctx.moveTo(x+w,y-w);ctx.lineTo(x-w,y+w);ctx.stroke();
+  }
+  // shift targets
+  if(sel&&sel.skill==='shift'&&sel.from!=null){
+    const [r,c]=rc(sel.from);
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+      if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(!inb(rr,cc))continue;const j=ix(rr,cc);
+      const visible=S.board[j]&&(S.hidden[j]==null||S.board[j]===v);
+      if(visible)continue;const [x,y]=pos(j);ctx.fillStyle=hexA(teal,.75);ctx.beginPath();ctx.arc(x,y,cell*.14,0,7);ctx.fill();
+    }
+  }
+  // stones
+  const reveal=S.phase==='over';
+  for(let i=0;i<NN;i++){
+    const p=S.board[i];if(!p)continue;
+    const hid=S.hidden[i]!=null;
+    if(hid&&p!==v&&!reveal)continue;
+    // hide the stone being animated by a fresh shock? (removed already) – skip
+    const [x,y]=pos(i);
+    stone(x,y,cell*.44,p,hid&&!reveal?.45:1);
+    if(hid&&!reveal){ctx.setLineDash([3,3]);ctx.strokeStyle=teal;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,cell*.5,0,7);ctx.stroke();ctx.setLineDash([]);}
+    if(sel&&sel.from===i){ctx.strokeStyle=teal;ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,cell*.52,0,7);ctx.stroke();}
+  }
+  // last move markers
+  for(const p of [1,2]){
+    const i=S.last[p];if(i==null||S.board[i]!==p)continue;
+    if(S.hidden[i]!=null&&p!==v)continue;
+    if(p!==3-S.turn)continue;
+    const [x,y]=pos(i);ctx.fillStyle=cin;ctx.beginPath();ctx.arc(x,y,cell*.1,0,7);ctx.fill();
+  }
+  // hover ghost
+  if(hover>=0&&controls()&&!sel&&!S.board[hover]){const [x,y]=pos(hover);stone(x,y,cell*.44,S.actor,.3);}
+  // win line
+  if(S.winLine&&S.winLine.length){
+    const pts=S.winLine.map(pos).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    ctx.strokeStyle=jade;ctx.lineWidth=4;ctx.shadowColor=jade;ctx.shadowBlur=14;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(...pts[0]);ctx.lineTo(...pts[pts.length-1]);ctx.stroke();ctx.shadowBlur=0;
+  }
+  // effects
+  const now=t;
+  effects=effects.filter(e=>now-e.t0<(e.dur||900));
+  for(const e of effects){
+    const k=(now-e.t0)/(e.dur||900);
+    if(e.kind==='gain'){
+      const [x,y]=pos(e.cells[0]);
+      ctx.strokeStyle=hexA(jade,1-k);ctx.lineWidth=3;ctx.shadowColor=jade;ctx.shadowBlur=12;
+      ctx.beginPath();ctx.arc(x,y,cell*(.6+1.2*k),0,7);ctx.stroke();ctx.shadowBlur=0;
+      // floating badge, drifting toward the board centre so it never leaves the canvas
+      const fs=cell*.58,label='+1 能量';
+      ctx.font=`700 ${fs}px ${C('--f-body')}`;ctx.textAlign='center';ctx.textBaseline='middle';
+      const tw=ctx.measureText(label).width+fs*.9,th=fs*1.5;
+      const bx=x+(x<s/2?1:-1)*(cell*.7+tw/2),by=y+(y<s/2?1:-1)*cell*(.8+.9*k);
+      ctx.globalAlpha=Math.min(1,(1-k)*2);
+      ctx.fillStyle=C('--ink');roundRect(bx-tw/2,by-th/2,tw,th,th/2);ctx.fill();
+      ctx.strokeStyle=jade;ctx.lineWidth=1.5;ctx.stroke();
+      ctx.fillStyle=jade;ctx.fillText(label,bx,by+fs*.04);
+      ctx.globalAlpha=1;
+      continue;
+    }
+    const secretHidden=e.secret&&e.p!==v;
+    if(e.kind==='fog'&&secretHidden){ctx.fillStyle=`rgba(236,240,248,${.45*(1-k)})`;roundRect(0,0,s,s,14);ctx.fill();continue;}
+    if(secretHidden)continue;
+    for(const i of e.cells){
+      const [x,y]=pos(i);
+      if(e.kind==='place'||e.kind==='rewind'){
+        const rr=e.kind==='rewind'?cell*1.6*(1-k):cell*(.4+1.4*k);
+        ctx.strokeStyle=hexA(e.kind==='rewind'?cin:jade,1-k);ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,rr,0,7);ctx.stroke();
+      }else if(e.kind==='shock'){
+        ctx.strokeStyle=hexA(cin,1-k);ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,cell*(.3+2.4*k),0,7);ctx.stroke();
+        for(let q=0;q<10;q++){const a=q*.628+.3,d=cell*(.3+1.6*k);ctx.fillStyle=hexA(cin,1-k);ctx.beginPath();ctx.arc(x+Math.cos(a)*d,y+Math.sin(a)*d,cell*.08*(1-k)+1,0,7);ctx.fill();}
+      }else if(e.kind==='turn'){
+        ctx.strokeStyle=hexA(jade,1-k);ctx.lineWidth=3;ctx.beginPath();ctx.arc(x,y,cell*.7,k*8,k*8+4);ctx.stroke();
+      }else if(e.kind==='seal'){
+        const sc=1+1.2*(1-k)*(1-k);ctx.strokeStyle=hexA(cin,1-k);ctx.lineWidth=3;const w=cell*.78*sc;roundRect(x-w/2,y-w/2,w,w,6);ctx.stroke();
+      }else if(e.kind==='fog'||e.kind==='shift'||e.kind==='reveal'){
+        ctx.fillStyle=`rgba(225,232,245,${.4*(1-k)})`;ctx.beginPath();ctx.arc(x,y,cell*(.6+.8*k),0,7);ctx.fill();
+      }
+    }
+  }
+}
+const _cv={};
+let _wood=null,_woodSize=0;
+function woodCanvas(){
+  const px=Math.round(G.size*G.dpr);
+  if(_wood&&_woodSize===px)return _wood;
+  _wood=document.createElement('canvas');_wood.width=_wood.height=px;_woodSize=px;
+  const w=_wood.getContext('2d'),sc=G.dpr,S0=G.size;
+  w.scale(sc,sc);
+  const g=w.createLinearGradient(0,0,S0,S0);g.addColorStop(0,cssVar('--wood1'));g.addColorStop(1,cssVar('--wood2'));
+  w.fillStyle=g;w.beginPath();w.roundRect?w.roundRect(0,0,S0,S0,14):w.rect(0,0,S0,S0);w.fill();w.save();w.clip();
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  w.strokeStyle=cssVar('--grain');
+  for(let k=0;k<46;k++){
+    const y0=rnd()*S0,amp=4+rnd()*10,freq=.004+rnd()*.01,ph=rnd()*6;
+    w.globalAlpha=.06+rnd()*.08;w.lineWidth=.6+rnd()*1.6;w.beginPath();
+    for(let x=0;x<=S0;x+=6){const y=y0+Math.sin(x*freq+ph)*amp;x?w.lineTo(x,y):w.moveTo(x,y);}
+    w.stroke();
+  }
+  w.restore();
+  return _wood;
+}
+function cssVar(n){return _cv[n]||(_cv[n]=getComputedStyle(document.documentElement).getPropertyValue(n).trim());}
+function stone(x,y,r,p,alpha){
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.arc(x+r*.12,y+r*.16,r,0,7);ctx.fill();
+  const g=ctx.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);
+  if(p===1){g.addColorStop(0,'#5f6676');g.addColorStop(.55,'#1a1e28');g.addColorStop(1,'#05070b');}
+  else{g.addColorStop(0,'#ffffff');g.addColorStop(.6,'#ebe5d7');g.addColorStop(1,'#bdb5a3');}
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+  ctx.lineWidth=1;ctx.strokeStyle=p===1?'rgba(255,255,255,.22)':'rgba(70,50,25,.35)';ctx.beginPath();ctx.arc(x,y,r-.5,0,7);ctx.stroke();
+  if(p===1){ctx.fillStyle='rgba(255,255,255,.28)';ctx.beginPath();ctx.ellipse(x-r*.32,y-r*.38,r*.28,r*.16,-.6,0,7);ctx.fill();}
+  ctx.globalAlpha=1;
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function hexA(hex,a){const h=hex.replace('#','');const n=parseInt(h.length===3?h.split('').map(c=>c+c).join(''):h,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${Math.max(0,a)})`;}
+requestAnimationFrame(draw);
+
+// ---------- result buttons ----------
+$('resView').onclick=()=>{showBoardAfterEnd=true;render();};
+$('resMenu').onclick=()=>{leaveRoom();mode=null;S=null;$('ovResult').hidden=true;show('scMenu');};
+$('resAgain').onclick=()=>{
+  showBoardAfterEnd=false;
+  if(mode==='online'){const ns=newState();S=ns;lastFxSeq=0;lastGainSeq=0;prevEnergy=null;effects=[];if(net)net.pushState(ns);render();return;}
+  startLocal(mode);
+};
+
+// ---------- online: lobby & rooms ----------
+const CODECH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function seatKey(code){return 'gomoku-seat-'+code;}
+$('mOnline').onclick=()=>{
+  if(db&&uid){show('scLobby');watchRooms();return;}
+  if(standalone){show('scPeer');}
+};
+$('lBack').onclick=()=>{if(unsubRooms){unsubRooms();unsubRooms=null;}show('scMenu');};
+function watchRooms(){
+  if(unsubRooms)return;
+  unsubRooms=db.collection('games').orderBy('updatedAt','desc').limit(12).onSnapshot(snap=>{
+    const rows=snap.docs.map(d=>d.data()).filter(Boolean);
+    const el=$('rooms');
+    if(!rows.length){el.innerHTML='<div class="note">还没有房间。点“创建房间”开一局，再让朋友来这里加入。</div>';return;}
+    el.innerHTML='';
+    for(const r of rows){
+      const mine=r.seats&&(r.seats['1']===uid||r.seats['2']===uid);
+      const st=r.status==='waiting'?(r.seats['1']===uid?'等待对手加入（你的房间）':'等待加入'):r.status==='over'?'已结束':mine?'进行中（你的对局）':'进行中';
+      const b=document.createElement('button');b.className='room';
+      const code=document.createElement('code');code.textContent=r.code;
+      const sm=document.createElement('small');sm.textContent=st;
+      b.append(code,sm);
+      b.disabled=!mine&&r.status!=='waiting';
+      b.onclick=()=>joinRoom(r.code);
+      el.append(b);
+    }
+  },()=>{$('rooms').innerHTML='<div class="note">读取房间失败，请刷新页面再试。</div>';});
+}
+$('lCreate').onclick=async()=>{
+  const btn=$('lCreate');btn.disabled=true;
+  try{
+    let code='';for(let k=0;k<4;k++)code+=CODECH[Math.floor(Math.random()*CODECH.length)];
+    const now=Date.now();
+    await db.doc('games/'+code).set({code,status:'waiting',seats:{'1':uid,'2':null},createdAt:now,updatedAt:now,state:newState()});
+    tryStore(()=>sessionStorage.setItem(seatKey(code),'1'));
+    enterRoom(code,1);
+  }catch(e){toast(e&&e.code==='invalid_argument'?'你没有这个页面的参与权限，请让页面主人把你设为参与者':'创建失败，请重试');}
+  btn.disabled=false;
+};
+$('lJoin').onclick=()=>{const c=$('joinCode').value.trim().toUpperCase();if(c.length!==4){toast('房间号是 4 位');return;}joinRoom(c);};
+async function joinRoom(code){
+  try{
+    const ref=db.doc('games/'+code);
+    let snap=await ref.get();
+    if(!snap.exists){toast('没有找到这个房间');return;}
+    let d=snap.data();
+    const saved=tryStore(()=>sessionStorage.getItem(seatKey(code)));
+    if(d.seats['1']===uid&&(!d.seats['2']||d.seats['2']!==uid)){enterRoom(code,1);return;}
+    if(d.seats['2']===uid&&d.seats['1']!==uid){enterRoom(code,2);return;}
+    if(d.seats['1']===uid&&d.seats['2']===uid){enterRoom(code,saved==='1'?1:2);return;}
+    if(d.seats['2']){toast('这个房间已经满了');return;}
+    const lease=await ref.acquire({holder:uid,ttlMs:4000});
+    if(!lease.acquired){toast('有人正在加入，请稍后再试');return;}
+    snap=await ref.get();d=snap.data();
+    if(d.seats['2']&&d.seats['2']!==uid){toast('这个房间已经满了');return;}
+    await ref.update({seats:{'2':uid},status:'playing',updatedAt:Date.now()});
+    tryStore(()=>sessionStorage.setItem(seatKey(code),'2'));
+    enterRoom(code,2);
+  }catch(e){toast(e&&e.code==='invalid_argument'?'你没有这个页面的参与权限，请让页面主人把你设为参与者':'加入失败，请重试');}
+}
+function enterRoom(code,seat){
+  if(unsubRooms){unsubRooms();unsubRooms=null;}
+  leaveRoom();
+  net={
+    pushState:writeRoom,
+    pushPick:(p,skills)=>db.doc('games/'+code).update({state:{loadout:{[p]:skills}},updatedAt:Date.now()}).catch(()=>toast('保存失败，请重试')),
+    present:()=>!!(roomData&&roomData.seats['2']),
+    waitInfo:()=>roomData&&!roomData.seats['2']?{title:'等待对手加入',code,note:'让朋友打开这个页面，进入“在线对战”，在大厅点这个房间号或者输入它就能加入。'}:null,
+    leave(){if(unsubRoom){unsubRoom();unsubRoom=null;}roomData=null;},
+    lobby:'scLobby'
+  };
+  mode='online';roomCode=code;mySeat=seat;S=null;sel=null;effects=[];lastFxSeq=-1;lastGainSeq=-1;prevEnergy=null;showBoardAfterEnd=false;
+  show('scGame');
+  const ref=db.doc('games/'+code);
+  unsubRoom=ref.onSnapshot(snap=>{
+    if(!snap.exists){toast('房间已不存在');return;}
+    const d=snap.data();roomData=d;
+    if(writing&&snap.metadata.hasPendingWrites)return;
+    const first=S===null;
+    S=JSON.parse(JSON.stringify(d.state));
+    if(first||lastFxSeq<0)lastFxSeq=S.fx?S.fx.seq:0;
+    if(first||lastGainSeq<0)lastGainSeq=S.gain?S.gain.seq:0;
+    if(S.phase==='pick'&&S.loadout[1]&&S.loadout[2]&&mySeat===1&&!snap.metadata.hasPendingWrites){
+      ref.update({state:{phase:'play'},updatedAt:Date.now()}).catch(()=>{});
+    }
+    if(S.phase==='play')showBoardAfterEnd=false;
+    if(S.fx&&S.fx.seq>lastFxSeq&&S.fx.p!==mySeat)tock(500);
+    render();
+  },()=>toast('和房间的连接断开了，请返回大厅重新进入'));
+}
+async function writeRoom(ns){
+  if(!roomData)return;
+  writing=true;
+  try{
+    const doc={...JSON.parse(JSON.stringify(roomData)),state:ns,status:ns.phase==='over'?'over':(roomData.seats['2']?'playing':'waiting'),updatedAt:Date.now()};
+    roomData=doc;
+    await db.doc('games/'+roomCode).set(doc);
+  }catch(e){toast('同步失败，请检查网络');}
+  writing=false;
+}
+function leaveRoom(){if(net){net.leave();net=null;}if(unsubRoom){unsubRoom();unsubRoom=null;}roomCode=null;roomData=null;}
+function renderWait(){
+  const w=mode==='online'&&net?net.waitInfo():null;
+  $('ovWait').hidden=!w;
+  if(!w)return;
+  $('waitTitle').textContent=w.title;
+  $('waitCode').textContent=w.code||'';
+  $('waitNote').textContent=w.note||'';
+  $('waitLink').hidden=!w.link;$('waitLink').value=w.link||'';
+  $('waitCopy').hidden=!w.link;
+  $('waitRetry').hidden=!w.retry;
+}
+$('waitLeave').onclick=()=>{
+  const back=net?net.lobby:'scMenu';
+  leaveRoom();mode=null;S=null;$('ovWait').hidden=true;show(back);
+  if(back==='scLobby')watchRooms();
+};
+$('waitCopy').onclick=async()=>{
+  const v=$('waitLink').value;
+  try{await navigator.clipboard.writeText(v);toast('已复制，发给朋友吧');}
+  catch(e){$('waitLink').select();toast('请长按链接手动复制');}
+};
+$('waitRetry').onclick=()=>{if(net&&net.retry)net.retry();};
+
+// ---------- peer-to-peer transport (used outside claude.ai, e.g. GitHub Pages) ----------
+const PEER_PREFIX='skgomoku-v1-';
+function peerOpts(){
+  const base={debug:0,config:{iceServers:[
+    {urls:'stun:stun.miwifi.com:3478'},{urls:'stun:stun.qq.com:3478'},{urls:'stun:stun.l.google.com:19302'},
+    {urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}
+  ]}};
+  return Object.assign(base,window.GOMOKU_PEER_OPTS||{});
+}
+function loadPeerLib(){
+  if(window.Peer)return Promise.resolve();
+  const srcs=['peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];
+  return new Promise((res,rej)=>{
+    const next=k=>{
+      if(k>=srcs.length)return rej(new Error('load'));
+      const sc=document.createElement('script');sc.src=srcs[k];
+      sc.onload=()=>window.Peer?res():next(k+1);
+      sc.onerror=()=>{sc.remove();next(k+1);};
+      document.head.append(sc);
+    };
+    next(0);
+  });
+}
+function genCode(){let c='';for(let k=0;k<4;k++)c+=CODECH[Math.floor(Math.random()*CODECH.length)];return c;}
+function inviteLink(code){return location.origin+location.pathname+'#'+code;}
+function peerStatus(t){$('pStatus').textContent=t;}
+function startPeerGame(code,seat,peer){
+  let conn=null,everConnected=false,joinTimer=null;
+  const isHost=seat===1;
+  const t={
+    lobby:'scPeer',
+    present:()=>!!(conn&&conn.open),
+    pushState(ns){if(conn&&conn.open)conn.send({type:'state',state:ns});},
+    pushPick(p,skills){if(conn&&conn.open)conn.send({type:'pick',p,skills});},
+    waitInfo(){
+      if(conn&&conn.open)return null;
+      if(isHost)return everConnected
+        ?{title:'对手掉线了',code,note:'等对方重新打开邀请链接，或者输入房间号重新加入。棋局会自动接上。',link:inviteLink(code)}
+        :{title:'等待对手加入',code,note:'把房间号或邀请链接发给朋友。对方打开链接就能直接进来，不用注册。保持这个页面开着。',link:inviteLink(code)};
+      return everConnected
+        ?{title:'连接断开了',code,note:'点“重新连接”试试。如果房主关掉了页面，这局就没法继续了。',retry:true}
+        :{title:'正在连接…',code,note:'正在连接房主的手机。'};
+    },
+    leave(){clearTimeout(joinTimer);try{conn&&conn.close();}catch(e){}try{peer.destroy();}catch(e){}conn=null;},
+    retry(){connectToHost();render();}
+  };
+  const attach=c=>{
+    conn=c;
+    const onOpen=()=>{
+      everConnected=true;clearTimeout(joinTimer);
+      if(isHost)c.send({type:'state',state:S});
+      render();
+    };
+    c.on('data',msg=>{
+      if(!msg||typeof msg!=='object')return;
+      if(msg.type==='state'&&msg.state){
+        const first=S===null;
+        S=msg.state;
+        if(first){lastFxSeq=S.fx?S.fx.seq:0;lastGainSeq=S.gain?S.gain.seq:0;show('scGame');}
+        if(S.phase==='play')showBoardAfterEnd=false;
+        if(S.fx&&S.fx.seq>lastFxSeq&&S.fx.p!==mySeat)tock(500);
+        sel=null;render();
+      }else if(msg.type==='pick'&&S){
+        const r=apply(S,{t:'pick',p:msg.p,skills:msg.skills});
+        if(!r.err){S=r.state;render();}
+      }else if(msg.type==='full'){
+        toast('这个房间已经有两个人了');
+      }
+    });
+    c.on('close',()=>{if(conn===c){conn=null;render();}});
+    c.on('error',()=>{});
+    if(c.open)onOpen();else c.on('open',onOpen);
+  };
+  function connectToHost(){
+    if(peer.disconnected&&!peer.destroyed){try{peer.reconnect();}catch(e){}}
+    const c=peer.connect(PEER_PREFIX+code,{reliable:true});
+    attach(c);
+    clearTimeout(joinTimer);
+    joinTimer=setTimeout(()=>{if(!(conn&&conn.open)){const m='连接超时：可能是房间号不对，或者当前网络不支持直连，换个网络（比如从 Wi-Fi 换成流量）再试。';toast(m);if(!S){peerStatus(m);$('pJoin').disabled=false;}render();}},15000);
+  }
+  if(isHost){
+    peer.on('connection',c=>{
+      // a reconnecting guest replaces the stale connection
+      if(conn&&conn!==c){const old=conn;conn=null;try{old.close();}catch(e){}}
+      attach(c);
+    });
+  }
+  peer.on('disconnected',()=>{setTimeout(()=>{if(!peer.destroyed){try{peer.reconnect();}catch(e){}}},1500);});
+  peer.on('error',e=>{
+    if(e&&e.type==='peer-unavailable'){const m='没有找到这个房间：请确认房间号，房主的页面要保持打开。';toast(m);clearTimeout(joinTimer);if(!S)peerStatus(m);render();}
+  });
+  net=t;mode='online';roomCode=code;mySeat=seat;sel=null;effects=[];prevEnergy=null;showBoardAfterEnd=false;
+  if(isHost){S=newState();lastFxSeq=0;lastGainSeq=0;show('scGame');render();}
+  else{S=null;connectToHost();}
+}
+async function peerCreate(){
+  $('pCreate').disabled=true;peerStatus('正在创建房间…');
+  try{await loadPeerLib();}catch(e){peerStatus('联机组件加载失败，请检查网络后刷新页面。');$('pCreate').disabled=false;return;}
+  const tryOnce=(attempt)=>{
+    const code=genCode();
+    const peer=new Peer(PEER_PREFIX+code,peerOpts());
+    let opened=false;
+    peer.on('open',()=>{opened=true;$('pCreate').disabled=false;peerStatus('创建房间后，把房间号或邀请链接发给朋友。两部手机直接连接，不用注册任何账号。');startPeerGame(code,1,peer);});
+    peer.on('error',e=>{
+      if(opened)return;
+      peer.destroy();
+      if(e&&e.type==='unavailable-id'&&attempt<4)return tryOnce(attempt+1);
+      $('pCreate').disabled=false;
+      peerStatus('连不上联机服务器，请检查网络后再试。');
+    });
+  };
+  tryOnce(0);
+}
+async function peerJoin(code){
+  code=(code||'').trim().toUpperCase();
+  if(!/^[A-Z0-9]{4}$/.test(code)){toast('房间号是 4 位字母或数字');return;}
+  peerStatus('正在加入房间 '+code+'…');$('pJoin').disabled=true;
+  try{await loadPeerLib();}catch(e){peerStatus('联机组件加载失败，请检查网络后刷新页面。');$('pJoin').disabled=false;return;}
+  const peer=new Peer(undefined,peerOpts());
+  let opened=false;
+  peer.on('open',()=>{opened=true;$('pJoin').disabled=false;startPeerGame(code,2,peer);});
+  peer.on('error',e=>{
+    if(opened)return;
+    peer.destroy();$('pJoin').disabled=false;
+    peerStatus('连不上联机服务器，请检查网络后再试。');
+  });
+}
+$('pBack').onclick=()=>show('scMenu');
+$('pCreate').onclick=peerCreate;
+$('pJoin').onclick=()=>peerJoin($('pCode').value);
+// an invite link like  …/gomoku/#AB12  drops the friend straight into the room
+if(standalone&&/^#[A-Za-z0-9]{4}$/.test(location.hash)){
+  const c=location.hash.slice(1).toUpperCase();
+  history.replaceState(null,'',location.pathname+location.search);
+  show('scPeer');$('pCode').value=c;peerJoin(c);
+}
+</script>
+</body>
+</html>
