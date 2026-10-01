@@ -46,7 +46,17 @@ h1{font-family:var(--f-display);font-weight:400;font-size:clamp(44px,13vw,72px);
 .topbar .brand{font-family:var(--f-display);font-size:26px;letter-spacing:.06em}
 .topbar .btns{display:flex;gap:6px}
 .topbar button{padding:6px 10px;font-size:13px}
-.players{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:relative}
+.bubble{position:absolute;top:calc(100% + 8px);z-index:5;max-width:calc(50% - 4px);box-sizing:border-box;background:var(--moon);color:var(--ink);font-weight:700;font-size:15px;line-height:1.4;padding:8px 12px;border-radius:12px;box-shadow:0 8px 20px rgba(0,0,0,.4);animation:pop .22s ease-out;pointer-events:none}
+.bubble::before{content:"";position:absolute;top:-7px;left:24px;border:7px solid transparent;border-top:0;border-bottom-color:var(--moon)}
+#bub1{left:0} #bub2{right:0} #bub2::before{left:auto;right:24px}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.actions button{padding:9px 12px}
+.emotes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.emotes button{text-align:left;font-weight:500}
+.mute{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+.mute input{width:18px;height:18px;accent-color:var(--jade)}
 .pcard{border:1px solid var(--edge);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;background:var(--panel);transition:border-color .2s,box-shadow .2s;min-width:0}
 .pcard.active{border-color:var(--jade);box-shadow:0 0 0 1px var(--jade),0 0 18px -6px var(--jade)}
 .pcard .who{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;min-width:0}
@@ -116,6 +126,7 @@ canvas{display:block;touch-action:manipulation;border-radius:14px;max-width:100%
       <p class="sub">五子连珠的老规矩，加上封印、迷雾、震荡这些技能。能量要靠落子攒，角落的泉眼值得一抢。</p>
     </div>
     <div class="menu-btns">
+      <button class="primary" id="mResume" hidden>继续上一局 <small id="mResumeInfo"></small></button>
       <button class="primary" id="mOnline">在线对战 <small>和朋友各用一部手机</small></button>
       <button id="mAI">对战电脑 <small>先熟悉规则</small></button>
       <button id="mLocal">同机对战 <small>两人轮流用一部设备</small></button>
@@ -150,10 +161,13 @@ canvas{display:block;touch-action:manipulation;border-radius:14px;max-width:100%
     <div class="players">
       <div class="pcard" id="p1"></div>
       <div class="pcard" id="p2"></div>
+      <div class="bubble" id="bub1" hidden></div>
+      <div class="bubble" id="bub2" hidden></div>
     </div>
     <div class="boardwrap" id="boardwrap"><canvas id="cv" aria-label="棋盘"></canvas></div>
     <div class="hint" id="hint"></div>
     <div class="skillbar" id="skillbar"></div>
+    <div class="actions"><button id="gUndo">悔棋</button><button id="gEmote">嘲讽</button></div>
     <div class="log" id="log"></div>
   </section>
 </div>
@@ -183,7 +197,7 @@ canvas{display:block;touch-action:manipulation;border-radius:14px;max-width:100%
 <div class="overlay" id="ovResult" hidden><div class="sheet result">
   <h2 id="resTitle"></h2>
   <div class="note" id="resNote" style="text-align:center"></div>
-  <div class="row"><button class="primary" id="resAgain">再来一局</button><button id="resView">看棋盘</button><button id="resMenu">回菜单</button></div>
+  <div class="row"><button class="primary" id="resAgain">再来一局</button><button id="resUndo">悔棋</button><button id="resView">看棋盘</button><button id="resMenu">回菜单</button></div>
 </div></div>
 
 <div class="overlay" id="ovWait" hidden><div class="sheet">
@@ -192,6 +206,19 @@ canvas{display:block;touch-action:manipulation;border-radius:14px;max-width:100%
   <div class="note" id="waitNote"></div>
   <input id="waitLink" class="linkbox" readonly hidden aria-label="邀请链接">
   <div class="row"><button class="primary" id="waitCopy" hidden>复制邀请链接</button><button class="primary" id="waitRetry" hidden>重新连接</button><button id="waitLeave">离开房间</button></div>
+</div></div>
+
+<div class="overlay" id="ovEmote" hidden><div class="sheet">
+  <h2>嘲讽一下</h2>
+  <div class="emotes" id="emotes"></div>
+  <label class="mute"><input type="checkbox" id="muteEmote">屏蔽对手的嘲讽</label>
+  <button id="emoteClose">关闭</button>
+</div></div>
+
+<div class="overlay" id="ovReq" hidden><div class="sheet">
+  <h2>对手请求悔棋</h2>
+  <div class="note">同意后，棋盘会退回到对手上一手之前。</div>
+  <div class="row"><button class="primary" id="reqYes">同意</button><button id="reqNo">拒绝</button></div>
 </div></div>
 
 <div class="toast" id="toast" hidden></div>
@@ -453,10 +480,10 @@ function updateOnlineNote(){
 
 // ---------- helpers ----------
 function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200);}
-function show(id){for(const s of ['scMenu','scLobby','scPeer','scGame'])$(s).hidden=s!==id;if(id==='scGame')resize();}
+function show(id){for(const s of ['scMenu','scLobby','scPeer','scGame'])$(s).hidden=s!==id;if(id==='scGame')resize();if(id==='scMenu'&&typeof refreshResume==='function')refreshResume();}
 function tryStore(fn){try{return fn();}catch(e){return null;}}
 function viewer(){ if(!S)return 1; if(mode==='online')return mySeat; if(mode==='ai')return 1; return S.actor; }
-function controls(){ if(!S||S.phase!=='play')return false; if(mode==='local')return true; if(mode==='ai')return S.actor===1; return S.actor===mySeat&&(!net||net.present()); }
+function controls(){ if(!S||S.phase!=='play'||S.req)return false; if(mode==='local')return true; if(mode==='ai')return S.actor===1; return S.actor===mySeat&&(!net||net.present()); }
 function who(p){
   if(mode==='ai')return p===1?'你':'电脑';
   if(mode==='online')return p===mySeat?'你':'对手';
@@ -473,7 +500,7 @@ function tock(freq){
 
 // ---------- start modes ----------
 function startLocal(m){
-  mode=m;S=newState();sel=null;effects=[];lastFxSeq=0;lastGainSeq=0;prevEnergy=null;showBoardAfterEnd=false;
+  mode=m;S=newState();hist=[];sel=null;effects=[];lastFxSeq=0;lastGainSeq=0;prevEnergy=null;showBoardAfterEnd=false;
   if(m==='ai'){S=apply(S,{t:'pick',p:2,skills:['seal','shock']}).state;}
   show('scGame');render();
 }
@@ -500,11 +527,132 @@ function dispatch(a){
   commit(r.state);
   return true;
 }
+// every state carries a revision number so two devices can tell which copy is newer
+let hist=[];  // earlier states of the current game, oldest first (used by undo)
+function adopt(ns){
+  if(S&&ns!==S){
+    const fresh=ns.phase==='pick'&&S.phase!=='pick';
+    if(fresh)hist=[];
+    else if(ns.undone&&ns.undone.seq===ns.rev)hist=hist.filter(st=>(st.rev||0)<ns.undone.baseRev);
+    else if((ns.rev||0)>(S.rev||0)){hist.push(S);if(hist.length>150)hist.shift();}
+  }
+  S=ns;
+}
 function commit(ns){
-  S=ns;sel=null;
+  ns.rev=((S&&S.rev)||0)+1;
+  adopt(ns);sel=null;
   if(mode==='online'&&net)net.pushState(ns);
+  saveResume();
   render();
   maybeAI();
+}
+function remoteAdopt(ns){
+  const first=S===null;
+  const prevReq=S&&S.req;
+  adopt(ns);
+  if(first){lastFxSeq=S.fx?S.fx.seq:0;lastGainSeq=S.gain?S.gain.seq:0;show('scGame');}
+  if(prevReq&&prevReq.from===mySeat&&!S.req)toast(S.undone&&S.undone.seq===S.rev?'对手同意了悔棋':'对手拒绝了悔棋');
+  if(S.phase!=='over')showBoardAfterEnd=false;
+  if(S.fx&&S.fx.seq>lastFxSeq&&S.fx.p!==mySeat)tock(500);
+  sel=null;saveResume();render();
+}
+
+// ---------- undo (悔棋) ----------
+const turnOwner=st=>st.replace?st.replace.caster:st.actor;
+// the state at the start of `from`'s most recent finished turn
+function undoTarget(from){
+  if(!S)return null;
+  const L=hist.filter(st=>!st.req).concat(S.req?[]:[S]);
+  for(let k=L.length-2;k>=0;k--){
+    const a=L[k],b=L[k+1];
+    if(a.phase==='pick')break;
+    if(a.phase!=='play'||turnOwner(a)!==from)continue;
+    if(turnOwner(b)!==from||b.phase!=='play'){
+      let i=k;
+      while(i>0&&L[i-1].phase==='play'&&turnOwner(L[i-1])===from)i--;
+      return L[i];
+    }
+  }
+  return null;
+}
+function undoState(H,from){
+  const ns=JSON.parse(JSON.stringify(H));
+  ns.log=S.log.slice();ns.log.push(`${PN(from)}悔棋`);if(ns.log.length>40)ns.log.shift();
+  ns.req=null;
+  ns.undone={from,baseRev:H.rev||0,seq:0};
+  return ns;
+}
+function commitUndo(H,from){
+  const ns=undoState(H,from);
+  ns.rev=((S&&S.rev)||0)+1;ns.undone.seq=ns.rev;
+  clearTimeout(maybeAI._t);
+  adopt(ns);sel=null;showBoardAfterEnd=false;
+  if(mode==='online'&&net)net.pushState(ns);
+  saveResume();render();maybeAI();
+}
+function undoFrom(){
+  if(!S)return 0;
+  if(mode==='online')return mySeat;
+  if(mode==='ai')return 1;
+  return S.phase==='over'?turnOwner(S):3-turnOwner(S);
+}
+function canUndo(){
+  if(!S||S.req||(S.phase!=='play'&&S.phase!=='over'))return false;
+  if(mode==='online'&&!(net&&net.present()))return false;
+  if(mode==='ai'&&S.phase==='play'&&S.actor===2)return false;
+  return !!undoTarget(undoFrom());
+}
+function askUndo(){
+  if(!canUndo())return;
+  const from=undoFrom();
+  if(mode!=='online'){commitUndo(undoTarget(from),from);return;}
+  const ns=JSON.parse(JSON.stringify(S));ns.req={kind:'undo',from};
+  commit(ns);toast('已向对手发出悔棋请求');
+}
+$('gUndo').onclick=askUndo;
+$('resUndo').onclick=askUndo;
+$('reqYes').onclick=()=>{
+  if(!S||!S.req)return;
+  const from=S.req.from,H=undoTarget(from);
+  if(!H){const ns=JSON.parse(JSON.stringify(S));ns.req=null;commit(ns);toast('没有可以悔的棋了');return;}
+  commitUndo(H,from);
+};
+$('reqNo').onclick=()=>{
+  if(!S||!S.req)return;
+  const ns=JSON.parse(JSON.stringify(S));ns.req=null;commit(ns);
+};
+
+// ---------- taunts (嘲讽) ----------
+const EMOTES=['就这？','你的棋子在发抖','这步我早算到了','快点，我等到花都谢了','泉眼归我了','要不要让你一手？','好棋！','失误，失误'];
+const AI_RETORTS=['电脑表示不服','我只是在让着你','你等着','嘴硬没用，棋盘上见'];
+const AI_TAUNTS=['就这？','这步我早算到了','你的棋子在发抖','泉眼归我了'];
+let emoteMuted=tryStore(()=>localStorage.getItem('gomoku-mute'))==='1',lastEmoteAt=0;
+$('muteEmote').checked=emoteMuted;
+$('muteEmote').onchange=()=>{emoteMuted=$('muteEmote').checked;tryStore(()=>localStorage.setItem('gomoku-mute',emoteMuted?'1':'0'));};
+$('emotes').innerHTML=EMOTES.map((t,i)=>`<button data-i="${i}">${t}</button>`).join('');
+function showBubble(p,text){
+  const el=$('bub'+p);
+  el.textContent=text;el.hidden=true;void el.offsetWidth;el.hidden=false;
+  clearTimeout(showBubble['t'+p]);showBubble['t'+p]=setTimeout(()=>el.hidden=true,2800);
+}
+function onEmote(p,i){
+  if(emoteMuted||!EMOTES[i])return;
+  showBubble(p,EMOTES[i]);tock(720);
+}
+for(const b of $('emotes').querySelectorAll('button'))b.onclick=()=>{
+  const i=+b.dataset.i;
+  $('ovEmote').hidden=true;
+  if(Date.now()-lastEmoteAt<2500){toast('慢一点，嘲讽也要讲节奏');return;}
+  lastEmoteAt=Date.now();
+  const me=mode==='online'?mySeat:mode==='ai'?1:(S?S.actor:1);
+  showBubble(me,EMOTES[i]);
+  if(mode==='online'&&net&&net.sendEmote)net.sendEmote(i);
+  if(mode==='ai')setTimeout(()=>{if(mode==='ai')showBubble(2,AI_RETORTS[Math.floor(Math.random()*AI_RETORTS.length)]);},1300);
+};
+$('gEmote').onclick=()=>{$('ovEmote').hidden=false;};
+$('emoteClose').onclick=()=>{$('ovEmote').hidden=true;};
+function aiTaunt(chance){
+  if(Math.random()<chance)setTimeout(()=>{if(mode==='ai')showBubble(2,AI_TAUNTS[Math.floor(Math.random()*AI_TAUNTS.length)]);},400);
 }
 function maybeAI(){
   if(mode!=='ai'||!S||S.phase!=='play'||S.actor!==2)return;
@@ -514,7 +662,10 @@ function maybeAI(){
     let a=Object.assign({p:2},aiDecide(S));
     let r=apply(S,a);
     if(r.err){const i=bestPlace(S.board.map(x=>x),[...Array(NN).keys()].filter(i=>S.board[i]===0),2,S);r=apply(S,{t:'place',p:2,i});}
-    if(!r.err)commit(r.state);
+    if(!r.err){
+      commit(r.state);
+      if(S.winner===2)aiTaunt(1);else if(a.t==='shock'||a.t==='seal')aiTaunt(.5);
+    }
   },650);
 }
 
@@ -547,7 +698,7 @@ $('pickOk').onclick=()=>{
   const skills=pickBuf.slice();pickBuf=[];
   if(mode==='online'){
     const r=apply(S,{t:'pick',p,skills});if(r.err){toast(r.err);return;}
-    S=r.state;render();
+    r.state.rev=(S.rev||0)+1;adopt(r.state);saveResume();render();
     if(net)net.pushPick(p,skills);
     return;
   }
@@ -596,6 +747,11 @@ function render(){
   $('hint').innerHTML=hintText();
   $('log').textContent=S.log.slice(-2).join('　·　');
   $('gResign').disabled=S.phase!=='play';
+  const cu=canUndo();
+  $('gUndo').disabled=!cu;$('resUndo').disabled=!cu;
+  $('gUndo').textContent=mode==='online'?'请求悔棋':'悔棋';
+  $('resUndo').hidden=S.draw;
+  $('ovReq').hidden=!(mode==='online'&&S.req&&S.req.from!==mySeat);
   // title
   $('gTitle').textContent=mode==='online'?`房间 ${roomCode}`:mode==='ai'?'对战电脑':'同机对战';
   // wait overlay
@@ -615,7 +771,8 @@ function render(){
 }
 function hintText(){
   if(S.phase==='pick')return needPick()?'':'等待对手选技能…';
-  if(S.phase==='over')return S.draw?'和棋':`${who(S.winner)}${mode==='local'?'':''}获胜`;
+  if(S.req)return S.req.from===mySeat?'等待对手回应悔棋请求…':'对手请求悔棋';
+  if(S.phase==='over')return S.draw?'和棋':`${who(S.winner)}获胜`;
   if(!controls())return mode==='ai'?'电脑思考中…':`等待${who(S.actor)}行动…`;
   const me=S.actor;
   if(S.replace)return '你的上一手被<b>回溯</b>了，请换个位置重下';
@@ -872,7 +1029,7 @@ $('resView').onclick=()=>{showBoardAfterEnd=true;render();};
 $('resMenu').onclick=()=>{leaveRoom();mode=null;S=null;$('ovResult').hidden=true;show('scMenu');};
 $('resAgain').onclick=()=>{
   showBoardAfterEnd=false;
-  if(mode==='online'){const ns=newState();S=ns;lastFxSeq=0;lastGainSeq=0;prevEnergy=null;effects=[];if(net)net.pushState(ns);render();return;}
+  if(mode==='online'){const ns=newState();lastFxSeq=0;lastGainSeq=0;prevEnergy=null;effects=[];commit(ns);return;}
   startLocal(mode);
 };
 
@@ -944,26 +1101,29 @@ function enterRoom(code,seat){
     pushPick:(p,skills)=>db.doc('games/'+code).update({state:{loadout:{[p]:skills}},updatedAt:Date.now()}).catch(()=>toast('保存失败，请重试')),
     present:()=>!!(roomData&&roomData.seats['2']),
     waitInfo:()=>roomData&&!roomData.seats['2']?{title:'等待对手加入',code,note:'让朋友打开这个页面，进入“在线对战”，在大厅点这个房间号或者输入它就能加入。'}:null,
-    leave(){if(unsubRoom){unsubRoom();unsubRoom=null;}roomData=null;},
+    sendEmote:i=>db.doc('games/'+code+'/emotes/last').set({from:seat,i,at:Date.now()}).catch(()=>{}),
+    leave(){if(unsubRoom){unsubRoom();unsubRoom=null;}if(unsubEmote){unsubEmote();unsubEmote=null;}roomData=null;},
     lobby:'scLobby'
   };
-  mode='online';roomCode=code;mySeat=seat;S=null;sel=null;effects=[];lastFxSeq=-1;lastGainSeq=-1;prevEnergy=null;showBoardAfterEnd=false;
+  let unsubEmote=null,emoteSeen=null;
+  unsubEmote=db.doc('games/'+code+'/emotes/last').onSnapshot(snap=>{
+    if(!snap.exists){emoteSeen=emoteSeen||0;return;}
+    const d=snap.data();
+    if(emoteSeen===null){emoteSeen=d.at;return;}
+    if(d.at===emoteSeen||d.from===mySeat)return;
+    emoteSeen=d.at;onEmote(d.from,d.i);
+  },()=>{});
+  mode='online';roomCode=code;mySeat=seat;S=null;hist=[];sel=null;effects=[];lastFxSeq=-1;lastGainSeq=-1;prevEnergy=null;showBoardAfterEnd=false;
   show('scGame');
   const ref=db.doc('games/'+code);
   unsubRoom=ref.onSnapshot(snap=>{
     if(!snap.exists){toast('房间已不存在');return;}
     const d=snap.data();roomData=d;
     if(writing&&snap.metadata.hasPendingWrites)return;
-    const first=S===null;
-    S=JSON.parse(JSON.stringify(d.state));
-    if(first||lastFxSeq<0)lastFxSeq=S.fx?S.fx.seq:0;
-    if(first||lastGainSeq<0)lastGainSeq=S.gain?S.gain.seq:0;
+    remoteAdopt(JSON.parse(JSON.stringify(d.state)));
     if(S.phase==='pick'&&S.loadout[1]&&S.loadout[2]&&mySeat===1&&!snap.metadata.hasPendingWrites){
       ref.update({state:{phase:'play'},updatedAt:Date.now()}).catch(()=>{});
     }
-    if(S.phase==='play')showBoardAfterEnd=false;
-    if(S.fx&&S.fx.seq>lastFxSeq&&S.fx.p!==mySeat)tock(500);
-    render();
   },()=>toast('和房间的连接断开了，请返回大厅重新进入'));
 }
 async function writeRoom(ns){
@@ -1026,75 +1186,172 @@ function loadPeerLib(){
 function genCode(){let c='';for(let k=0;k<4;k++)c+=CODECH[Math.floor(Math.random()*CODECH.length)];return c;}
 function inviteLink(code){return location.origin+location.pathname+'#'+code;}
 function peerStatus(t){$('pStatus').textContent=t;}
-function startPeerGame(code,seat,peer){
-  let conn=null,everConnected=false,joinTimer=null;
-  const isHost=seat===1;
+function startPeerGame(code,seat,peer,resumeState){
+  let conn=null,everConnected=false,joinTimer=null,retryTimer=null,hbTimer=null,lastSeen=0,attempts=0,left=false,stopped=false;
+  const isHost=seat===1,resumed=!!resumeState;
+  const send=m=>{if(conn&&conn.open){try{conn.send(m);}catch(e){}}};
   const t={
-    lobby:'scPeer',
+    kind:'peer',lobby:'scPeer',
     present:()=>!!(conn&&conn.open),
-    pushState(ns){if(conn&&conn.open)conn.send({type:'state',state:ns});},
-    pushPick(p,skills){if(conn&&conn.open)conn.send({type:'pick',p,skills});},
+    pushState(ns){send({type:'state',state:ns});},
+    pushPick(p,skills){send({type:'pick',p,skills});},
+    sendEmote(i){send({type:'emote',i});},
     waitInfo(){
       if(conn&&conn.open)return null;
-      if(isHost)return everConnected
-        ?{title:'对手掉线了',code,note:'等对方重新打开邀请链接，或者输入房间号重新加入。棋局会自动接上。',link:inviteLink(code)}
+      if(isHost)return everConnected||resumed
+        ?{title:'对手掉线了',code,note:'对方的页面会自动重连；对方关掉了页面的话，重新打开邀请链接就能接着下。',link:inviteLink(code)}
         :{title:'等待对手加入',code,note:'把房间号或邀请链接发给朋友。对方打开链接就能直接进来，不用注册。保持这个页面开着。',link:inviteLink(code)};
-      return everConnected
-        ?{title:'连接断开了',code,note:'点“重新连接”试试。如果房主关掉了页面，这局就没法继续了。',retry:true}
-        :{title:'正在连接…',code,note:'正在连接房主的手机。'};
+      if(everConnected||resumed)return {title:'连接断开了',code,note:stopped?'连不上房主。房主可能关掉了页面，等对方点“继续上一局”回来后再点重新连接。':`正在自动重连${attempts?`（第 ${attempts} 次）`:''}…`,retry:true};
+      return {title:'正在连接…',code,note:'正在连接房主的手机。'};
     },
-    leave(){clearTimeout(joinTimer);try{conn&&conn.close();}catch(e){}try{peer.destroy();}catch(e){}conn=null;},
-    retry(){connectToHost();render();}
+    leave(){left=true;clearTimeout(joinTimer);clearTimeout(retryTimer);clearInterval(hbTimer);document.removeEventListener('visibilitychange',onVis);try{conn&&conn.close();}catch(e){}try{peer.destroy();}catch(e){}conn=null;},
+    retry(){stopped=false;attempts=0;connectToHost();render();},
+    drop(){const c=conn;if(c){try{c.close();}catch(e){}dropConn(c);}}  // used by tests to simulate a broken link
   };
+  function dropConn(c){
+    if(conn!==c)return;
+    conn=null;render();
+    if(!isHost&&(everConnected||resumed))scheduleRetry();
+  }
+  function scheduleRetry(ms){
+    if(isHost||left||stopped)return;
+    clearTimeout(retryTimer);
+    if(attempts>=40){stopped=true;render();return;}
+    retryTimer=setTimeout(connectToHost,ms||Math.min(1500+attempts*800,6000));
+  }
   const attach=c=>{
+    if(conn&&conn!==c){const old=conn;conn=null;try{old.close();}catch(e){}}
     conn=c;
     const onOpen=()=>{
-      everConnected=true;clearTimeout(joinTimer);
-      if(isHost)c.send({type:'state',state:S});
+      if(conn!==c)return;
+      everConnected=true;attempts=0;stopped=false;clearTimeout(joinTimer);clearTimeout(retryTimer);lastSeen=Date.now();
+      c.send({type:'sync',state:S});
       render();
     };
     c.on('data',msg=>{
-      if(!msg||typeof msg!=='object')return;
-      if(msg.type==='state'&&msg.state){
-        const first=S===null;
-        S=msg.state;
-        if(first){lastFxSeq=S.fx?S.fx.seq:0;lastGainSeq=S.gain?S.gain.seq:0;show('scGame');}
-        if(S.phase==='play')showBoardAfterEnd=false;
-        if(S.fx&&S.fx.seq>lastFxSeq&&S.fx.p!==mySeat)tock(500);
-        sel=null;render();
-      }else if(msg.type==='pick'&&S){
-        const r=apply(S,{t:'pick',p:msg.p,skills:msg.skills});
-        if(!r.err){S=r.state;render();}
-      }else if(msg.type==='full'){
-        toast('这个房间已经有两个人了');
+      if(conn!==c||!msg||typeof msg!=='object')return;
+      lastSeen=Date.now();
+      if(msg.type==='ping')return;
+      if(msg.type==='sync'){
+        // after (re)connecting, the newer copy of the game wins
+        const theirs=msg.state,mine=S;
+        if(theirs&&(!mine||(theirs.rev||0)>(mine.rev||0)))remoteAdopt(theirs);
+        else if(mine&&(!theirs||(mine.rev||0)>(theirs.rev||0)))send({type:'state',state:mine});
+        return;
       }
+      if(msg.type==='state'&&msg.state){if(!S||(msg.state.rev||0)>=(S.rev||0))remoteAdopt(msg.state);return;}
+      if(msg.type==='pick'&&S){
+        const r=apply(S,{t:'pick',p:msg.p,skills:msg.skills});
+        if(!r.err){r.state.rev=(S.rev||0)+1;adopt(r.state);saveResume();render();}
+        return;
+      }
+      if(msg.type==='emote')onEmote(3-mySeat,msg.i);
     });
-    c.on('close',()=>{if(conn===c){conn=null;render();}});
-    c.on('error',()=>{});
+    c.on('close',()=>dropConn(c));
+    c.on('error',()=>dropConn(c));
     if(c.open)onOpen();else c.on('open',onOpen);
   };
   function connectToHost(){
-    if(peer.disconnected&&!peer.destroyed){try{peer.reconnect();}catch(e){}}
+    if(left||isHost)return;
+    clearTimeout(retryTimer);
+    if(peer.destroyed){peer=new Peer(undefined,peerOpts());bindPeer();scheduleRetry(1500);return;}
+    if(peer.disconnected||!peer.open){try{peer.reconnect();}catch(e){}scheduleRetry(1500);return;}
+    attempts++;render();
     const c=peer.connect(PEER_PREFIX+code,{reliable:true});
     attach(c);
     clearTimeout(joinTimer);
-    joinTimer=setTimeout(()=>{if(!(conn&&conn.open)){const m='连接超时：可能是房间号不对，或者当前网络不支持直连，换个网络（比如从 Wi-Fi 换成流量）再试。';toast(m);if(!S){peerStatus(m);$('pJoin').disabled=false;}render();}},15000);
+    joinTimer=setTimeout(()=>{
+      if(conn!==c||c.open)return;
+      try{c.close();}catch(e){}
+      if(!everConnected&&!resumed){
+        conn=null;
+        const m='连接超时：可能是房间号不对，或者当前网络不支持直连，换个网络（比如从 Wi-Fi 换成流量）再试。';
+        toast(m);if(!S){peerStatus(m);$('pJoin').disabled=false;}render();
+      }else dropConn(c);
+    },12000);
   }
-  if(isHost){
-    peer.on('connection',c=>{
-      // a reconnecting guest replaces the stale connection
-      if(conn&&conn!==c){const old=conn;conn=null;try{old.close();}catch(e){}}
-      attach(c);
+  function rehost(){
+    if(left||!isHost)return;
+    try{peer.destroy();}catch(e){}
+    peer=new Peer(PEER_PREFIX+code,peerOpts());bindPeer();
+  }
+  function bindPeer(){
+    const pr=peer;
+    if(isHost)pr.on('connection',c=>{if(pr===peer)attach(c);});
+    pr.on('disconnected',()=>{setTimeout(()=>{if(pr===peer&&!pr.destroyed&&!left){try{pr.reconnect();}catch(e){}}},1500);});
+    pr.on('error',e=>{
+      if(pr!==peer||left)return;
+      const ty=e&&e.type;
+      if(ty==='peer-unavailable'){
+        clearTimeout(joinTimer);
+        if(!everConnected&&!resumed){
+          conn=null;
+          const m='没有找到这个房间：请确认房间号，房主的页面要保持打开。';
+          toast(m);if(!S){peerStatus(m);$('pJoin').disabled=false;}render();return;
+        }
+        if(conn&&!conn.open)conn=null;
+        scheduleRetry();render();return;
+      }
+      if(isHost){if(ty==='unavailable-id'||pr.destroyed)setTimeout(rehost,3000);}
+      else scheduleRetry(3000);
     });
   }
-  peer.on('disconnected',()=>{setTimeout(()=>{if(!peer.destroyed){try{peer.reconnect();}catch(e){}}},1500);});
-  peer.on('error',e=>{
-    if(e&&e.type==='peer-unavailable'){const m='没有找到这个房间：请确认房间号，房主的页面要保持打开。';toast(m);clearTimeout(joinTimer);if(!S)peerStatus(m);render();}
-  });
-  net=t;mode='online';roomCode=code;mySeat=seat;sel=null;effects=[];prevEnergy=null;showBoardAfterEnd=false;
-  if(isHost){S=newState();lastFxSeq=0;lastGainSeq=0;show('scGame');render();}
-  else{S=null;connectToHost();}
+  function onVis(){
+    if(document.visibilityState!=='visible'||left)return;
+    if(isHost){if(peer.destroyed)rehost();else if(peer.disconnected){try{peer.reconnect();}catch(e){}}return;}
+    if(!(conn&&conn.open)&&(everConnected||resumed)){stopped=false;attempts=0;connectToHost();}
+  }
+  document.addEventListener('visibilitychange',onVis);
+  bindPeer();
+  hbTimer=setInterval(()=>{
+    if(!(conn&&conn.open))return;
+    send({type:'ping'});
+    if(Date.now()-lastSeen>9000)t.drop();   // nothing heard for 9 s: treat the link as dead
+  },3000);
+  net=t;mode='online';roomCode=code;mySeat=seat;sel=null;effects=[];prevEnergy=null;showBoardAfterEnd=false;hist=[];
+  if(resumed){S=resumeState;lastFxSeq=S.fx?S.fx.seq:0;lastGainSeq=S.gain?S.gain.seq:0;show('scGame');render();}
+  else if(isHost){S=newState();lastFxSeq=0;lastGainSeq=0;show('scGame');saveResume();render();}
+  else S=null;
+  if(!isHost)connectToHost();
 }
+
+// ---------- resume after a reload (peer games only) ----------
+const RESUME_KEY='gomoku-resume';
+function saveResume(){
+  if(mode!=='online'||!net||net.kind!=='peer'||!S)return;
+  tryStore(()=>localStorage.setItem(RESUME_KEY,JSON.stringify({code:roomCode,seat:mySeat,state:S,hist:hist.slice(-40),t:Date.now()})));
+}
+function loadResume(){
+  const r=tryStore(()=>JSON.parse(localStorage.getItem(RESUME_KEY)||'null'));
+  if(!r||!r.code||!r.state||Date.now()-r.t>12*3600e3||r.state.phase==='over')return null;
+  return r;
+}
+function refreshResume(){
+  const r=standalone?loadResume():null;
+  $('mResume').hidden=!r;
+  if(r)$('mResumeInfo').textContent=`房间 ${r.code} · ${r.seat===1?'黑方':'白方'}`;
+}
+async function peerResume(){
+  const r=loadResume();if(!r){refreshResume();return;}
+  show('scPeer');peerStatus('正在回到房间 '+r.code+'…');
+  try{await loadPeerLib();}catch(e){peerStatus('联机组件加载失败，请检查网络后刷新页面。');return;}
+  let tries=0;
+  const go=()=>{
+    const peer=r.seat===1?new Peer(PEER_PREFIX+r.code,peerOpts()):new Peer(undefined,peerOpts());
+    let opened=false;
+    peer.on('open',()=>{opened=true;startPeerGame(r.code,r.seat,peer,r.state);if(Array.isArray(r.hist))hist=r.hist;});
+    peer.on('error',e=>{
+      if(opened)return;
+      peer.destroy();
+      if(e&&e.type==='unavailable-id'&&tries++<20){peerStatus('房间号还没释放，正在重试…');setTimeout(go,3000);return;}
+      peerStatus('连不上联机服务器，请检查网络后再试。');
+    });
+  };
+  go();
+}
+$('mResume').onclick=peerResume;
+refreshResume();
+
 async function peerCreate(){
   $('pCreate').disabled=true;peerStatus('正在创建房间…');
   try{await loadPeerLib();}catch(e){peerStatus('联机组件加载失败，请检查网络后刷新页面。');$('pCreate').disabled=false;return;}
