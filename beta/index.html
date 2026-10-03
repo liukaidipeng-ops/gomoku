@@ -4843,6 +4843,409 @@ window.FX2 = FX;
 <script id="jsNet">
 // the characters the brush face (Ma Shan Zheng subset) holds; written by build.py
 window.SKFontCov={ms:" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~×–—“”…　、。一上下不与且东两个中临为主久么之也书了云五些亭人仍从他以件会伴但位作你使保信修候值停僧先入八公兰关再凭出分则刚创到制刷前剑加务动北半单南占印即厅原去参友双反发取变叟另只可号各合同名后向吧听周和响嘲嘴器四回因围在地场坐型堂墨士备复多够大夫失夺奏好如始子字存孤它完定客宣密寒对封小少就局居屏山岸己已布师带并应废座建开弈弱强归当录形影待徒得必快怎思总恢悉悔想意慢懂戏成我或战房手打执找技把抖抢拒择拿持挂指按挪换掉接撞操攒支收改放效散数斜断新方施无早时明是显普暂更最月有朋服望未本机权束来松枕林果查柯柳核格桃桌梅检棋楼横樵次正步母每比水求江没泉波流消涌深清渔源溪溯满点烂烟然熟父玩现珠琴生用电画畔留登白的盘直相看眼着知矩石硬确示禁离私秋秒移稍空窗立竖竹第等策算篱类系约纸线组经结给络绝继续网置老考者耗联胜能脑自舟般节花草荡获菜落蔽虚行衣表被西要见规角言认让讲讽设试话误说请读谈谢谷败赢走起超足身转轮载输边过近返还这进连迷退选通速逢逸道邀那邻部都酒释里重野量钓钟链长闭闲间限隐雅雨雪雾需震青靠面页须颗风马鹤黑！（），：；？"};
+// net_mq.js — window.SKMqPeer: a PeerJS-shaped Peer that talks through public MQTT brokers (MQTT 3.1.1 over WebSocket)
+// instead of the PeerJS cloud broker and WebRTC, which many networks in China cannot reach. The hall and the rooms run on
+// it unchanged: the same ids, the same relayed frames (socket.send / socket 'message'), the same data connections, the
+// same errors. Every page keeps one MQTT link per broker, shared by all its peers; a peer talks on every broker it reached
+// (frames are de-duplicated), so two players meet as long as they share one broker. Game data goes through the broker.
+// What the PeerJS broker did, the peers now do themselves:
+//  · an id is held by whoever answers on its inbox topic. Claiming one asks there first ('q' with c:1); any holder answers
+//    ('qa'), which means 'unavailable-id'. Two claimers at once: the smaller claim token wins.
+//  · a frame to an id nobody holds waits up to 5 s for a holder to answer, then comes back as 'peer-unavailable'
+//    ("Could not connect to peer <id>"), like the PeerJS broker's EXPIRE. Ids we talk to are re-checked after 10 s of
+//    silence, so a holder that vanished is noticed on the next frame.
+//  · each MQTT link has a session topic carrying its will ({k:'dead'}) and its peers' clean exits ({k:'gone', id}), so
+//    whoever talks to those ids hears at once when they leave.
+// Options (the second Peer argument): brokers: [url, ...] (default: EMQX's public brokers), or host/port/secure/mqttPath
+// for one broker (tests), prefix: topic root.
+(function (G) {
+  'use strict';
+  const BROKERS = ['wss://broker-cn.emqx.io:8084/mqtt', 'wss://broker.emqx.io:8084/mqtt'];
+  const EXPIRE_MS = 5000, ASK_MS = 1250, RECHECK_MS = 10000, KEEPALIVE_S = 60, PING_MS = 25000, DEAD_MS = 75000;
+  const BACKOFF = [1000, 2000, 4000, 8000, 15000, 30000];
+  const enc = new TextEncoder(), dec = new TextDecoder();
+  const A32 = 'abcdefghijkmnpqrstuvwxyz23456789';
+  const rand = n => { let s = ''; for (const x of crypto.getRandomValues(new Uint8Array(n))) s += A32[x % 32]; return s; };
+  const now = () => performance.now();
+  const ID_RE = /^[A-Za-z0-9_-]{1,80}$/;
+
+  function emitter(o) {
+    const ev = new Map();
+    o.on = (k, f) => { if (typeof f === 'function') { if (!ev.has(k)) ev.set(k, []); ev.get(k).push(f); } return o; };
+    o.addListener = o.on;
+    o.once = (k, f) => { const w = (...a) => { o.off(k, w); f(...a); }; return o.on(k, w); };
+    o.off = (k, f) => { if (!f) ev.delete(k); else { const l = ev.get(k); if (l) { const i = l.indexOf(f); if (i >= 0) l.splice(i, 1); } } return o; };
+    o.removeListener = o.off;
+    o.removeAllListeners = k => { if (k == null) ev.clear(); else ev.delete(k); return o; };
+    o.emit = (k, ...a) => { const l = ev.get(k); if (!l || !l.length) return false; for (const f of l.slice()) { try { f(...a); } catch (e) { console.error(e); } } return true; };
+    return o;
+  }
+  const mkErr = (type, msg) => { const e = new Error(msg); e.type = type; return e; };
+
+  // ---------------- MQTT 3.1.1 over WebSocket, QoS 0: just what the peers need ----------------
+  const u16 = n => [n >> 8 & 255, n & 255];
+  const mstr = s => { const b = enc.encode(s); return [...u16(b.length), ...b]; };
+  function rlen(n) { const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n > 0) d |= 128; o.push(d); } while (n > 0); return o; }
+  function packet(h, parts) {
+    let len = 0; for (const p of parts) len += p.length;
+    const head = [h, ...rlen(len)], out = new Uint8Array(head.length + len); out.set(head, 0);
+    let k = head.length; for (const p of parts) { out.set(p, k); k += p.length; }
+    return out;
+  }
+
+  // one link to one broker, shared by every peer of the page. A new session id (ss) on every connection: the will of a
+  // dead connection can never clear a newer one.
+  const hubs = new Map();
+  function hubFor(url, P) { const key = url + ' ' + P; let h = hubs.get(key); if (!h) { h = hub(url, P); hubs.set(key, h); } return h; }
+  function hub(url, P) {
+    const h = { url, P, state: 'idle', ss: null, peers: new Set(), subs: new Map(), rtt: 250, fails: 0 };
+    let ws = null, buf = new Uint8Array(0), pid = 0, pend = new Map(), pingT = null, lastIn = 0, retryT = null, idleT = null, connT = null, t0 = 0;
+    const nextId = () => (pid = pid % 65535 + 1);
+    function send(b) { try { ws.send(b); return true; } catch (e) { down(); return false; } }
+    function open() {
+      clearTimeout(retryT); clearTimeout(idleT);
+      h.state = 'connecting'; h.ss = rand(12); t0 = now(); buf = new Uint8Array(0); pend.clear();
+      for (const s of h.subs.values()) s.acked = false;
+      let w; try { w = new WebSocket(url, ['mqtt']); } catch (e) { ws = null; return down(); }
+      ws = w; w.binaryType = 'arraybuffer';
+      connT = setTimeout(() => { if (ws === w && h.state === 'connecting') down(); }, 10000);
+      w.onopen = () => {
+        if (ws !== w) return;
+        const wp = enc.encode('{"k":"dead"}');   // clean session, will (QoS 0, not retained) on our session topic
+        send(packet(0x10, [mstr('MQTT'), [4, 0x06, ...u16(KEEPALIVE_S)], mstr('skg' + h.ss), mstr(P + '/s/' + h.ss), [...u16(wp.length)], wp]));
+      };
+      w.onmessage = e => { if (ws === w && e.data instanceof ArrayBuffer) feed(new Uint8Array(e.data)); };
+      w.onclose = w.onerror = () => { if (ws === w) down(); };
+    }
+    function feed(b) {
+      lastIn = now();
+      if (buf.length) { const n = new Uint8Array(buf.length + b.length); n.set(buf); n.set(b, buf.length); b = n; }
+      let k = 0;
+      for (;;) {
+        if (b.length - k < 2) break;
+        let len = 0, mul = 1, j = k + 1, d, ok = false;
+        while (j < b.length && j - k <= 4) { d = b[j++]; len += (d & 127) * mul; mul *= 128; if (!(d & 128)) { ok = true; break; } }
+        if (!ok || j + len > b.length) break;
+        const t = b[k], body = b.subarray(j, j + len); k = j + len;
+        onPacket(t, body);
+        if (!ws) return;
+      }
+      buf = b.slice(k);
+    }
+    function onPacket(t, b) {
+      const ty = t >> 4;
+      if (ty === 2) {                                    // CONNACK
+        if (b[1] !== 0) return down();
+        clearTimeout(connT); h.state = 'up'; h.fails = 0; h.rtt = Math.max(30, (now() - t0) / 3);
+        clearInterval(pingT);
+        pingT = setInterval(() => { if (h.state !== 'up') return; if (now() - lastIn > DEAD_MS) return down(); send(new Uint8Array([0xc0, 0])); }, PING_MS);
+        const ts = [...h.subs.keys()]; for (let i = 0; i < ts.length; i += 40) subscribe(ts.slice(i, i + 40));
+        for (const p of [...h.peers]) p._up(h);
+      } else if (ty === 3) {                             // PUBLISH
+        const qos = (t >> 1) & 3, tl = b[0] << 8 | b[1], topic = dec.decode(b.subarray(2, 2 + tl));
+        let off = 2 + tl; if (qos) { if (qos === 1) send(new Uint8Array([0x40, 2, b[off], b[off + 1]])); off += 2; }
+        const s = h.subs.get(topic); if (!s || !s.fns.size) return;
+        let m; try { m = JSON.parse(dec.decode(b.subarray(off))); } catch (e) { return; }
+        for (const f of [...s.fns]) { try { f(m, h, topic); } catch (e) { console.error(e); } }
+      } else if (ty === 9) {                             // SUBACK
+        const id = b[0] << 8 | b[1], q = pend.get(id); if (!q) return; pend.delete(id);
+        h.rtt = h.rtt * .7 + (now() - q.t) * .3;
+        for (const tp of q.ts) { const s = h.subs.get(tp); if (s) { s.acked = true; for (const r of s.waits.splice(0)) r(); } }
+      }
+    }
+    function subscribe(ts) {
+      if (h.state !== 'up' || !ts.length) return;
+      const id = nextId(); pend.set(id, { ts, t: now() });
+      const parts = [u16(id)]; for (const tp of ts) parts.push([...mstr(tp), 0]);
+      send(packet(0x82, parts));
+    }
+    function down() {
+      clearTimeout(connT); clearInterval(pingT);
+      const w = ws; ws = null;
+      if (w) { w.onopen = w.onmessage = w.onclose = w.onerror = null; try { w.close(); } catch (e) {} }
+      const was = h.state; h.state = 'down'; pend.clear();
+      for (const s of h.subs.values()) s.acked = false;
+      if (was !== 'up') h.fails++;
+      for (const p of [...h.peers]) p._down(h);
+      if (h.peers.size) { clearTimeout(retryT); retryT = setTimeout(() => { if (h.peers.size && h.state === 'down') open(); }, BACKOFF[Math.min(h.fails, BACKOFF.length - 1)]); }
+      else h.state = 'idle';
+    }
+    h.ensure = () => { clearTimeout(idleT); if (h.state !== 'up' && h.state !== 'connecting') open(); };
+    h.retryNow = () => { if (h.state === 'down' && h.peers.size) { h.fails = 0; open(); } };
+    h.attach = p => { h.peers.add(p); h.ensure(); };
+    h.detach = p => {
+      h.peers.delete(p); if (h.peers.size) return;
+      clearTimeout(idleT);
+      idleT = setTimeout(() => {                         // nobody left on this page: a clean goodbye (no will)
+        if (h.peers.size) return;
+        clearTimeout(retryT);
+        if (ws && h.state === 'up') { try { ws.send(new Uint8Array([0xe0, 0])); } catch (e) {} }
+        const w = ws; ws = null; clearTimeout(connT); clearInterval(pingT);
+        if (w) { w.onopen = w.onmessage = w.onclose = w.onerror = null; try { w.close(); } catch (e) {} }
+        h.state = 'idle'; h.subs.clear(); pend.clear();
+      }, 5000);
+    };
+    h.sub = (tp, f) => {
+      let s = h.subs.get(tp);
+      if (!s) { s = { fns: new Set(), acked: false, waits: [] }; h.subs.set(tp, s); subscribe([tp]); }
+      s.fns.add(f);
+      return s.acked ? Promise.resolve() : new Promise(r => s.waits.push(r));
+    };
+    h.unsub = (tp, f) => {
+      const s = h.subs.get(tp); if (!s) return;
+      s.fns.delete(f); if (s.fns.size) return;
+      h.subs.delete(tp); for (const r of s.waits.splice(0)) r();
+      if (h.state === 'up') send(packet(0xa2, [u16(nextId()), mstr(tp)]));
+    };
+    h.pub = (tp, o) => { if (h.state !== 'up') return false; return send(packet(0x30, [mstr(tp), enc.encode(JSON.stringify(o))])); };
+    return h;
+  }
+  if (typeof G.addEventListener === 'function') {
+    const kick = () => { for (const h of hubs.values()) h.retryNow(); };
+    G.addEventListener('online', kick);
+    if (G.document) G.document.addEventListener('visibilitychange', () => { if (!G.document.hidden) kick(); });
+  }
+
+  function urlsOf(o) {
+    if (o.host) return [(o.secure ? 'wss://' : 'ws://') + o.host + ':' + (o.port || (o.secure ? 443 : 80)) + (o.mqttPath || '/mqtt')];
+    return Array.isArray(o.brokers) && o.brokers.length ? o.brokers.slice() : BROKERS.slice();
+  }
+
+  // ---------------- the Peer ----------------
+  function SKMqPeer(id, opts) {
+    if (id && typeof id === 'object') { opts = id; id = null; }
+    opts = opts || {};
+    const p = emitter({}), P = opts.prefix || 'skgomoku/m1', T = x => P + '/m/' + x;
+    const random = !id;
+    p.id = random ? rand(16) : String(id);
+    p.options = opts; p.open = false; p.destroyed = false; p.disconnected = false;
+    const tk = Date.now().toString(36) + rand(8);       // claim token (smaller wins a simultaneous claim) and frame-id stem
+    const links = new Map(), pres = new Map(), conns = new Map(), seen = new Map(), sessW = new Map();
+    let useq = 0, preq = [], everOpen = false;
+    p.socket = emitter({});
+    p.socket.send = m => { if (!m || typeof m !== 'object' || p.destroyed) return; if (typeof m.dst === 'string') send(m.dst, { k: 'g', t: m.type || 'CANDIDATE', p: m.payload }); };
+
+    const err = (type, msg) => p.emit('error', mkErr(type, msg));
+    const linksUp = () => [...links.values()].filter(L => L.st === 'up');
+
+    // ---- claiming our id on one broker ----
+    const onInbox = (m, h) => frame(m, h);
+    function claim(L) {
+      const h = L.hub, g = ++L.g;
+      L.st = 'claim'; L.yield = false; L.n = rand(8);
+      h.sub(T(p.id), onInbox).then(() => {
+        if (L.g !== g || p.destroyed || L.st !== 'claim') return;
+        if (random) return won(L);                        // 80 random bits: nobody else has it
+        h.pub(T(p.id), { k: 'q', c: 1, n: L.n, tk, rt: T(p.id), s: p.id, ss: h.ss });
+        const w = Math.min(3000, Math.max(700, 3 * h.rtt + 400));
+        setTimeout(() => {
+          if (L.g !== g || p.destroyed || L.st !== 'claim') return;
+          if (L.yield) return taken(L);
+          won(L);
+        }, w);
+      });
+    }
+    function won(L) {
+      L.st = 'up'; L.failed = false;
+      for (const [dst, e] of pres) if (e.st === 'probe') ask(e, dst, [L]);
+      if (p.open) return;
+      p.open = true; p.disconnected = false; everOpen = true;
+      const q = preq; preq = [];
+      p.emit('open', p.id);
+      for (const [dst, f] of q) deliver(dst, f);
+    }
+    function taken(L) {
+      L.st = 'taken'; L.hub.unsub(T(p.id), onInbox);
+      if (!p.open && !p.destroyed) { err('unavailable-id', `ID "${p.id}" is taken`); p.destroy(); }
+    }
+    p._up = h => {
+      const L = links.get(h); if (!L || p.destroyed || p.disconnected) return;
+      if (L.st === 'up' || L.st === 'claim') return;
+      claim(L);
+    };
+    p._down = h => {
+      const L = links.get(h); if (!L) return;
+      const wasUp = L.st === 'up'; L.g++; L.st = 'down'; if (!wasUp) L.failed = true;
+      for (const e of pres.values()) e.hubs.delete(h);
+      const ws = sessW.get(h); if (ws) { for (const s of ws.keys()) h.unsub(P + '/s/' + s, onSess); sessW.delete(h); }
+      if (p.destroyed) return;
+      if (p.open && !linksUp().length) {
+        p.open = false; p.disconnected = true;
+        for (const c of [...conns.values()]) shut(c);
+        p.emit('disconnected', p.id);
+      } else if (!p.open && !p.disconnected && [...links.values()].every(x => x.failed)) {
+        err(everOpen ? 'network' : 'socket-error', 'Lost connection to server.');
+        if (!everOpen) p.destroy(); else { p.disconnected = true; p.emit('disconnected', p.id); }
+      }
+    };
+
+    // ---- presence of the ids we talk to ----
+    function presOf(dst) { let e = pres.get(dst); if (!e) { e = { st: 'new', hubs: new Map(), q: [], t: 0, n: null, timer: null, rc: 0 }; pres.set(dst, e); } return e; }
+    function ask(e, dst, ls) { for (const L of ls || linksUp()) L.hub.pub(T(dst), { k: 'q', n: e.n, tk, rt: T(p.id), s: p.id, ss: L.hub.ss }); }
+    function probe(e, dst) {
+      e.st = 'probe'; e.n = rand(8); const t0 = now(); clearTimeout(e.timer);
+      ask(e, dst);
+      const tick = () => {
+        if (p.destroyed || e.st !== 'probe') return;
+        if (now() - t0 >= EXPIRE_MS - 60) { e.st = 'gone'; const had = e.q.length; e.q = []; if (had) err('peer-unavailable', 'Could not connect to peer ' + dst); return; }
+        ask(e, dst); e.timer = setTimeout(tick, ASK_MS);
+      };
+      e.timer = setTimeout(tick, ASK_MS);
+    }
+    function recheck(e, dst) {                           // a holder we have not heard from for a while: still there?
+      const t = e.t; e.rc = 1; e.n = rand(8); ask(e, dst);
+      clearTimeout(e.timer);
+      e.timer = setTimeout(() => {
+        e.rc = 0; if (p.destroyed || e.st !== 'here' || e.t !== t) return;
+        e.st = 'gone'; e.hubs.clear(); lostPeer(dst);
+        err('peer-unavailable', 'Could not connect to peer ' + dst);
+      }, EXPIRE_MS);
+    }
+    function heard(src, h, ss) {
+      if (typeof ss !== 'string' || !ID_RE.test(src)) return;
+      const e = presOf(src);
+      if (e.hubs.get(h) !== ss) { e.hubs.set(h, ss); watch(h, ss, src); }
+      e.t = now();
+      if (e.st !== 'here') { e.st = 'here'; clearTimeout(e.timer); e.rc = 0; }
+      if (e.q.length) { const q = e.q; e.q = []; for (const f of q) put(e, src, f); }
+    }
+    const onSess = (m, h, tp) => {
+      const ss = tp.slice(P.length + 3), set = sessW.get(h) && sessW.get(h).get(ss); if (!set || !m) return;
+      for (const dst of [...set]) {
+        if (m.k === 'gone' && m.id !== dst) continue;
+        set.delete(dst);
+        const e = pres.get(dst); if (!e || e.hubs.get(h) !== ss) continue;
+        e.hubs.delete(h);
+        if (!e.hubs.size && e.st === 'here') { e.st = 'gone'; clearTimeout(e.timer); lostPeer(dst); }
+      }
+    };
+    function watch(h, ss, dst) {
+      let m = sessW.get(h); if (!m) sessW.set(h, m = new Map());
+      let s = m.get(ss); if (!s) { m.set(ss, s = new Set()); h.sub(P + '/s/' + ss, onSess); }
+      s.add(dst);
+    }
+    function lostPeer(dst) { for (const c of [...conns.values()]) if (c.peer === dst) shut(c); }
+
+    // ---- sending ----
+    function send(dst, f) { if (p.destroyed) return; f.s = p.id; f.u = tk + '.' + (++useq); deliver(dst, f); }
+    function deliver(dst, f) {
+      if (!p.open) { if (preq.length < 300) preq.push([dst, f]); return; }
+      if (dst === p.id) { for (const L of linksUp()) L.hub.pub(T(dst), Object.assign({ ss: L.hub.ss }, f)); return; }
+      const e = presOf(dst);
+      if (e.st === 'here' && e.hubs.size) { put(e, dst, f); if (!e.rc && now() - e.t > RECHECK_MS) recheck(e, dst); return; }
+      if (e.q.length < 300) e.q.push(f);
+      if (e.st !== 'probe') probe(e, dst);
+    }
+    function put(e, dst, f) { for (const h of e.hubs.keys()) h.pub(T(dst), Object.assign({ ss: h.ss }, f)); }
+
+    // ---- receiving ----
+    function frame(m, h) {
+      if (p.destroyed || !m || typeof m !== 'object' || typeof m.s !== 'string') return;
+      const L = links.get(h); if (!L || (L.st !== 'up' && L.st !== 'claim')) return;
+      if (m.k === 'q') {
+        if (m.tk === tk || typeof m.rt !== 'string') return;
+        if (m.c) {
+          if (L.st === 'claim' && String(m.tk) < tk) L.yield = true;
+          h.pub(m.rt, { k: 'qa', n: m.n, tk, st: L.st, s: p.id, ss: h.ss });
+        } else if (L.st === 'up') h.pub(m.rt, { k: 'qa', n: m.n, tk, st: 'up', s: p.id, ss: h.ss });
+        return;
+      }
+      if (m.k === 'qa') {
+        if (m.tk === tk) return;
+        if (L.st === 'claim' && m.n === L.n) { if (m.st === 'up' || String(m.tk) < tk) L.yield = true; return; }
+        if (m.st === 'up') heard(m.s, h, m.ss);
+        return;
+      }
+      if (L.st !== 'up' && m.k !== 'g') return;
+      if (m.s !== p.id) heard(m.s, h, m.ss);
+      if (typeof m.u === 'string') { if (seen.has(m.u)) return; seen.set(m.u, now()); if (seen.size > 400) { const old = now() - 60000; for (const [k, t] of seen) if (t < old) seen.delete(k); } }
+      const key = m.s + '|' + m.c;
+      if (m.k === 'g') p.socket.emit('message', { type: m.t || 'CANDIDATE', src: m.s, dst: p.id, payload: m.p });
+      else if (m.k === 'c') {
+        if (typeof m.c !== 'string' || conns.has(key)) return;
+        const c = mkConn(m.s, m.c, m.md, m.lb, false); conns.set(key, c);
+        p.emit('connection', c);
+        if (c._closed) return;
+        send(m.s, { k: 'ca', c: m.c }); c.open = true;
+        setTimeout(() => { if (c.open) c.emit('open'); }, 0);
+      } else if (m.k === 'ca') {
+        const c = conns.get(key);
+        if (!c) { send(m.s, { k: 'cx', c: m.c }); return; }
+        if (!c.open && !c._closed) { c.open = true; c.emit('open'); }
+      } else if (m.k === 'd') {
+        const c = conns.get(key);
+        if (c && c.open) c.emit('data', m.d); else if (!c) send(m.s, { k: 'cx', c: m.c });
+      } else if (m.k === 'cx') { const c = conns.get(key); if (c) shut(c); }
+    }
+
+    // ---- data connections: frames on the inbox, opened with c / ca, closed with cx ----
+    function shut(c) { conns.delete(c.peer + '|' + c.connectionId); c._closed = true; const was = c.open; c.open = false; if (was) c.emit('close'); }
+    function mkConn(peerId, cid, md, lb, out) {
+      const c = emitter({ peer: peerId, connectionId: cid, metadata: md, label: lb || cid, open: false, reliable: true, serialization: 'json', type: 'data', provider: p, _closed: false });
+      c.send = d => {
+        if (!c.open) { c.emit('error', mkErr('not-open-yet', 'Connection is not open. You should listen for the `open` event before sending messages.')); return; }
+        send(peerId, { k: 'd', c: cid, d });
+      };
+      c.close = () => {
+        if (c._closed) return;
+        const e = pres.get(peerId);
+        if (c.open || (out && e && e.st === 'here')) send(peerId, { k: 'cx', c: cid });
+        shut(c);
+      };
+      return c;
+    }
+    p.connect = (dst, o) => {
+      o = o || {};
+      const cid = 'dc_' + rand(10), c = mkConn(String(dst), cid, o.metadata, o.label, true);
+      if (p.destroyed || p.disconnected) { err('disconnected', 'Cannot connect to new Peer after disconnecting from server.'); c._closed = true; return c; }
+      conns.set(c.peer + '|' + cid, c);
+      send(c.peer, { k: 'c', c: cid, md: o.metadata, lb: o.label });
+      return c;
+    };
+
+    // ---- lifecycle ----
+    function leaveAll(sayGone) {
+      for (const [h, L] of links) {
+        if (sayGone && L.st === 'up') h.pub(P + '/s/' + h.ss, { k: 'gone', id: p.id });
+        L.g++; L.st = 'idle'; h.unsub(T(p.id), onInbox);
+        const ws = sessW.get(h); if (ws) for (const s of ws.keys()) h.unsub(P + '/s/' + s, onSess);
+      }
+      sessW.clear();
+      for (const e of pres.values()) { clearTimeout(e.timer); e.hubs.clear(); e.q = []; e.st = 'new'; }
+    }
+    p.destroy = () => {
+      if (p.destroyed) return;
+      for (const c of [...conns.values()]) c.close();
+      leaveAll(true);
+      p.destroyed = true; p.disconnected = true; p.open = false; preq = [];
+      for (const h of links.keys()) h.detach(p);
+      p.emit('close');
+    };
+    p.disconnect = () => {
+      if (p.disconnected) return;
+      for (const c of [...conns.values()]) c.close();
+      leaveAll(true);
+      p.open = false; p.disconnected = true;
+      p.emit('disconnected', p.id);
+    };
+    p.reconnect = () => {
+      if (p.destroyed) throw new Error('This peer cannot reconnect to the server. It has already been destroyed.');
+      if (!p.disconnected) return;
+      p.disconnected = false;
+      for (const [h, L] of links) { L.failed = false; h.ensure(); if (h.state === 'up') claim(L); }
+    };
+
+    if (!ID_RE.test(p.id)) { setTimeout(() => { err('invalid-id', `ID "${p.id}" is invalid`); p.destroy(); }, 0); return p; }
+    for (const u of urlsOf(opts)) { const h = hubFor(u, P); links.set(h, { hub: h, st: 'idle', g: 0, n: null, yield: false, failed: false }); }
+    setTimeout(() => {
+      if (p.destroyed) return;
+      for (const [h, L] of links) { h.attach(p); if (h.state === 'up') claim(L); }
+    }, 0);
+    return p;
+  }
+  SKMqPeer.BROKERS = BROKERS;
+  G.SKMqPeer = SKMqPeer;
+})(typeof window !== 'undefined' ? window : globalThis);
 // names.js — 雅号 (player nickname): random 古风 names, the one sanitiser every surface uses, local storage.
 // Exposes window.SKNames = { cleanName, randomName, load, save, KEY, FALLBACK }. Load before hall.js.
 // cleanName is the single gate for untrusted names (SPEC §2.9): it keeps letters, digits, punctuation, symbols and
@@ -7763,33 +8166,14 @@ $('waitCopy').onclick=async()=>{
 };
 $('waitRetry').onclick=()=>{if(net&&net.retry)net.retry();};
 
-// ---------- peer-to-peer transport (used outside claude.ai, e.g. GitHub Pages): an SKRoom room (net_room.js) carries the
+// ---------- online transport (used outside claude.ai, e.g. GitHub Pages): an SKRoom room (net_room.js) carries the
 // game — the seat lock (hello {gid} → welcome / full), ping/pong presence, bye = 已离开, reconnect and resume. The game's
-// own frames are unchanged: sync (the newer copy wins on every (re)connect, adopted quietly), state, pick, emote. ----------
-function peerOpts(){
-  const base={debug:0,config:{iceServers:[
-    {urls:'stun:stun.miwifi.com:3478'},{urls:'stun:stun.qq.com:3478'},{urls:'stun:stun.l.google.com:19302'},
-    {urls:['turn:eu-0.turn.peerjs.com:3478','turn:us-0.turn.peerjs.com:3478'],username:'peerjs',credential:'peerjsp'}
-  ]}};
-  return Object.assign(base,window.GOMOKU_PEER_OPTS||{});
-}
-let peerLibP=null;
-function loadPeerLib(){
-  if(window.Peer)return Promise.resolve();
-  if(peerLibP)return peerLibP;
-  const srcs=['peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];
-  peerLibP=new Promise((res,rej)=>{
-    const next=k=>{
-      if(k>=srcs.length){peerLibP=null;return rej(new Error('load'));}
-      const sc=document.createElement('script');sc.src=srcs[k];
-      sc.onload=()=>window.Peer?res():next(k+1);
-      sc.onerror=()=>{sc.remove();next(k+1);};
-      document.head.append(sc);
-    };
-    next(0);
-  });
-  return peerLibP;
-}
+// own frames are unchanged: sync (the newer copy wins on every (re)connect, adopted quietly), state, pick, emote.
+// The rooms and the hall run on SKMqPeer (net_mq.js): a PeerJS-shaped peer that relays everything through public MQTT
+// brokers reachable from China (PeerJS's cloud broker and WebRTC are not). It is built in, so nothing is downloaded. ----------
+function peerOpts(){return Object.assign({},window.GOMOKU_PEER_OPTS||{});}
+if(!window.Peer&&window.SKMqPeer)window.Peer=window.SKMqPeer;
+function loadPeerLib(){if(!window.Peer&&window.SKMqPeer)window.Peer=window.SKMqPeer;return window.Peer?Promise.resolve():Promise.reject(new Error('load'));}
 function inviteLink(code){return location.origin+location.pathname+'#'+code;}
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 // r: a seated SKRoom room; seat 1 = host (black); resumeState: the game read back after a reload; meta: {pub, quick, oppName}
