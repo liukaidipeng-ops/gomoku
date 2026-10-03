@@ -16,12 +16,13 @@
 @font-face{font-family:"Noto Serif SC";src:url(fonts/noto-serif-sc-400.woff2) format("woff2");font-weight:400;font-display:swap}
 @font-face{font-family:"Zhi Mang Xing";src:url(fonts/zhi-mang-xing-400.woff2) format("woff2");font-display:block}
 :root{
-  --ink:#1c1915;--ink2:#3b342b;--mute:#6a5f50;--paper:#f1eada;--zhu:#b0301f;--qing:#2c627e;
+  --ink:#1c1915;--ink2:#3b342b;--mute:#5f5446;--paper:#f1eada;--zhu:#b0301f;--qing:#2c627e;
   --fd:"Ma Shan Zheng","STKaiti","KaiTi","Kaiti SC",serif;
   --fb:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
-  --gap:clamp(5px,1.05dvh,11px);
+  --gap:clamp(5px,1.05vh,11px);
   color-scheme:light;
 }
+@supports (height:1dvh){:root{--gap:clamp(5px,1.05dvh,11px)}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--paper);color:var(--ink);font-family:var(--fb);overflow:hidden;-webkit-font-smoothing:antialiased;overscroll-behavior:none;-webkit-text-size-adjust:100%}
 [hidden]{display:none!important}
@@ -43,9 +44,9 @@ b,strong{font-weight:inherit}
 .chip.k-shock{background-image:var(--sp-c-shock)}.chip.zhu.k-shock{background-image:var(--sp-z-shock)}.chip.grey.k-shock{background-image:var(--sp-g-shock)}
 .chip.k-turn{background-image:var(--sp-c-turn)}.chip.zhu.k-turn{background-image:var(--sp-z-turn)}.chip.grey.k-turn{background-image:var(--sp-g-turn)}
 
-#app{position:fixed;inset:0;will-change:transform}
+#app{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;will-change:transform}
 #paperBg{position:absolute;left:-8px;top:-8px;width:calc(100% + 16px);height:calc(100% + 16px);display:block;pointer-events:none}
-.screen{position:absolute;inset:0;overflow:hidden;animation:scIn .45s ease both}
+.screen{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;overflow:hidden;animation:scIn .45s ease both}
 @keyframes scIn{from{opacity:0}to{opacity:1}}
 .screen>canvas.art{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .6s ease}
 .screen>canvas.art.in{opacity:1}
@@ -68,13 +69,21 @@ b,strong{font-weight:inherit}
 #mResume .chip{width:28px;height:28px;opacity:1}
 .menu .note{position:absolute;left:24px;right:24px;bottom:max(2px,env(safe-area-inset-bottom));margin:0;text-align:center;font-size:12px;line-height:1.5;color:var(--zhu);z-index:2}
 .menu .note:empty{display:none}
+@media (max-width:380px){#mResume .seat{display:none}}
+@media (min-aspect-ratio:23/20) and (max-height:540px) and (max-width:760px){#mResume .seat{display:none}}
+@media (min-aspect-ratio:23/20) and (max-height:540px){
+  .mbtns{left:auto;right:max(22px,4vw,env(safe-area-inset-right));top:0;bottom:0;width:min(330px,46vw);justify-content:center;align-items:stretch}
+  .mb,.mb.primary{width:100%}
+  #mResume{position:relative;bottom:auto;left:auto;transform:none;width:100%;margin-bottom:4px}
+  .menu .note{left:auto;right:max(22px,4vw);width:min(330px,46vw)}
+}
 
 /* ---------------- LOBBY ---------------- */
 .lobby .lcol{position:absolute;left:0;right:0;top:0;bottom:0;margin:0 auto;max-width:460px;display:flex;flex-direction:column;padding:max(4px,env(safe-area-inset-top)) 22px max(16px,env(safe-area-inset-bottom));gap:18px;z-index:1}
 .lobby .topbar{margin:0 -10px}
-.lhead{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:clamp(4px,4dvh,40px)}
-#scPeer .lhead{margin-top:clamp(70px,13dvh,140px)}
-#scLobby .lhead{margin-top:clamp(64px,9dvh,100px)}
+.lhead{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:clamp(4px,4vh,40px);margin-top:clamp(4px,4dvh,40px)}
+#scPeer .lhead{margin-top:clamp(70px,13vh,140px);margin-top:clamp(70px,13dvh,140px)}
+#scLobby .lhead{margin-top:clamp(64px,9vh,100px);margin-top:clamp(64px,9dvh,100px)}
 .lhead .big{font-family:var(--fd);font-size:clamp(40px,11vw,54px);letter-spacing:8px;line-height:1.1;padding-left:8px}
 .lhead .sm{font-size:13px;color:var(--mute);letter-spacing:2px}
 .lbtn{height:64px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:27px;letter-spacing:6px;color:#f6f0e2;--pad:12px;padding-left:6px}
@@ -96,12 +105,12 @@ b,strong{font-weight:inherit}
 .rooms .note{margin-top:6px}
 
 /* ---------------- GAME ---------------- */
-.game .gcol{position:absolute;top:0;bottom:0;left:0;right:0;margin:0 auto;max-width:720px;display:flex;flex-direction:column;padding:max(4px,env(safe-area-inset-top)) 12px max(4px,env(safe-area-inset-bottom));gap:var(--gap);z-index:1}
+.game .gcol{position:absolute;top:0;bottom:0;left:0;right:0;margin:0 auto;max-width:720px;display:flex;flex-direction:column;padding:max(4px,env(safe-area-inset-top)) 12px max(4px,env(safe-area-inset-bottom));gap:8px;gap:var(--gap,8px);z-index:1;overflow-x:hidden;overflow-y:auto}
 .topbar{flex:none;height:48px;display:flex;align-items:center;padding:4px 0 0 2px;gap:6px}
 .brand{display:flex;flex-direction:column;justify-content:center;min-width:0;line-height:1}
 .brand .bt{font-family:var(--fd);font-size:25px;letter-spacing:1px;display:flex;align-items:baseline;white-space:nowrap}
 .brand .five{display:inline-block;width:38px;height:36px;margin:0 2px 0 1px;color:transparent;background:var(--sp-five) center/100% 100% no-repeat;align-self:center;transform:translateY(-3px);font-style:normal;overflow:hidden}
-.brand .mode{font-size:11.5px;color:var(--mute);letter-spacing:1px;margin:1px 0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .mode{font-size:12.5px;color:var(--mute);letter-spacing:1px;margin:1px 0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .brand .mode:empty{display:none}
 .lobby .brand .bt{font-size:23px}
 .tb{margin-left:auto;display:flex;align-items:center;flex:none}
@@ -109,11 +118,11 @@ b,strong{font-weight:inherit}
 .tbtn:disabled{opacity:.35}
 .tbtn[data-armed]{color:var(--zhu)}
 .tick{width:6px;height:14px;flex:none;background:var(--sp-tick) center/100% 100% no-repeat}
-.tbtn:active:not(:disabled)::after{content:"";position:absolute;inset:4px;background:rgba(40,34,28,.1);border-radius:40% 46% 42% 48%}
+.tbtn:active:not(:disabled)::after{content:"";position:absolute;top:4px;right:4px;bottom:4px;left:4px;background:rgba(40,34,28,.1);border-radius:40% 46% 42% 48%}
 
-.players{flex:none;height:clamp(84px,12dvh,106px);display:flex;gap:10px;position:relative}
+.players{flex:none;height:clamp(84px,12vh,106px);height:clamp(84px,12dvh,106px);display:flex;gap:10px;position:relative}
 .pcard{flex:1;min-width:0;padding:9px 8px 0 11px;--pad:10px}
-.pcard.idle>*{opacity:.66}
+.pcard.idle>*{opacity:.8}
 .who{display:flex;align-items:center;gap:6px;height:28px;min-width:0}
 .who .st{width:26px;height:26px;flex:none;background:center/100% 100% no-repeat}
 .who .st.b{background-image:var(--sp-stB)}.who .st.w{background-image:var(--sp-stW)}
@@ -122,19 +131,20 @@ b,strong{font-weight:inherit}
 .who .chips{margin-left:auto;display:flex;gap:3px;flex:none}
 .who .chips .chip{width:21px;height:21px}
 .who .chips .chip.used{opacity:.32}
-.who .chips small{font-size:11.5px;color:var(--mute);white-space:nowrap}
-.energy{display:flex;align-items:center;gap:3px;margin-top:clamp(2px,.7dvh,7px);height:16px}
+.who .chips small{font-size:12px;color:var(--mute);white-space:nowrap}
+.energy{display:flex;align-items:center;gap:3px;margin-top:clamp(2px,.7vh,7px);margin-top:clamp(2px,.7dvh,7px);height:16px}
 .pip{width:14px;height:14px;flex:none;background:var(--sp-pip0) center/100% 100% no-repeat}
 .pip.on{background-image:var(--sp-pip1)}
 .pip.new{animation:pipIn .9s cubic-bezier(.2,.9,.3,1.3)}
 @keyframes pipIn{0%{transform:scale(2.1);opacity:.2}55%{transform:scale(.9);opacity:1}100%{transform:scale(1)}}
 .energy em{font-style:normal;font-size:12.5px;color:var(--ink2);margin-left:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.springline{display:flex;align-items:center;gap:3px;margin-top:clamp(2px,.6dvh,6px);font-size:12px;color:var(--ink2);white-space:nowrap;height:16px;letter-spacing:-.1px;min-width:0}
+.springline{display:flex;align-items:center;gap:3px;margin-top:clamp(2px,.6vh,6px);margin-top:clamp(2px,.6dvh,6px);font-size:12.5px;color:var(--ink2);white-space:nowrap;height:16px;letter-spacing:-.1px;min-width:0}
 .springline span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .springline i{width:25px;height:16px;flex:none;background:center/100% 100% no-repeat}
 .springline .no{color:var(--mute)}
+.springline.pz i{opacity:.55}.springline.pz span{color:var(--mute)}
 .springline i.s0{background-image:var(--sp-spr0)}.springline i.s1{background-image:var(--sp-spr1)}.springline i.s2{background-image:var(--sp-spr2)}.springline i.s3{background-image:var(--sp-spr3)}
-@media (max-width:384px){.who{gap:5px}.who .st{width:24px;height:24px}.who .nm{letter-spacing:0;font-size:19px}.who .chips{gap:3px}.players{gap:8px}.pcard{padding:8px 8px 0 9px}.springline{letter-spacing:-.3px;gap:2px;font-size:11.5px}.springline i{width:22px}.energy em{font-size:12px}}
+@media (max-width:384px){.who{gap:5px}.who .st{width:24px;height:24px}.who .nm{letter-spacing:0;font-size:19px}.who .chips{gap:3px}.players{gap:8px}.pcard{padding:8px 8px 0 9px}.springline{letter-spacing:-.2px;gap:2px;font-size:12px}.springline i{width:22px}.energy em{font-size:12px}}
 
 /* taunt: a narrow vertical paper slip hung below the speaker's card */
 .bubble{position:absolute;z-index:6;width:26px;padding:9px 0 10px;display:flex;align-items:flex-start;justify-content:center;pointer-events:none;transform-origin:50% 0;animation:slipIn .32s cubic-bezier(.2,.9,.3,1.2) both;--pad:8px}
@@ -153,14 +163,18 @@ b,strong{font-weight:inherit}
 .hint b{font-family:var(--fd);font-size:17px;letter-spacing:1px;margin:0 1px;color:var(--zhu)}
 .hint:not(:empty)::before,.hint:not(:empty)::after{content:"";flex:0 1 52px;min-width:14px;height:8px;background:var(--sp-hl) center/100% 100% no-repeat}
 .hint:not(:empty)::after{transform:scaleX(-1)}
+/* a long hint first drops its side rules, then steps down a size, so it is never cut */
+.hint.tight{letter-spacing:0;gap:0}.hint.tight::before,.hint.tight::after{display:none}
+.hint.tight2{font-size:12.5px}.hint.tight2 b{font-size:15px;margin:0}
 
-.skillbar{flex:none;height:clamp(56px,8.2dvh,70px);display:flex;gap:10px}
+.skillbar{flex:none;height:clamp(56px,8.2vh,70px);height:clamp(56px,8.2dvh,70px);display:flex;gap:10px}
 .skill{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:0 8px 0 11px;--pad:10px}
 .skill .cw{position:relative;width:46px;height:46px;flex:none}
 .skill .cw .chip{width:46px;height:46px}
 .skill .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .skill .nm{font-family:var(--fd);font-size:22px;letter-spacing:2px;line-height:1.1;white-space:nowrap}
 .skill .ty{font-size:12px;color:var(--mute);letter-spacing:.3px;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.skill .ty .nq{display:none;color:var(--zhu)}
 .skill .cost{display:inline-flex;gap:2px;margin-left:1px}
 .skill .cost i{width:12px;height:12px;background:var(--sp-cost) center/100% 100% no-repeat}
 .skill .need{position:absolute;left:-7px;top:-9px;width:34px;height:34px;background:center/100% 100% no-repeat;transform:rotate(-6deg);z-index:2}
@@ -170,25 +184,56 @@ b,strong{font-weight:inherit}
 .skill.ghost .txt{opacity:.5}
 .skill.ghost{padding-left:16px}.skill.ghost .nm{color:var(--mute)}
 @media (max-height:700px){.skill .cw,.skill .cw .chip{width:40px;height:40px}.skill .nm{font-size:20px}.skill{gap:8px}}
-@media (max-width:384px){.skill{gap:7px;padding:0 5px 0 9px}.skill .ty{font-size:11px;letter-spacing:0;gap:2px}.skill .cost i{width:10px;height:10px}.skill .nm{letter-spacing:1px}}
+@media (max-width:384px){.skill{gap:7px;padding:0 5px 0 9px}.skill .ty{font-size:12px;letter-spacing:-.2px;gap:2px}.skill .cost i{width:10px;height:10px}.skill .nm{letter-spacing:1px}}
 
-.actions{flex:none;height:clamp(40px,5.4dvh,46px);display:flex;gap:10px}
+.actions{flex:none;height:clamp(40px,5.4vh,46px);height:clamp(40px,5.4dvh,46px);display:flex;gap:10px}
 .actions button{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;letter-spacing:4px;padding-left:4px;--pad:8px}
 .actions button:disabled{opacity:.42}
-.log{flex:none;min-height:16px;font-size:11.5px;line-height:1.45;color:var(--mute);text-align:center;letter-spacing:.3px;padding:0 6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.log{flex:none;min-height:18px;font-size:12.5px;line-height:1.45;color:var(--mute);text-align:center;letter-spacing:.3px;padding:0 6px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .rest{flex:1 1 0;min-height:0}
 
-/* landscape (desktop, tablet held sideways): the board takes the left, the controls a column on the right */
-@media (min-aspect-ratio:23/20) and (min-width:700px){
-  .game .gcol{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,29vw,380px);grid-template-rows:auto auto auto auto auto auto minmax(0,1fr);
-    grid-template-areas:"board top" "board players" "board hint" "board skills" "board actions" "board log" "board rest";column-gap:clamp(20px,3vw,44px);row-gap:12px;padding:16px 28px 16px 20px}
+/* landscape (desktop, tablet, a phone held sideways): the board on the left, as tall as the screen allows, the controls
+   in a column on the right. layoutGame() sets --bs (board) and --colw (column) so the pair sits centred and the board can
+   never run off the screen. Short screens (a phone on its side) get a compact column; big ones a roomier one. */
+@media (min-aspect-ratio:23/20) and (min-width:560px){
+  .game .gcol{max-width:none;overflow:hidden;display:grid;grid-template-columns:var(--bs,minmax(0,1fr)) var(--colw,clamp(300px,29vw,380px));justify-content:center;grid-template-rows:auto auto auto auto auto auto minmax(0,1fr);
+    grid-template-areas:"board top" "board players" "board hint" "board skills" "board actions" "board log" "board rest";column-gap:clamp(20px,3vw,44px);row-gap:12px;padding:16px max(28px,env(safe-area-inset-right)) 16px max(20px,env(safe-area-inset-left))}
   .boardslot{grid-area:board;margin:0}
   .topbar{grid-area:top}.players{grid-area:players;flex-direction:column;height:auto;gap:12px}.pcard{height:96px;flex:none}
   .hint{grid-area:hint}.skillbar{grid-area:skills;height:70px}.actions{grid-area:actions;height:46px}.log{grid-area:log}.rest{grid-area:rest}
 }
+@media (min-aspect-ratio:23/20) and (min-width:560px) and (min-height:700px){
+  .game .gcol{row-gap:14px}
+  .topbar{height:54px}.brand .bt{font-size:28px}.brand .five{width:42px;height:40px}.brand .mode{font-size:13.5px}.tbtn{font-size:20px;min-width:50px}
+  .pcard{height:114px;padding:12px 12px 0 14px}.who{height:32px;gap:8px}.who .st{width:30px;height:30px}.who .nm{font-size:23px}.who .nm i{font-size:14px}.who .chips{gap:4px}.who .chips .chip{width:25px;height:25px}
+  .energy{height:18px;margin-top:9px}.pip{width:16px;height:16px}.energy em{font-size:14px}
+  .springline{height:18px;margin-top:8px;font-size:13.5px;gap:4px}.springline i{width:28px;height:18px}
+  .hint{height:28px;font-size:15.5px}.hint b{font-size:19px}
+  .skillbar{height:84px;gap:12px}.skill{gap:12px;padding:0 10px 0 13px}.skill .cw,.skill .cw .chip{width:52px;height:52px}.skill .nm{font-size:25px}.skill .ty{font-size:13.5px}.skill .cost i{width:13px;height:13px}
+  .actions{height:52px;gap:12px}.actions button{font-size:22px}
+  .log{font-size:13.5px}
+}
+@media (min-aspect-ratio:23/20) and (min-width:560px) and (max-height:540px){
+  .game .gcol{row-gap:5px;column-gap:16px;padding:8px max(10px,env(safe-area-inset-right)) 8px max(10px,env(safe-area-inset-left))}
+  .gcol.nolog .log{display:none}
+  .topbar{height:42px;padding-top:2px}.brand .bt{font-size:21px}.brand .five{width:32px;height:30px;transform:translateY(-2px)}.brand .mode{font-size:12px}
+  .tbtn{min-width:38px;height:36px;font-size:17px;letter-spacing:0}
+  .players{gap:6px}.pcard{height:72px;padding:6px 8px 0 10px}.who{height:26px}.energy{height:15px;margin-top:1px}.springline{height:15px;margin-top:1px}
+  .gcol.pside .players{flex-direction:row;height:76px;gap:8px}.gcol.pside .pcard{height:auto;flex:1}
+  .hint{height:22px;font-size:13.5px}
+  .skillbar{height:52px;gap:8px}.skill{gap:5px;padding:0 4px 0 8px}.skill .cw,.skill .cw .chip{width:34px;height:34px}.skill .cost i{width:10px;height:10px}.skill .ty{letter-spacing:0;gap:2px}.skill .nm{font-size:19px;letter-spacing:1px}.skill .need{width:30px;height:30px;left:-6px;top:-8px}
+  .gcol.narrow .skill .ty .sfx{display:none}
+  .actions{height:38px;gap:8px}.actions button{font-size:18px}
+  .log{-webkit-line-clamp:1;height:18px}
+}
+/* phones held upright with little height: the log keeps to one line so it never drops below the screen */
+@media (max-height:759px){.log{-webkit-line-clamp:1;height:18px}}
+/* a 4-character seal is a blot at 1x; there the skill says it in words instead */
+@media (max-resolution:1.5dppx){.skill .need.n1{display:none}.skill.poor .ty .tk{display:none}.skill.poor .ty .nq{display:inline}}
+@media (min-aspect-ratio:23/20) and (min-width:560px) and (min-height:700px){.skill .need.n1{display:none}.skill.poor .ty .tk{display:none}.skill.poor .ty .nq{display:inline}}
 
 /* ---------------- OVERLAYS: paper scrolls ---------------- */
-.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:18px 14px;z-index:10;overflow-y:auto;background:radial-gradient(120% 90% at 50% 45%,rgba(241,234,218,.62),rgba(92,74,48,.38));animation:ovIn .3s ease both}
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;display:flex;align-items:center;justify-content:center;padding:18px 14px;z-index:10;overflow-y:auto;background:radial-gradient(120% 90% at 50% 45%,rgba(241,234,218,.62),rgba(92,74,48,.38));animation:ovIn .3s ease both}
 @keyframes ovIn{from{opacity:0}to{opacity:1}}
 .sheet{position:relative;isolation:isolate;max-width:500px;width:100%;display:flex;flex-direction:column;gap:12px;padding:30px 24px 30px;max-height:calc(100% - 8px);animation:sheetIn .42s cubic-bezier(.2,.8,.3,1) both}
 @keyframes sheetIn{from{transform:translateY(14px) scaleY(.94);opacity:0}to{transform:none;opacity:1}}
@@ -206,12 +251,12 @@ b,strong{font-weight:inherit}
 .pick .top .chip{width:34px;height:34px}
 .pick .top .tt{display:flex;flex-direction:column;gap:1px;min-width:0}
 .pick .top b{font-family:var(--fd);font-size:20px;letter-spacing:2px;white-space:nowrap;line-height:1.15}
-.pick .tag{font-size:11px;color:var(--mute);display:flex;align-items:center;gap:2px;white-space:nowrap}
+.pick .tag{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:2px;white-space:nowrap}
 .pick .tag .cost{display:inline-flex;gap:2px;margin-left:1px}
 .pick .tag i{width:10px;height:10px;background:var(--sp-cost) center/100% 100% no-repeat}
 .pick p{margin:0;font-size:12px;color:var(--ink2);line-height:1.55}
 .pick.sel .top b{color:var(--zhu)}
-@media (max-width:370px){.picks{gap:10px 8px}.pick{padding:9px 7px 10px 8px}.pick .top{gap:6px}.pick .top .chip{width:30px;height:30px}.pick .top b{font-size:18px}.pick p{font-size:11.5px}}
+@media (max-width:370px){.picks{gap:10px 8px}.pick{padding:9px 7px 10px 8px}.pick .top{gap:6px}.pick .top .chip{width:30px;height:30px}.pick .top b{font-size:18px}.pick p{font-size:12px}}
 .rules{font-size:13.5px;line-height:1.75;color:var(--ink)}
 .rules h3{font-family:var(--fd);font-weight:400;font-size:19px;letter-spacing:2px;margin:12px 0 2px;color:var(--ink);display:flex;align-items:center;gap:7px}
 .rules h3 small{font-family:var(--fb);font-size:12.5px;letter-spacing:1px;color:var(--mute);margin-left:2px;padding-top:4px}
@@ -229,7 +274,7 @@ b,strong{font-weight:inherit}
 .rules .q{color:var(--qing)}
 .emotes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .emotes button{min-height:46px;padding:6px 12px;font-family:var(--fd);font-size:17px;line-height:1.3;letter-spacing:.5px;text-wrap:balance;text-align:center;display:flex;align-items:center;justify-content:center;--pad:7px}
-.mute{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);cursor:pointer;align-self:center}
+.mute{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink2);cursor:pointer;align-self:center;min-height:44px;padding:0 10px}
 .mute input{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin:0;border:1.5px solid rgba(40,34,28,.65);border-radius:2px;background:rgba(255,253,246,.5);display:grid;place-items:center;cursor:pointer}
 .mute input:checked{background:var(--zhu);border-color:var(--zhu)}
 .mute input:checked::after{content:"屏";font-family:var(--fd);font-size:15px;color:#f6efe2;line-height:1}
@@ -243,10 +288,10 @@ b,strong{font-weight:inherit}
 .codebig{display:flex;justify-content:center;gap:10px;margin:4px 0}
 .codebig span{width:54px;height:62px;display:grid;place-items:center;font-family:var(--fd);font-size:40px;color:var(--ink);background:var(--sp-cbox) center/100% 100% no-repeat;padding-top:4px}
 .linkbox{font:inherit;font-size:12.5px;background:rgba(255,253,246,.45);color:var(--ink2);border:0;border-bottom:1.5px solid rgba(40,34,28,.35);border-radius:0;padding:8px 4px;width:100%;outline:none;text-align:center}
-.toast{width:max-content;position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);color:var(--ink);padding:11px 20px 11px 26px;font-size:14px;line-height:1.5;z-index:20;max-width:calc(100% - 40px);text-align:center;letter-spacing:.5px;--pad:10px;animation:toastIn .28s cubic-bezier(.2,.9,.3,1.2) both}
+.toast{pointer-events:none;width:max-content;position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);color:var(--ink);padding:11px 20px 11px 26px;font-size:14px;line-height:1.5;z-index:20;max-width:calc(100% - 40px);text-align:center;letter-spacing:.5px;--pad:10px;animation:toastIn .28s cubic-bezier(.2,.9,.3,1.2) both}
 .toast::after{content:"";position:absolute;left:11px;top:50%;width:6px;height:6px;margin-top:-3px;background:var(--zhu);transform:rotate(45deg)}
 @keyframes toastIn{from{transform:translate(-50%,12px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
-.shade{position:fixed;inset:-10px;pointer-events:none;z-index:9;opacity:0}
+.shade{position:fixed;top:-10px;right:-10px;bottom:-10px;left:-10px;inset:-10px;pointer-events:none;z-index:9;opacity:0}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -2835,6 +2880,8 @@ const dprArt=()=>Math.min(2,window.devicePixelRatio||1);       // soft full-scre
 const dprHi=()=>Math.min(3,window.devicePixelRatio||1);        // board, sprites, decorations
 const idle=()=>new Promise(r=>window.requestIdleCallback?requestIdleCallback(r,{timeout:80}):setTimeout(r,16));
 const raf=()=>new Promise(r=>requestAnimationFrame(r));
+const mq=q=>!!(window.matchMedia&&matchMedia(q).matches);
+const MENU_LAND_Q='(min-aspect-ratio:23/20) and (max-height:540px)';
 function cnv(w,h){const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c;}
 const INK=[26,23,20];
 
@@ -3035,21 +3082,33 @@ function tilePlane(o,VW,X0,sx){
   out.domes=domes;out.mist=mist;out.gaps=gaps;out.trees=trees;return out;
 }
 function menuGeom(){
-  const VW=innerWidth,VH=innerHeight,nav=document.querySelector('.mbtns'),btnTop=nav.getBoundingClientRect().top;
+  const VW=innerWidth,VH=innerHeight,nav=document.querySelector('.mbtns'),nr=nav.getBoundingClientRect(),res=$('mResume'),resOn=!res.hidden;
+  if(mq(MENU_LAND_Q)){
+    // a phone on its side: the buttons stand on the right, the title column and the poem fill the paper to their left,
+    // the hills run along the foot
+    const areaW=Math.max(260,nr.left-14),k=I.clamp((VH-28)/410,.55,1.05),kx=1;
+    const CW=Math.min(areaW,Math.max(420,390*kx)),X0=Math.max(0,(areaW-CW)/2);
+    const S5=150*k,X5=X0+CW-27*kx-S5;
+    return {VW,VH,btnTop:VH+64*k,k,kx,S5,X5,colX:X5+.6*S5,Y5:128*k+14,CW,X0,plumX:X0-34,pk:I.clamp(k*.8,.5,.86),land:true,navL:nr.left,limit:VH-14,resOn};
+  }
+  // the resume slip hangs above the buttons: the composition ends above it
+  const btnTop=resOn?res.getBoundingClientRect().top-4:nr.top;
   // phones: the 390-px composition scales with the height above the buttons; tablets and desktops may grow it further
   const wide=VW>=600,k=I.clamp((btnTop-8)/582,.6,wide?Math.min(1.6,VW/400):1.14),kx=wide?Math.max(1,k):1;
   const CW=Math.min(VW,Math.max(500,390*kx)),X0=(VW-CW)/2;
   const S5=150*k,X5=X0+CW-27*kx-S5;
   // on a wide sheet the branch enters from the paper's own edge instead of floating mid-air
   const plumX=VW-CW>220?Math.min(0,X0-120):X0,pk=I.clamp(VW-CW>220?Math.max(k*1.3,1.3):k,.74,wide?1.6:1.06);
-  return {VW,VH,btnTop,k,kx,S5,X5,colX:X5+.6*S5,Y5:128*k+14,CW,X0,plumX,pk};
+  return {VW,VH,btnTop,k,kx,S5,X5,colX:X5+.6*S5,Y5:128*k+14,CW,X0,plumX,pk,limit:btnTop-10,resOn};
 }
 const MENU={mist:null,loop:0};
 async function buildMenu(){
-  const G0=menuGeom(),s=dprArt(),key=G0.VW+'x'+G0.VH+'@'+s+'|'+artFontsOK;
+  const G0=menuGeom(),s=dprArt(),key=G0.VW+'x'+G0.VH+'@'+s+'|'+artFontsOK+'|'+G0.resOn;
   if(ART.menuKey===key)return;ART.menuKey=key;
   const {VW,VH,k,kx,S5,X5,colX,Y5,X0,plumX,pk}=G0,live=()=>ART.menuKey===key;
-  const sub=$('menuSub'),ks=Math.min(kx,1.3);sub.style.right=(VW-X5+6*kx)+'px';sub.style.top=(Y5+44*k)+'px';sub.style.fontSize=(13.5*ks).toFixed(1)+'px';sub.style.lineHeight=(22*ks).toFixed(1)+'px';
+  const sub=$('menuSub'),ks=Math.min(kx,1.3);sub.style.right=(VW-X5+6*kx)+'px';sub.style.fontSize=(13.5*ks).toFixed(1)+'px';sub.style.lineHeight=(22*ks).toFixed(1)+'px';
+  // the poem hangs beside the 五; where the paper is short it climbs up beside 技能 so it never meets the buttons
+  sub.style.top=Math.max(Y5-82*k,Math.min(Y5+44*k,G0.limit-sub.offsetHeight))+'px';
   const ac=$('menuArt'),W=Math.round(VW*s),H=Math.round(VH*s);ac.classList.remove('in');
   const A=I.mk(W,H),x=A.x;
   const step=async fn=>{await idle();if(!live())throw 0;fn();};
@@ -3069,6 +3128,8 @@ async function buildMenu(){
       A:{n:240,a:.08,size:40,band:.85},B:{n:1500,a:.3,size:10,band:.26,fold:.06},C:{n:220,a:.45,size:4.2},baseFade:.5,occlude:.92,
       mist:[{y:my(204),h:22,wav:4,soft:1.4,amt:.8,x0:96,x1:160},{y:my(250),h:40,wav:5,soft:2,amt:.7,x0:220,x1:270}],gaps:[{x:140,w:8,top:my(172),amt:.85}],
       trees:[{x0:160,x1:206,y:my(266),h:24,n:6,a:.75}],vary},VW,X0,kx)));
+    if(G0.land)await step(()=>{const g=x.createLinearGradient((G0.navL-70)*s,0,(G0.navL+6)*s,0);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.9)');
+      x.globalCompositeOperation='destination-out';x.fillStyle=g;x.fillRect(0,0,W,H);x.globalCompositeOperation='source-over';});
     // 留白 behind the 题跋: where the inscription runs into the hills a drifting cloud thins them
     await step(()=>{const sr=sub.getBoundingClientRect(),L0=sr.left-6,R0=sr.right+6,Bt=sr.bottom+6,nm=I.fbm2(44,3);if(Bt<B+40)return;
       x.globalCompositeOperation='destination-out';
@@ -3147,15 +3208,31 @@ const MR=.92,BPAD=12;
 let G={size:0,cell:0,m:0,dpr:1};
 const pos=i=>{const [r,c]=rc(i);return [G.m+c*G.cell,G.m+r*G.cell];};
 const cornerAng=sp=>{const [r,c]=rc(sp);return Math.atan2(r<7?-1:1,c<7?-1:1);};
-const isLand=()=>!!(window.matchMedia&&matchMedia('(min-aspect-ratio:23/20) and (min-width:700px)').matches);
+const LAND_Q='(min-aspect-ratio:23/20) and (min-width:560px)',SHORT_Q='(max-height:540px)';
+const isLand=()=>mq(LAND_Q);
 function layoutGame(){
-  const slot=$('boardslot'),wrap=$('boardwrap'),rest=document.querySelector('#scGame .rest');
+  const g=document.querySelector('#scGame .gcol'),slot=$('boardslot'),wrap=$('boardwrap'),rest=document.querySelector('#scGame .rest');
   wrap.style.width=wrap.style.height='0px';slot.style.flex='';rest.style.flex='0 0 0px';
-  const r=slot.getBoundingClientRect();
-  let BS=Math.floor(Math.min(r.width,r.height));BS=Math.max(200,Math.min(BS,1200));
-  if(!isLand())slot.style.flex='0 0 '+BS+'px';
+  let BS;
+  if(isLand()){
+    // the board takes the full height; the column gets what is left (at least minCol), the pair is centred
+    const cs=getComputedStyle(g),short=mq(SHORT_Q),num=v=>parseFloat(v)||0;
+    const H=g.clientHeight-num(cs.paddingTop)-num(cs.paddingBottom),W=g.clientWidth-num(cs.paddingLeft)-num(cs.paddingRight),cg=num(cs.columnGap);
+    const minCol=short?250:300,maxCol=short?460:440;
+    BS=Math.floor(Math.min(H-(short?4:0),W-cg-minCol));BS=Math.max(160,Math.min(BS,1400));
+    const col=Math.floor(Math.max(Math.min(minCol,W-cg-BS),Math.min(maxCol,W-cg-BS)));
+    g.style.setProperty('--bs',BS+'px');g.style.setProperty('--colw',col+'px');
+    g.classList.toggle('pside',short&&col>=380);g.classList.toggle('narrow',col<300);g.classList.remove('nolog');
+  }else{
+    g.style.removeProperty('--bs');g.style.removeProperty('--colw');g.classList.remove('pside','narrow');
+    const r=slot.getBoundingClientRect();
+    BS=Math.floor(Math.min(r.width,r.height));BS=Math.max(200,Math.min(BS,1200));
+    slot.style.flex='0 0 '+BS+'px';
+  }
   rest.style.flex='';
   wrap.style.width=wrap.style.height=BS+'px';
+  // a very short column (a small phone on its side) gives up the log line before anything else
+  if(isLand()){const lg=$('log').getBoundingClientRect(),gb=g.getBoundingClientRect();if(lg.height&&lg.bottom>gb.bottom-2)g.classList.add('nolog');}
   return BS;
 }
 let boardKey='',boardJob=0;
@@ -3172,7 +3249,7 @@ function resize(){
   }
   buildGameBg();
   if(spritesReady){for(const el of document.querySelectorAll('#scGame .dk'))deco(el);}
-  placeBubbles();
+  placeBubbles();fitHint();
 }
 let _rsT=0;
 window.addEventListener('resize',()=>{clearTimeout(_rsT);_rsT=setTimeout(()=>{buildPaper();if(!$('scGame').hidden)resize();if(!$('scMenu').hidden)buildMenu();if(!$('scPeer').hidden||!$('scLobby').hidden)buildLobby();},140);});
@@ -3277,7 +3354,7 @@ function drawBoard(now){
     if(!own&&!RM){const ph=(t/3.4+(sp%15)*.13)%1,al=.5*(1-ph)*Math.min(1,ph*5),rx=cell*(.3+.42*ph),a0=(sp%15)*1.7+ph*.5;
       x.strokeStyle=rgba(IP.qing,al);x.lineCap='round';
       for(let j=0;j<3;j++){const st=a0+j*2.09;x.lineWidth=(1.35-j*.25)*(1-ph*.4)*Math.sqrt(G.size/378);x.beginPath();x.ellipse(px,py,rx,rx*.9,0,st,st+1.25-j*.2);x.stroke();}}
-    if(!H.dabs.has(sp))blit(x,springDabs(sp,own,tk),px,py);
+    if(!H.dabs.has(sp))blit(x,springDabs(sp,own,tk),px,py,own&&S.energy[own]>=3?.55:null);   // a full owner: the spring rests
   }
   // persistent marks: 封 seal on its point, the rewind ring on the point that must stay empty
   if(S.seal&&!H.marks.has('seal')){const [px,py]=pos(S.seal.i);FX1.sealMark(x,px,py,cell,TH,S.seal.i%89+1);}
@@ -3556,6 +3633,9 @@ function updateOnlineNote(){
 function toast(m){
   const t=$('toast');t.textContent=m;
   if(t.hidden){t.hidden=false;}else{t.style.animation='none';void t.offsetWidth;t.style.animation='';}
+  let lx='';
+  if(!$('scGame').hidden&&isLand()){const r=$('skillbar').getBoundingClientRect();if(r.width)lx=Math.round(r.left+r.width/2)+'px';}
+  t.style.left=lx;
   deco(t);clearTimeout(toast._t);toast._t=setTimeout(()=>t.hidden=true,2200);
 }
 function show(id){
@@ -3842,11 +3922,11 @@ function render(){
     let springTxt='',best=0;
     if(mySprings.length){
       best=Math.max(...mySprings.map(sp=>Math.min(3,S.tick[sp]||0)));
-      springTxt=e>=3?`占泉眼×${mySprings.length} · 能量满暂停`:`占泉眼×${mySprings.length} · 再 ${3-best} 回合 +1`;
+      springTxt=e>=3?`泉眼×${mySprings.length} · 能量满暂停`:`泉眼×${mySprings.length} · 再${3-best}回合+1`;
     }
     setHTML(el,`<div class="who"><i class="st ${p===1?'b':'w'}" aria-hidden="true"></i><span class="nm">${who(p)}${mode==='local'?'':`<i>·</i>${p===1?'黑':'白'}`}</span><span class="chips">${lo.map(k=>`<i class="chip k-${k}${SK[k].once&&S.once[p]?' used':''}" title="${SK[k].n}"></i>`).join('')||'<small>选技能中</small>'}</span></div>
       <div class="energy" aria-label="能量 ${e}/3">${[0,1,2].map(k=>`<i class="pip${k<e?' on':''}${k<e&&k>=prevE?' new':''}"></i>`).join('')}<em>${e>=3?'能量已满':`再下 ${need} 手 +1`}</em></div>
-      <div class="springline">${mySprings.length?`<i class="s${e>=3?3:best}"></i><span>${springTxt}</span>`:'<i class="s0"></i><span class="no">未占泉眼</span>'}</div>`);
+      <div class="springline${e>=3&&mySprings.length?' pz':''}">${mySprings.length?`<i class="s${best}"></i><span>${springTxt}</span>`:'<i class="s0"></i><span class="no">未占泉眼</span>'}</div>`);
   }
   prevEnergy=S.energy.slice();
   // skill bar
@@ -3858,14 +3938,14 @@ function render(){
     const sk=SK[k],poor=S.energy[me]<sk.c,used=!!(sk.once&&S.once[me]);
     const dis=!canAct||S.replace||poor||(sk.q&&S.quick)||used,on=!!(sel&&sel.skill===k);
     const badge=used?'<i class="need n2" role="img" aria-label="已用"></i>':poor?'<i class="need n1" role="img" aria-label="能量不足"></i>':'';
-    return `<button class="skill dk${on?' sel':''}${dis?' off':''}" data-k="${k}" ${dis?'disabled':''}><span class="cw"><i class="chip k-${k}${on?' zhu':(poor||used)?' grey':''}" aria-hidden="true"></i>${badge}</span><span class="txt"><span class="nm">${sk.n}</span><span class="ty">${sk.q?'快速技能':'主动技能'} · <span class="cost" aria-label="耗能 ${sk.c}">${dabs(sk.c)}</span></span></span></button>`;
+    return `<button class="skill dk${on?' sel':''}${dis?' off':''}${poor&&!used?' poor':''}" data-k="${k}" ${dis?'disabled':''}><span class="cw"><i class="chip k-${k}${on?' zhu':(poor||used)?' grey':''}" aria-hidden="true"></i>${badge}</span><span class="txt"><span class="nm">${sk.n}</span><span class="ty"><span class="tk">${sk.q?'快速':'主动'}<span class="sfx">技能</span> · </span><em class="nq">能量不足 · </em><span class="cost" aria-label="耗能 ${sk.c}">${dabs(sk.c)}</span></span></span></button>`;
   }).join(''):[0,1].map(()=>`<div class="skill ghost dk" aria-hidden="true"><span class="txt"><span class="nm">待选</span><span class="ty">开局选两个技能</span></span></div>`).join('');
   if(setHTML(sb,sbHTML))for(const b of sb.querySelectorAll('button.skill'))b.onclick=()=>{
     const k=b.dataset.k;
     sel=sel&&sel.skill===k?null:{skill:k,from:null};
     render();
   };
-  const ht=hintText();setHTML($('hint'),ht?`<span class="ht">${ht}</span>`:'');
+  const ht=hintText();if(setHTML($('hint'),ht?`<span class="ht">${ht}</span>`:''))fitHint();
   $('log').textContent=logLines().slice(-2).join('　·　');
   $('gResign').disabled=S.phase!=='play';
   const cu=canUndo();
@@ -3893,6 +3973,12 @@ function render(){
     ov.hidden=false;
   }else ov.hidden=true;
   if(spritesReady&&!$('scGame').hidden)decoWatch($('scGame'));
+}
+// a hint that does not fit drops its side rules, then a size (never an ellipsis on an instruction)
+function fitHint(){
+  const h=$('hint'),t=h.firstChild;h.classList.remove('tight','tight2');if(!t||$('scGame').hidden)return;
+  const over=()=>t.scrollWidth>t.clientWidth+1;
+  if(over()){h.classList.add('tight');if(over())h.classList.add('tight2');}
 }
 function hintText(){
   if(S.phase==='pick')return needPick()?'':'等待对手选技能…';
@@ -4288,8 +4374,9 @@ function refreshResume(){
   const r=standalone?loadResume():null;
   const was=$('mResume').hidden;
   $('mResume').hidden=!r;
-  if(r)$('mResumeInfo').textContent=`房间 ${r.code} · ${r.seat===1?'黑方':'白方'}`;
+  if(r)$('mResumeInfo').innerHTML=`房间 <span class="code">${r.code}</span><span class="seat"> · ${r.seat===1?'黑方':'白方'}</span>`;
   if(r&&was&&spritesReady)deco($('mResume'));
+  if(was!==!r&&spritesReady&&!$('scMenu').hidden)buildMenu();   // the composition makes room for the slip
 }
 async function peerResume(){
   const r=loadResume();if(!r){refreshResume();return;}
