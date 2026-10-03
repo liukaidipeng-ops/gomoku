@@ -12,13 +12,15 @@
    Every visible surface is painted on canvas with the ink library below (paper, brush strokes, seals, stones);
    the DOM carries the text and the hit targets. Painted art reaches a DOM element through the --deco custom
    property, which the .dk::before layer draws (sized to the element plus --pad on every side). */
-@font-face{font-family:"Ma Shan Zheng";src:url(fonts/ma-shan-zheng-400.woff2) format("woff2");font-display:block}
+@font-face{font-family:"Ma Shan Zheng";src:url(fonts/ma-shan-zheng-400.woff2) format("woff2");font-display:swap}
 @font-face{font-family:"Noto Serif SC";src:url(fonts/noto-serif-sc-400.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Noto Serif SC";src:url(fonts/noto-serif-sc-700.woff2) format("woff2");font-weight:700;font-display:swap;unicode-range:U+20,U+30-39,U+41-5A}
 @font-face{font-family:"Zhi Mang Xing";src:url(fonts/zhi-mang-xing-400.woff2) format("woff2");font-display:block}
 :root{
   --ink:#1c1915;--ink2:#3b342b;--mute:#5f5446;--paper:#f1eada;--zhu:#b0301f;--qing:#2c627e;
-  --fd:"Ma Shan Zheng","STKaiti","KaiTi","Kaiti SC",serif;
+  --fd:"Ma Shan Zheng","Noto Serif SC","STKaiti","KaiTi","Kaiti SC",serif;   /* a glyph the brush face lacks (·) comes from our own body face */
   --fb:"Noto Serif SC","Songti SC","STSong","SimSun",serif;
+  --fc:"Noto Serif SC",Georgia,"Times New Roman",serif;   /* room codes: plain upright capitals, never script */
   --gap:clamp(5px,1.05vh,11px);
   color-scheme:light;
 }
@@ -30,7 +32,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cu
 button:focus-visible{outline:2px solid rgba(176,48,31,.5);outline-offset:3px;border-radius:3px}
 button:disabled{cursor:default}
 b,strong{font-weight:inherit}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;font-weight:400}
 /* painted decoration layer */
 .dk{position:relative;isolation:isolate}
 .dk::before{content:"";position:absolute;left:calc(var(--pad,10px)*-1);top:calc(var(--pad,10px)*-1);right:calc(var(--pad,10px)*-1);bottom:calc(var(--pad,10px)*-1);background:var(--deco,none) 0 0/100% 100% no-repeat;pointer-events:none;z-index:-1}
@@ -53,7 +55,7 @@ b,strong{font-weight:inherit}
 
 /* ---------------- MENU ---------------- */
 #menuFx{opacity:1!important}
-.menu .sub{position:absolute;margin:0;writing-mode:vertical-rl;font-size:13.5px;line-height:22px;letter-spacing:2.2px;color:var(--ink2);z-index:1;white-space:nowrap}
+.menu .sub{position:absolute;right:calc(50% - 18px);top:max(56px,min(21vh,170px));margin:0;writing-mode:vertical-rl;font-size:13.5px;line-height:22px;letter-spacing:2.2px;color:var(--ink2);z-index:1;white-space:nowrap}
 .mbtns{position:absolute;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2}
 .mb{width:min(330px,calc(100vw - 48px));display:flex;align-items:center;gap:12px;height:44px;padding:0 10px 0 16px;white-space:nowrap;--pad:2px}
 .mb b{font-family:var(--fd);font-weight:400;font-size:22px;letter-spacing:2px;color:var(--ink)}
@@ -90,21 +92,31 @@ b,strong{font-weight:inherit}
 .lbtn:disabled{opacity:.45}
 .joinrow{display:flex;gap:12px;align-items:stretch;height:52px}
 .joinrow .cin{flex:1;min-width:0;display:flex;--pad:8px}
-.joinrow input{flex:1;width:100%;min-width:0;font-family:var(--fd);font-size:26px;letter-spacing:.42em;text-indent:.42em;text-transform:uppercase;text-align:center;background:transparent;color:var(--ink);border:0;border-radius:0;padding:0 8px;outline:none}
-.joinrow input::placeholder{font-family:var(--fb);font-size:15px;letter-spacing:.3em;text-indent:.3em;color:rgba(106,95,80,.75)}
+/* the code is typed into one input; four cells drawn over it show each character centred in its own box */
+.joinrow input{flex:1;width:100%;min-width:0;font-family:var(--fc);font-weight:700;font-size:24px;text-transform:uppercase;text-align:center;background:transparent;color:transparent;caret-color:transparent;border:0;border-radius:0;padding:0 8px;outline:none}
+.joinrow input::placeholder{font-family:var(--fb);font-weight:400;font-size:15px;letter-spacing:.3em;text-indent:.3em;color:rgba(95,84,70,.8)}
+.joinrow input:focus::placeholder{color:transparent}
 .joinrow input:focus{background:rgba(255,253,246,.35)}
+.cin .cells{position:absolute;left:5px;right:5px;top:8px;bottom:8px;display:flex;pointer-events:none;transition:opacity .2s}
+.cin .cells i{flex:1;position:relative;display:grid;place-items:center;font-style:normal;font-family:var(--fc);font-weight:700;font-size:25px;line-height:1;color:var(--ink);border-left:1px solid rgba(60,50,40,.22)}
+.cin .cells i:first-child{border-left:0}
+.cin .cells i.cur::after{content:"";position:absolute;left:32%;right:32%;bottom:3px;height:2px;background:rgba(176,48,31,.75);animation:cBlink 1.1s steps(2,jump-none) infinite}
+@keyframes cBlink{50%{opacity:0}}
+.cin.empty:not(:focus-within) .cells{opacity:0}
 .joinrow button{width:96px;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:22px;letter-spacing:4px;padding-left:4px;--pad:8px}
 .joinrow button:disabled{opacity:.45}
 .lobby .note{font-size:13px;line-height:1.75;color:var(--ink2);margin:0;text-align:center;letter-spacing:.5px}
 .lobby .note.hint2{font-size:12.5px;color:var(--mute)}
 .rooms{display:flex;flex-direction:column;gap:10px;overflow-y:auto;min-height:0;flex:1 1 auto;padding:4px 2px 10px;margin:0 -2px}
 .room{display:flex;justify-content:space-between;align-items:center;height:52px;padding:0 16px;flex:none;--pad:8px}
-.room code{font-family:var(--fd);font-size:24px;letter-spacing:.18em}
+.room code{font-family:var(--fc);font-weight:700;font-size:22px;letter-spacing:.2em}
 .room small{color:var(--mute);font-size:12.5px}
 .room:disabled{opacity:.55}
 .rooms .note{margin-top:6px}
 
 /* ---------------- GAME ---------------- */
+.game.resOn .hint,.game.resOn .log{opacity:0;transition:opacity .3s}   /* the docked result scroll says it already; its roller must not slice the line */
+#fxTop,#fxVig{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3}#fxVig{opacity:0}
 .game .gcol{position:absolute;top:0;bottom:0;left:0;right:0;margin:0 auto;max-width:720px;display:flex;flex-direction:column;padding:max(4px,env(safe-area-inset-top)) 12px max(4px,env(safe-area-inset-bottom));gap:8px;gap:var(--gap,8px);z-index:1;overflow-x:hidden;overflow-y:auto}
 .topbar{flex:none;height:48px;display:flex;align-items:center;padding:4px 0 0 2px;gap:6px}
 .brand{display:flex;flex-direction:column;justify-content:center;min-width:0;line-height:1}
@@ -142,7 +154,7 @@ b,strong{font-weight:inherit}
 .springline span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .springline i{width:25px;height:16px;flex:none;background:center/100% 100% no-repeat}
 .springline .no{color:var(--mute)}
-.springline.pz i{opacity:.55}.springline.pz span{color:var(--mute)}
+.springline.pz i{opacity:.55}.springline.pz span{color:#4e4539}
 .springline i.s0{background-image:var(--sp-spr0)}.springline i.s1{background-image:var(--sp-spr1)}.springline i.s2{background-image:var(--sp-spr2)}.springline i.s3{background-image:var(--sp-spr3)}
 @media (max-width:384px){.who{gap:5px}.who .st{width:24px;height:24px}.who .nm{letter-spacing:0;font-size:19px}.who .chips{gap:3px}.players{gap:8px}.pcard{padding:8px 8px 0 9px}.springline{letter-spacing:-.2px;gap:2px;font-size:12px}.springline i{width:22px}.energy em{font-size:12px}}
 
@@ -233,7 +245,8 @@ b,strong{font-weight:inherit}
 @media (min-aspect-ratio:23/20) and (min-width:560px) and (min-height:700px){.skill .need.n1{display:none}.skill.poor .ty .tk{display:none}.skill.poor .ty .nq{display:inline}}
 
 /* ---------------- OVERLAYS: paper scrolls ---------------- */
-.overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;display:flex;align-items:center;justify-content:center;padding:18px 14px;z-index:10;overflow-y:auto;background:radial-gradient(120% 90% at 50% 45%,rgba(241,234,218,.62),rgba(92,74,48,.38));animation:ovIn .3s ease both}
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;display:flex;align-items:center;justify-content:center;padding:18px 14px;z-index:10;overflow-y:auto;background:linear-gradient(to bottom,rgba(241,234,218,.62),rgba(241,234,218,0) 32%,rgba(241,234,218,0) 72%,rgba(241,234,218,.5)),radial-gradient(120% 90% at 50% 45%,rgba(241,234,218,.8),rgba(120,98,66,.44));animation:ovIn .3s ease both}
+.overlay>.sheet{left:var(--ovdx,0px)}   /* landscape game: the scroll hangs over the board, not over the viewport centre */
 @keyframes ovIn{from{opacity:0}to{opacity:1}}
 .sheet{position:relative;isolation:isolate;max-width:500px;width:100%;display:flex;flex-direction:column;gap:12px;padding:30px 24px 30px;max-height:calc(100% - 8px);animation:sheetIn .42s cubic-bezier(.2,.8,.3,1) both}
 @keyframes sheetIn{from{transform:translateY(14px) scaleY(.94);opacity:0}to{transform:none;opacity:1}}
@@ -243,7 +256,7 @@ b,strong{font-weight:inherit}
 .sbody{overflow-y:auto;min-height:0;margin:0 -8px;padding:0 8px 14px;-webkit-mask-image:linear-gradient(#000 calc(100% - 20px),transparent);mask-image:linear-gradient(#000 calc(100% - 20px),transparent)}
 .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .btn{min-height:44px;padding:0 18px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;letter-spacing:3px;white-space:nowrap;--pad:8px}
-.btn.primary{color:#f6f0e2;min-width:132px;--pad:10px;letter-spacing:4px}
+.btn.primary{color:#f6f0e2;min-width:132px;--pad:10px;letter-spacing:4px;padding:0 44px 0 22px}   /* the label stays on the stroke's loaded body, the 飞白 tail runs on beyond it */
 .btn:disabled{opacity:.4}
 .picks{display:grid;grid-template-columns:1fr 1fr;gap:12px 12px}
 .pick{display:flex;flex-direction:column;gap:5px;text-align:left;padding:10px 10px 11px 11px;min-width:0;--pad:8px}
@@ -254,7 +267,8 @@ b,strong{font-weight:inherit}
 .pick .tag{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:2px;white-space:nowrap}
 .pick .tag .cost{display:inline-flex;gap:2px;margin-left:1px}
 .pick .tag i{width:10px;height:10px;background:var(--sp-cost) center/100% 100% no-repeat}
-.pick p{margin:0;font-size:12px;color:var(--ink2);line-height:1.55}
+.pick p{margin:0;font-size:12.5px;color:var(--ink2);line-height:1.55}
+@media (max-height:699px){#ovPick .sheet{padding:24px 20px 22px;gap:8px}#ovPick .note{line-height:1.5}.picks{gap:8px 10px}.pick{gap:3px;padding:8px 9px 9px 10px}.pick p{line-height:1.42}#ovPick .sbody{padding-bottom:8px}}
 .pick.sel .top b{color:var(--zhu)}
 @media (max-width:370px){.picks{gap:10px 8px}.pick{padding:9px 7px 10px 8px}.pick .top{gap:6px}.pick .top .chip{width:30px;height:30px}.pick .top b{font-size:18px}.pick p{font-size:12px}}
 .rules{font-size:13.5px;line-height:1.75;color:var(--ink)}
@@ -282,11 +296,13 @@ b,strong{font-weight:inherit}
 .result{max-width:560px;padding:26px 22px 24px;margin-bottom:max(0px,env(safe-area-inset-bottom));gap:8px;align-items:center}
 .result h2{font-size:clamp(38px,11vw,50px);letter-spacing:10px;padding:0 0 0 10px;text-align:center}
 .result .note{text-align:center;margin-bottom:6px}
-.result .row{gap:10px}
-.result .btn{min-width:0;padding:0 14px}
-.result .btn.primary{min-width:128px}
+.result .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%;max-width:400px}
+.result .row.two{grid-template-columns:repeat(2,minmax(0,1fr));max-width:300px}
+.result .btn{min-width:0;padding:0 10px}
+.result .btn.primary{grid-column:1/-1;justify-self:center;width:min(100%,250px);padding:0 44px 0 20px;min-height:50px}
+@media (max-width:380px){.result .btn{letter-spacing:2px;font-size:19px;padding:0 6px}.result .btn.primary{padding:0 40px 0 16px}}
 .codebig{display:flex;justify-content:center;gap:10px;margin:4px 0}
-.codebig span{width:54px;height:62px;display:grid;place-items:center;font-family:var(--fd);font-size:40px;color:var(--ink);background:var(--sp-cbox) center/100% 100% no-repeat;padding-top:4px}
+.codebig span{width:54px;height:62px;display:grid;place-items:center;font-family:var(--fc);font-weight:700;font-size:34px;color:var(--ink);background:var(--sp-cbox) center/100% 100% no-repeat;padding-top:4px}
 .linkbox{font:inherit;font-size:12.5px;background:rgba(255,253,246,.45);color:var(--ink2);border:0;border-bottom:1.5px solid rgba(40,34,28,.35);border-radius:0;padding:8px 4px;width:100%;outline:none;text-align:center}
 .toast{pointer-events:none;width:max-content;position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);color:var(--ink);padding:11px 20px 11px 26px;font-size:14px;line-height:1.5;z-index:20;max-width:calc(100% - 40px);text-align:center;letter-spacing:.5px;--pad:10px;animation:toastIn .28s cubic-bezier(.2,.9,.3,1.2) both}
 .toast::after{content:"";position:absolute;left:11px;top:50%;width:6px;height:6px;margin-top:-3px;background:var(--zhu);transform:rotate(45deg)}
@@ -303,6 +319,7 @@ b,strong{font-weight:inherit}
   <section class="screen menu" id="scMenu" aria-label="主菜单">
     <canvas class="art" id="menuArt" aria-hidden="true"></canvas>
     <canvas class="art in" id="menuFx" aria-hidden="true"></canvas>
+    <canvas class="art" id="menuTitle" aria-hidden="true"></canvas>
     <h1 class="sr">技能五子棋</h1>
     <p class="sub" id="menuSub">五子连珠的老规矩，<br>加上封印、迷雾、震荡这些技能。<br>能量要靠落子攒，<br>角落的泉眼值得一抢。</p>
     <nav class="mbtns">
@@ -322,7 +339,7 @@ b,strong{font-weight:inherit}
       <header class="topbar"><div class="brand"><span class="bt">技能<i class="five">五</i>子棋</span></div><nav class="tb"><button class="tbtn" id="lBack">返回</button></nav></header>
       <div class="lhead"><div class="big">在线大厅</div><div class="sm">开一局，或者进朋友的房间</div></div>
       <button class="lbtn dk" id="lCreate">创建房间</button>
-      <div class="joinrow"><span class="cin dk"><input id="joinCode" maxlength="4" placeholder="房间号" autocomplete="off" autocapitalize="characters" spellcheck="false"></span><button class="dk" id="lJoin">加入</button></div>
+      <div class="joinrow"><span class="cin dk empty"><span class="cells" aria-hidden="true"><i></i><i></i><i></i><i></i></span><input id="joinCode" maxlength="4" placeholder="房间号" autocomplete="off" autocapitalize="characters" spellcheck="false"></span><button class="dk" id="lJoin">加入</button></div>
       <div class="note hint2">最近的房间（点一下加入或回到对局）</div>
       <div class="rooms" id="rooms"><div class="note">正在读取房间…</div></div>
     </div>
@@ -335,7 +352,7 @@ b,strong{font-weight:inherit}
       <header class="topbar"><div class="brand"><span class="bt">技能<i class="five">五</i>子棋</span></div><nav class="tb"><button class="tbtn" id="pBack">返回</button></nav></header>
       <div class="lhead"><div class="big">在线对战</div><div class="sm">两部手机直连 · 不用注册</div></div>
       <button class="lbtn dk" id="pCreate">创建房间</button>
-      <div class="joinrow"><span class="cin dk"><input id="pCode" maxlength="4" placeholder="房间号" autocomplete="off" autocapitalize="characters" spellcheck="false"></span><button class="dk" id="pJoin">加入</button></div>
+      <div class="joinrow"><span class="cin dk empty"><span class="cells" aria-hidden="true"><i></i><i></i><i></i><i></i></span><input id="pCode" maxlength="4" placeholder="房间号" autocomplete="off" autocapitalize="characters" spellcheck="false"></span><button class="dk" id="pJoin">加入</button></div>
       <p class="note" id="pStatus">创建房间后，把房间号或邀请链接发给朋友。两部手机直接连接，不用注册任何账号。</p>
     </div>
   </section>
@@ -361,6 +378,7 @@ b,strong{font-weight:inherit}
       <div class="log" id="log"></div>
       <div class="rest"></div>
     </div>
+    <canvas id="fxTop" width="0" height="0" aria-hidden="true"></canvas><div id="fxVig" aria-hidden="true"></div>
   </section>
 </div>
 <div class="shade" id="shade" aria-hidden="true"></div>
@@ -1085,15 +1103,34 @@ I.WU = [
   { cp: [[5,85.6,.14],[7.4,84.6,.5],[11,84.4,.56],[16,84.4,.46],[25,84,.4],[37,83.4,.37],[50,82.8,.35],[62,82.3,.35],[74,82,.36],[84,81.9,.38],[91,82.2,.42],[95.5,82.8,.46],[98.6,84,.5],[100.2,86,.42],[99.3,87.7,.22],[97.4,88.1,.05]],
     o: { load: t => .99 - .3 * Math.pow(t, 1.3) + .14 * smooth(.86, .97, t), dry: .34, dryEdge: .35, dryFrom: .42, dryRamp: .16, dryTo: .84, dryEnd: .06, streakSoft: .12, slow: [[0, 1]] } }
 ];
+I.WU_JOIN = [[42.6, 19.6, 4.2], [36.4, 52.6, 3.6], [68, 81.6, 4.4], [70.2, 49.6, 3.2]];   // where strokes meet: ink pools a little
 I.drawWu = function (x, X, Y, size, o) {
   o = o || {}; const u = size / 100, spec = o.spec || I.WU;
-  // all strokes go into one layer (later strokes overlap earlier ones only slightly darker, as wet-on-dry ink does),
-  // then the layer is multiplied onto the paper once
-  const ox = X - size * .12, oy = Y - size * .08, L = mk(size * 1.3, size * 1.2);
-  spec.forEach((st, k) => {
-    const cp = st.cp.map(([a, b, p]) => [a * u + size * .12, b * u + size * .08, p]);
-    I.brush(L.x, cp, Object.assign({ w: (o.wu || 30) * u, a: k ? .9 : 1, blend: 'normal', seed: (o.seed || 1) * 100 + k * 17, bleed: .2, bleedR: Math.max(2, u * 1.1), rag: .035, mottle: .06, lanes: 34, streakLen: u * 18 }, st.o, o.over || {}));
+  // every stroke on its own layer, then a max-alpha union: a crossing is as dark as its darker stroke (no stacked,
+  // hard-edged overlap), plus a breath of the other; small irregular pools sit at the joins, inside the ink only
+  const ox = X - size * .12, oy = Y - size * .08, L = mk(size * 1.3, size * 1.2), W = L.c.width, H = L.c.height;
+  const D = spec.map((st, k) => {
+    const cp = st.cp.map(([a, b, p]) => [a * u + size * .12, b * u + size * .08, p]), Lk = mk(W, H);
+    I.brush(Lk.x, cp, Object.assign({ w: (o.wu || 30) * u, a: k ? .94 : 1, blend: 'normal', seed: (o.seed || 1) * 100 + k * 17, bleed: .2, bleedR: Math.max(2, u * 1.1), rag: .035, mottle: .06, lanes: 34, streakLen: u * 18 }, st.o, o.over || {}));
+    const d = Lk.x.getImageData(0, 0, W, H).data; Lk.c.width = Lk.c.height = 0; return d;
   });
+  const out = L.x.createImageData(W, H), od = out.data, n = D.length;
+  for (let q = 0; q < od.length; q += 4) {
+    let m = 0, mi = -1, s2 = 0;
+    for (let k = 0; k < n; k++) { const a = D[k][q + 3]; if (a > m) { s2 = m; m = a; mi = k; } else if (a > s2) s2 = a; }
+    if (mi < 0) continue; const d = D[mi];
+    od[q] = d[q]; od[q + 1] = d[q + 1]; od[q + 2] = d[q + 2]; od[q + 3] = Math.min(255, m + (255 - m) * s2 / 255 * .24);
+  }
+  L.x.putImageData(out, 0, 0);
+  if (o.pool !== 0) {
+    const r = rng((o.seed || 1) * 31 + 7); L.x.save(); L.x.globalCompositeOperation = 'source-atop';
+    for (const [jx, jy, jr] of I.WU_JOIN) for (let b = 0; b < 4; b++) {
+      const cx = (jx + (r() - .5) * jr * .9) * u + size * .12, cy = (jy + (r() - .5) * jr * .7) * u + size * .08, R = jr * u * (.45 + r() * .5);
+      const g = L.x.createRadialGradient(cx, cy, 0, cx, cy, R); g.addColorStop(0, 'rgba(8,7,6,.2)'); g.addColorStop(.6, 'rgba(8,7,6,.09)'); g.addColorStop(1, 'rgba(8,7,6,0)');
+      L.x.fillStyle = g; L.x.beginPath(); L.x.ellipse(cx, cy, R * (1 + r() * .4), R * (.7 + r() * .3), r() * 3, 0, 7); L.x.fill();
+    }
+    L.x.restore();
+  }
   x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = o.a == null ? 1 : o.a; x.drawImage(L.c, ox, oy); x.restore();
   return L.c;
 };
@@ -1143,7 +1180,7 @@ I.miShan3 = function (x, Wd, o) {
     for (const d of o.domes) { const u = (X - d.x) / (X < d.x ? (d.wl || d.w) : (d.wr || d.w)); if (Math.abs(u) >= 1) continue;
       let v = Math.pow(1 - u * u, d.p || .6); // shoulder humps ride on the dome: [u centre, half-width in u, added height fraction]
       for (const b of (d.b || [])) { const q = (u - b[0]) / b[1]; if (Math.abs(q) < 1) v += b[2] * Math.pow(1 - q * q, 1.2) * Math.pow(1 - u * u, .3); }
-      Hm = Math.max(Hm, d.h * v); }
+      const hv = d.h * v; if (o.smax && Hm > 0 && hv > 0) { const c = o.smax * Math.min(Hm, hv); Hm = (Hm + hv + Math.sqrt((Hm - hv) * (Hm - hv) + c * c)) / 2; } else Hm = Math.max(Hm, hv); }
     if (Hm > 0) Hm += Hm * lumpA * lumpN(X / 18) + Hm * lumpA * .22 * lumpN(X / 8 + 40);
     HH[X] = Hm; R[X] = Hm > .5 ? o.base - Hm : 1e9; }
   const rAt = cx => R[clamp(Math.round(cx), 0, w - 1)], hAt = cx => HH[clamp(Math.round(cx), 0, w - 1)];
@@ -1153,10 +1190,13 @@ I.miShan3 = function (x, Wd, o) {
   const fall = o.fall || .5, rimA = o.rim == null ? .5 : o.rim, rimW = o.rimW || 4, crown = o.crown == null ? .5 : o.crown;
   const tn = fbm2(seed + 21, 4), tn2 = fbm2(seed + 22, 3);
   const L = mk(Wd, Hc * s), lx = L.x; lx.imageSmoothingEnabled = true; lx.imageSmoothingQuality = 'high';
+  // o.hlWin: the wash hangs from the tallest dome within ±hlWin px instead of the local height, so it does not pinch into a
+  // pale V under every saddle (used where ranges are grown wide)
+  let HW = HH; if (o.hlWin) { HW = new Float32Array(w); const R2 = Math.round(o.hlWin); for (let X = 0; X < w; X++) { let m = 0; for (let d = -R2; d <= R2; d += 2) { const q = X + d; if (q >= 0 && q < w && HH[q] > m) m = HH[q]; } HW[X] = HH[X] > .5 ? m : 0; } }
   // ---- 1. wash (css res, upscaled)
   { const Lw = mk(w, h), id = Lw.x.createImageData(w, h), D = id.data;
     for (let Y = 0; Y < h; Y++) for (let X = 0; X < w; X++) {
-      const d = Y - R[X]; if (d < -1) continue; const hl = Math.max(10, HH[X]), q = d / hl;
+      const d = Y - R[X]; if (d < -1) continue; const hl = Math.max(10, HW[X]), q = d / hl;
       let a = Math.exp(-q / fall) * (.5 + .5 * tn(X / 50, Y / 34)) + crown * Math.exp(-q / .16) * (.6 + .5 * tn2(X / 14, Y / 10)) + rimA * Math.exp(-Math.max(0, d) / rimW) * (.65 + .5 * tn2(X / 7, Y / 7));
       for (const [sx, sh] of sad) { if (d > sh * .6) continue; const wd = 3 + d * .2; a += (o.fold == null ? .3 : o.fold) * Math.exp(-(((X - sx) / wd) ** 2)) * smooth(0, 5, d) * Math.exp(-d / (sh * .16 + 4)); }
       const i4 = (Y * w + X) * 4; D[i4] = ink[0]; D[i4 + 1] = ink[1]; D[i4 + 2] = ink[2]; D[i4 + 3] = clamp(a * A, 0, 1) * 255; }
@@ -2887,7 +2927,7 @@ const INK=[26,23,20];
 
 // ---------- fonts: never block the game. Art is built after the fonts or after 3.2 s, whichever is first;
 // if they arrive later, everything that drew text on canvas is rebuilt once.
-let fontsLoaded=false,artFontsOK=false;
+let fontsLoaded=false,artFontsOK=false,fontsSettled=false;   // settled: loaded, or the 3.2 s cut-off passed
 const fontLoad=(()=>{
   try{
     if(!document.fonts||!document.fonts.load)return Promise.resolve(false);
@@ -2902,37 +2942,48 @@ function sprite(w,h,fn){const s=dprHi(),c=cnv(w*s,h*s);fn(c.getContext('2d'),c.w
 function setVar(name,c){document.documentElement.style.setProperty('--'+name,`url("${c.toDataURL()}")`);}
 const SKG={seal:'封',rewind:'溯',shift:'移',fog:'雾',shock:'震',turn:'策'};
 function sealC(px,ch,o){const s=dprHi();return I.seal(px*s,ch,Object.assign({seed:ch.charCodeAt(0)%97},o||{}));}
-function buildSprites(){
-  const s=dprHi();
-  const icon=p=>sprite(26,26,(x,w,h)=>FX1.stone(x,w/2,h/2,10.4*s,p,TH,{dpr:1}));
-  setVar('sp-stB',icon(1));setVar('sp-stW',icon(2));
-  const dab=(lit,sz,seed)=>sprite(sz,sz,(x,w,h)=>I.waterDab(x,w/2,h/2,w*.33,lit,-.3,seed,{round:1,ringInk:[40,36,32],ringA:.4}));
-  setVar('sp-pip1',dab(true,14,3));setVar('sp-pip0',dab(false,14,3));setVar('sp-cost',dab(true,12,7));
-  for(let pg=0;pg<4;pg++)setVar('sp-spr'+pg,sprite(25,16,(x,w,h,s)=>{for(let k=0;k<3;k++)I.waterDab(x,(4.6+k*7.9)*s,h/2+.8*s,3.1*s,k<pg,-1.75,k+3,{ringA:.62});}));
-  for(const k of ORDER){
+// sprites are built in small jobs (one skill's chips per job), so start-up never blocks a tap for long
+function spriteJobs(){
+  const s=dprHi(),J=[];
+  J.push(()=>{   // menu seal chips (static elements) first: they are on screen
+    document.querySelectorAll('.mb .chip[data-seal]').forEach((el,i)=>{const ch=el.dataset.seal,zhu=ch==='续';
+      el.style.backgroundImage=`url("${sprite(36,36,(x,w,h)=>{const sc=sealC(32,ch,{color:zhu?IP.zhu:[48,42,36],seed:ch.charCodeAt(0)%97});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}).toDataURL()}")`;
+      el.style.transform=`rotate(${[-2,-3,2,-1.5][i]||0}deg)`;});
+  });
+  J.push(()=>{
+    const icon=p=>sprite(26,26,(x,w,h)=>FX1.stone(x,w/2,h/2,10.4*s,p,TH,{dpr:1}));
+    setVar('sp-stB',icon(1));setVar('sp-stW',icon(2));
+    const dab=(lit,sz,seed)=>sprite(sz,sz,(x,w,h)=>I.waterDab(x,w/2,h/2,w*.33,lit,-.3,seed,{round:1,ringInk:[40,36,32],ringA:.4}));
+    setVar('sp-pip1',dab(true,14,3));setVar('sp-pip0',dab(false,14,3));setVar('sp-cost',dab(true,12,7));
+    for(let pg=0;pg<4;pg++)setVar('sp-spr'+pg,sprite(25,16,(x,w,h,s)=>{for(let k=0;k<3;k++)I.waterDab(x,(4.6+k*7.9)*s,h/2+.8*s,3.1*s,k<pg,-1.75,k+3,{ringA:.62});}));
+  });
+  for(const k of ORDER)J.push(()=>{
     const g=SKG[k];
     setVar('sp-c-'+k,sprite(46,46,(x,w,h)=>{const sc=sealC(42,g,{color:INK});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
     setVar('sp-z-'+k,sprite(46,46,(x,w,h)=>{const sc=sealC(42,g,{color:IP.zhu});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
     setVar('sp-g-'+k,sprite(46,46,(x,w,h,s)=>{const sc=sealC(40,g,{seed:11,color:[128,120,108]});x.globalAlpha=.7;x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);x.globalAlpha=1;
       I.brush(x,[[w*.1,h*.86,.3],[w*.3,h*.66,.9],[w*.7,h*.3,.8],[w*.92,h*.1,.2]],{w:3.4*s,a:.78,seed:23,dry:.45,dryFrom:.35,lanes:7,bleed:0,fibre:.4,streakLen:12*s});}));
-  }
-  setVar('sp-need',sprite(34,34,(x,w,h)=>{const sc=sealC(30,'能量不足',{seed:17,type:'zhu',border:.08,color:[44,38,33],rows:1});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
-  setVar('sp-used',sprite(34,34,(x,w,h)=>{const sc=sealC(28,'已用',{seed:19,type:'zhu',border:.09,color:[44,38,33]});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
-  setVar('sp-tick',sprite(6,14,(x,w,h,s)=>I.brush(x,[[w*.55,h*.08,.5],[w*.45,h*.5,.9],[w*.5,h*.92,.3]],{w:2.2*s,a:.4,seed:4,bleed:0,dry:.2,dryFrom:.5,lanes:4,fibre:.3})));
-  setVar('sp-five',sprite(38,36,(x,w,h,s)=>I.drawWu(x,1*s,-3*s,36*s,{seed:1,wu:38,over:{bleed:.1,lanes:18}})));
-  setVar('sp-hl',sprite(52,8,(x,w,h,s)=>{const cy=h/2;I.brush(x,[[w*.02,cy,.1],[w*.5,cy,.7],[w*.86,cy,.9],[w*.97,cy,.4]],{w:1.7*s,a:.62,seed:2,bleed:0,dry:0,fibre:.2});
-    x.fillStyle=rgba([30,26,22],.85);x.beginPath();x.ellipse(w-2.2*s,cy,1.9*s,1.6*s,.4,0,7);x.fill();}));
-  setVar('sp-cbox',sprite(54,62,(x,w,h,s)=>{I.slip(x,3*s,3*s,w-6*s,h-6*s,{s,tile:paperTile(),seed:61,shadow:.12,sy:1.2,deckle:.6});I.frame(x,6.5*s,6.5*s,w-13*s,h-13*s,.9*s,.5,62,{over:1.5*s,ink:[40,34,28]});}));
-  // menu seal chips (static elements)
-  document.querySelectorAll('.mb .chip[data-seal]').forEach((el,i)=>{const ch=el.dataset.seal,zhu=ch==='续';
-    el.style.backgroundImage=`url("${sprite(36,36,(x,w,h)=>{const sc=sealC(32,ch,{color:zhu?IP.zhu:[48,42,36],seed:ch.charCodeAt(0)%97});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}).toDataURL()}")`;
-    el.style.transform=`rotate(${[-2,-3,2,-1.5][i]||0}deg)`;});
+  });
+  J.push(()=>{
+    setVar('sp-need',sprite(34,34,(x,w,h)=>{const sc=sealC(30,'能量不足',{seed:17,type:'zhu',border:.08,color:[44,38,33],rows:1});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
+    setVar('sp-used',sprite(34,34,(x,w,h)=>{const sc=sealC(28,'已用',{seed:19,type:'zhu',border:.09,color:[44,38,33]});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
+    setVar('sp-tick',sprite(6,14,(x,w,h,s)=>I.brush(x,[[w*.55,h*.08,.5],[w*.45,h*.5,.9],[w*.5,h*.92,.3]],{w:2.2*s,a:.4,seed:4,bleed:0,dry:.2,dryFrom:.5,lanes:4,fibre:.3})));
+  });
+  J.push(()=>{
+    setVar('sp-five',sprite(38,36,(x,w,h,s)=>I.drawWu(x,1*s,-3*s,36*s,{seed:1,wu:38,over:{bleed:.1,lanes:18}})));
+    setVar('sp-hl',sprite(52,8,(x,w,h,s)=>{const cy=h/2;I.brush(x,[[w*.02,cy,.1],[w*.5,cy,.7],[w*.86,cy,.9],[w*.97,cy,.4]],{w:1.7*s,a:.62,seed:2,bleed:0,dry:0,fibre:.2});
+      x.fillStyle=rgba([30,26,22],.85);x.beginPath();x.ellipse(w-2.2*s,cy,1.9*s,1.6*s,.4,0,7);x.fill();}));
+    setVar('sp-cbox',sprite(54,62,(x,w,h,s)=>{I.slip(x,3*s,3*s,w-6*s,h-6*s,{s,tile:paperTile(),seed:61,shadow:.12,sy:1.2,deckle:.6});I.frame(x,6.5*s,6.5*s,w-13*s,h-13*s,.9*s,.5,62,{over:1.5*s,ink:[40,34,28]});}));
+  });
+  return J;
 }
+function buildSprites(){for(const j of spriteJobs())j();}
+async function buildSpritesAsync(){for(const j of spriteJobs()){try{j();}catch(e){console.error(e);}await new Promise(r=>setTimeout(r,0));}}
 let _tile=null;
 function paperTile(){if(!_tile){const s=dprHi();_tile=I.paper(420*s,320*s,{s,seed:21,base:[247,242,230],edge:0,drift:.5,floc:.8,fibre:.7});}return _tile;}
 
 // ---------- painted decorations: every .dk element gets an art layer sized to it, cached by kind + size
-const DECO=new Map();
+const DECO=new Map(),DECO_MAX=48;   // data URLs by kind + size, least recently used dropped first
 const PAINT={
   card:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:81,shadow:.1,sy:1.5,tone:'rgba(241,234,218,.45)'});}},
   cardOn:{pad:10,paint(x,X,Y,W,H,s,el){
@@ -2952,10 +3003,9 @@ const PAINT={
   pick:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:131,shadow:.1,sy:1.4});I.frame(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,.8*s,.3,132,{over:1.5*s,ink:[40,34,28]});}},
   pickSel:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:130,shadow:.22,sy:2.6});I.brushFrame2(x,X+3*s,Y+3*s,W-6*s,H-6*s,4*s,{seed:29,over:5*s});}},
   cta:{pad:14,paint(x,X,Y,W,H,s){I.ctaStroke(x,X+2*s,Y+H*.04,W-4*s,H*.92,{seed:31});}},
-  ink:{pad:10,paint(x,X,Y,W,H,s){I.ctaStroke(x,X+1*s,Y+H*.06,W-2*s,H*.88,{seed:33,dryFrom:.62,streakLen:W*.14});}},
+  ink:{pad:10,paint(x,X,Y,W,H,s){I.ctaStroke(x,X+1*s,Y+H*.06,W-2*s,H*.88,{seed:33,dryFrom:.78,dryTo:.95,streakLen:W*.1});}},
   resume:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:171,shadow:.22,sy:2.4});I.frame(x,X+4*s,Y+4*s,W-8*s,H-8*s,.9*s,.5,172,{over:2*s,ink:[40,34,28]});}},
-  cin:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:181,shadow:.14,sy:1.6});I.frame(x,X+4*s,Y+4*s,W-8*s,H-8*s,1*s,.62,182,{over:2.5*s,ink:[36,30,24]});
-    const n=4,cw=(W-8*s)/n;for(let i=1;i<n;i++)I.ruled(x,X+4*s+cw*i,Y+11*s,X+4*s+cw*i,Y+H-11*s,.7*s,.22,190+i,[60,50,40]);}},
+  cin:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:181,shadow:.14,sy:1.6});I.frame(x,X+4*s,Y+4*s,W-8*s,H-8*s,1*s,.62,182,{over:2.5*s,ink:[36,30,24]});}},
   bubble:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:140,shadow:.22,sy:2,deckle:.7});I.ruled(x,X+W*.5,Y+3.5*s,X+W*.5,Y+5*s,.5*s,.01,1);
     x.fillStyle=rgba(IP.zhu,.85);x.beginPath();x.ellipse(X+W/2,Y+4.2*s,1.7*s,1.5*s,.3,0,7);x.fill();}},
   toast:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:190,shadow:.26,sy:2.6,deckle:.8});I.frame(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,.8*s,.4,191,{over:1.5*s,ink:[40,34,28]});}},
@@ -2979,15 +3029,17 @@ function kindOf(el){
 function deco(el){
   if(!el||!el.isConnected)return;
   const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
-  const kind=kindOf(el),P=PAINT[kind],s=dprHi(),key=kind+'|'+w+'x'+h+'|'+s+(artFontsOK?'':'~');
+  const kind=kindOf(el),P=PAINT[kind],s=dprHi(),key=kind+'|'+w+'x'+h+'|'+s;   // no PAINT kind draws text: fonts never matter
   if(el._dk===key)return;
   let url=DECO.get(key);
-  if(!url){const pad=P.pad,c=cnv((w+pad*2)*s,(h+pad*2)*s);try{P.paint(c.getContext('2d'),pad*s,pad*s,w*s,h*s,s,el);}catch(e){}url=c.toDataURL();DECO.set(key,url);}
+  if(url){DECO.delete(key);DECO.set(key,url);}   // LRU: most recent last
+  else{const pad=P.pad,c=cnv((w+pad*2)*s,(h+pad*2)*s);try{P.paint(c.getContext('2d'),pad*s,pad*s,w*s,h*s,s,el);}catch(e){}url=c.toDataURL();c.width=c.height=0;DECO.set(key,url);
+    while(DECO.size>DECO_MAX)DECO.delete(DECO.keys().next().value);}
   el._dk=key;el.style.setProperty('--deco',`url("${url}")`);el.style.setProperty('--pad',P.pad+'px');
 }
-const decoRO=window.ResizeObserver?new ResizeObserver(es=>{if(!spritesReady)return;for(const e of es)deco(e.target);}):null;
-function decoWatch(root){(root||document).querySelectorAll('.dk').forEach(el=>{if(!el._ro){el._ro=1;decoRO&&decoRO.observe(el);}if(spritesReady)deco(el);});}
-let spritesReady=false;
+const decoRO=window.ResizeObserver?new ResizeObserver(es=>{if(!artReady)return;for(const e of es)deco(e.target);}):null;
+function decoWatch(root){(root||document).querySelectorAll('.dk').forEach(el=>{if(!el._ro){el._ro=1;decoRO&&decoRO.observe(el);}if(artReady)deco(el);});}
+let artReady=false,spritesReady=false;   // art: frames and screen art may paint (boot); sprites: fonts settled, sprites built
 
 // ---------- overlay sheets: a mounted paper scroll (silk border, 画心, rods with knobs, a 闲章 in the corner)
 function paintScroll(x,W,H,s,seal,dock){
@@ -3019,21 +3071,21 @@ function paintScroll(x,W,H,s,seal,dock){
   if(seal){const n=[...seal].length,sz=(n>1?26:32)*s,sc=I.seal(sz,seal,{seed:seal.charCodeAt(0)%89,type:n===2?'zhu':'bai',h:n===2?1.62:1,border:.09,fs:n===1?.7:undefined});
     I.stamp(x,sc,bx+bw-14*s-sc.width/2,by+16*s+sc.height/2,-.03,.92);}
 }
-const SHEETC=new Map();
+// one canvas per sheet, painted when it opens and freed when it closes (no second copy is kept)
 function paintSheet(sh){
   const w=sh.offsetWidth,h=sh.offsetHeight;if(!w||!h)return;
   let c=sh.querySelector(':scope>canvas.sdeco');if(!c){c=document.createElement('canvas');c.className='sdeco';c.setAttribute('aria-hidden','true');sh.prepend(c);}
   const s=dprHi(),seal=sh.dataset.seal||'',dock=sh.classList.contains('result'),key=w+'x'+h+'|'+s+'|'+seal+'|'+dock+(artFontsOK?'':'~');
   if(c._k===key)return;
   const W=Math.round((w+28)*s),H=Math.round((h+24)*s);c.width=W;c.height=H;
-  const src=SHEETC.get(key);const x=c.getContext('2d');
-  if(src)x.drawImage(src,0,0);else{paintScroll(x,W,H,s,seal,dock);const keep=cnv(W,H);keep.getContext('2d').drawImage(c,0,0);SHEETC.set(key,keep);}
-  c._k=key;
+  paintScroll(c.getContext('2d'),W,H,s,seal,dock);c._k=key;
 }
-const sheetRO=window.ResizeObserver?new ResizeObserver(es=>{if(!spritesReady)return;for(const e of es)paintSheet(e.target);}):null;
+function freeSheet(ov){const c=ov.querySelector('.sheet>canvas.sdeco');if(c&&c._k){c.width=c.height=0;c._k='';}}
+// a sheet being resized (a window drag, a rotation) repaints once its size has been still for 150 ms
+const sheetRO=window.ResizeObserver?new ResizeObserver(es=>{if(!artReady)return;for(const e of es){const sh=e.target;clearTimeout(sh._rsT);if(performance.now()-(sh._openT||0)<500){paintSheet(sh);continue;}sh._rsT=setTimeout(()=>{if(!sh.closest('.overlay').hidden)paintSheet(sh);},150);}}):null;
 
 // ---------- full-screen paper (shared by every screen) and per-screen art
-const ART={paperKey:'',menuKey:'',lobbyKey:'',gameKey:''};
+const ART={paperKey:'',menuKey:'',titleKey:'',lobbyKey:'',gameKey:'',busy:0};   // busy: a screen's art is being painted (prewarm waits)
 async function buildPaper(){
   const VW=innerWidth,VH=innerHeight,s=dprArt(),key=VW+'x'+VH+'@'+s;if(ART.paperKey===key)return;ART.paperKey=key;
   const c=$('paperBg'),W=Math.round((VW+16)*s),H=Math.round((VH+16)*s);
@@ -3057,29 +3109,35 @@ const PLUM={branches:[
   moss:[[20,62,1.5,5],[28,70,1.1,3],[47,83,1.3,4],[81,102,1.1,3],[100,115,1.2,4],[108,52,.9,3],[70,96,1,2]],
   blossoms:[[138,44,12,'open',.5],[126,36,6,'bud',-2.2],[184,36,9.5,'side',-.35],[214,31,5.5,'bud',.1,1],[146,1,5,'bud',-1.3],[55,39,5,'bud',-1.9],
     [68,94,9.5,'back',.9],[99,172,9.5,'side',1.75],[91,238,5,'bud',1.6],[150,131,11,'half',2.1],[24,60,8.5,'half',4.3]],paper:[242,236,222]};
-// tile a 390-px mountain plane across any width: the central copy keeps the authored composition, the others vary
+// widen a 390-px mountain plane to any width. The authored composition stays in the middle; beyond it the range is
+// grown, not copied: domes of varied width and height that overlap enough for every saddle to stay shallow (no
+// V-notches, no dark blots in deep saddles), lowering toward the paper's edges, each flank under its own mist band.
 function tilePlane(o,VW,X0,sx){
   sx=sx||1;const per=390*sx,out=Object.assign({},o),r=I.rng((o.seed||1)*7+3),domes=[],mist=[],gaps=[],trees=[];
   const f=Math.max(1,VW/per);for(const P of ['A','B','C'])if(o[P])out[P]=Object.assign({},o[P],{n:Math.round(o[P].n*f)});
-  for(let t=-4;t<=4;t++){
-    const off=X0+t*per;if(off>VW+per*.6||off<-per*1.6)continue;
-    // the central copy keeps the authored composition; the others are mirrored on odd steps and re-proportioned so no ridge repeats
-    const flip=t%2!==0,hk=t===0?1:.66+r()*.36;
-    for(const d of o.domes){
-      if(t&&r()<.18)continue;
-      const wk=t?.82+r()*.42:1,dx=t?(r()-.5)*70:0,x0=flip?390-d.x:d.x,wl=(flip?d.wr:d.wl)||d.w,wr=(flip?d.wl:d.wr)||d.w;
-      domes.push(Object.assign({},d,{x:(x0+dx)*sx+off,wl:wl*sx*wk,wr:wr*sx*wk,w:undefined,h:d.h*hk*(t?.86+r()*.28:1),b:(d.b||[]).map(b=>[flip?-b[0]:b[0],b[1],b[2]*(t?.6+r()*.8:1)])}));
+  for(const d of o.domes)domes.push(Object.assign({},d,{x:d.x*sx+X0,wl:(d.wl||d.w)*sx,wr:(d.wr||d.w)*sx,w:undefined}));
+  for(const m of (o.mist||[]))mist.push(Object.assign({},m,m.x0==null?{}:{x0:m.x0*sx+X0,x1:m.x1*sx+X0}));
+  for(const g of (o.gaps||[]))gaps.push(Object.assign({},g,{x:g.x*sx+X0}));
+  for(const tr of (o.trees||[]))trees.push(Object.assign({},tr,{x0:tr.x0*sx+X0,x1:tr.x1*sx+X0}));
+  const Hm=Math.max(...o.domes.map(d=>d.h)),wAv=o.domes.reduce((a,d)=>a+((d.wl||d.w)+(d.wr||d.w))/2,0)/o.domes.length*sx;
+  for(const dir of [-1,1]){
+    // start from the authored dome that reaches furthest out on this side
+    let prev=null;for(const d of domes){const e=dir>0?d.x+d.wr:d.x-d.wl;if(!prev||(dir>0?e>prev.e:e<prev.e))prev={d,e};}
+    let p=prev.d,n=0;
+    while(n<40&&(dir>0?p.x-p.wl<VW+40:p.x+p.wr>-40)){
+      const wl=wAv*(.75+r()*.6),wr=wAv*(.75+r()*.6),ps=dir>0?p.wr:p.wl,ns=dir>0?wl:wr;
+      const x=p.x+dir*(ps+ns)*(.5+r()*.1),dist=dir>0?x-(X0+per):X0-x;
+      const fall=1-.38*I.clamp(dist/Math.max(300,VW*.45),0,1),h=Hm*(.42+r()*.48)*fall;
+      const b=r()<.6?[[(r()-.5)*.9,.2+r()*.12,.05+r()*.06]]:[];
+      p={x,wl,wr,h,p:1,b};domes.push(p);n++;
     }
-    for(const m of (o.mist||[])){
-      if(!o.vary){mist.push(Object.assign({},m,m.x0==null?{}:{x0:m.x0*sx+off,x1:m.x1*sx+off}));continue;}
-      // wide sheets: every copy gets its own band (height, softness, density), faded in and out at the copy's edges
-      const rp=60*sx;
-      mist.push(Object.assign({},m,{x0:t===0&&m.x0!=null?m.x0*sx+off:off-rp,x1:t===0&&m.x1!=null?m.x1*sx+off:off,x2:off+per,x3:off+per+rp,
-        y:m.y+(t?(r()-.5)*18:0),soft:(m.soft||1.5)*(t?1.4+r()*1.4:1),amt:Math.min(1,(m.amt==null?1:m.amt)*(t?.85+r()*.3:1))}));
-    }
-    if(t===0){for(const g of (o.gaps||[]))gaps.push(Object.assign({},g,{x:g.x*sx+off}));for(const tr of (o.trees||[]))trees.push(Object.assign({},tr,{x0:tr.x0*sx+off,x1:tr.x1*sx+off}));}
+    // each flank gets its own band of mist, its height and softness varied, ramped in at the composition's edge
+    for(const m of (o.mist||[])){if(!o.vary||m.x0==null)continue;   // full-width bands already reach the flanks
+      const rp=70*sx,y=m.y+(r()-.5)*16,soft=(m.soft||1.5)*(1.3+r()*1.2),amt=Math.min(1,(m.amt==null?1:m.amt)*(.85+r()*.3));
+      mist.push(Object.assign({},m,dir>0?{x0:X0+per-rp,x1:X0+per+rp,x2:undefined,x3:undefined,y,soft,amt}:{x0:undefined,x1:undefined,x2:X0-rp,x3:X0+rp,y,soft,amt}));}
   }
-  out.domes=domes;out.mist=mist;out.gaps=gaps;out.trees=trees;return out;
+  out.domes=domes;out.mist=mist;out.gaps=gaps;out.trees=trees;if(VW>per+40){out.hlWin=Math.round(wAv*.7);out.smax=.55;}   // rounded saddles where ridges meet
+  return out;
 }
 function menuGeom(){
   const VW=innerWidth,VH=innerHeight,nav=document.querySelector('.mbtns'),nr=nav.getBoundingClientRect(),res=$('mResume'),resOn=!res.hidden;
@@ -3102,20 +3160,38 @@ function menuGeom(){
   return {VW,VH,btnTop,k,kx,S5,X5,colX:X5+.6*S5,Y5:128*k+14,CW,X0,plumX,pk,limit:btnTop-10,resOn};
 }
 const MENU={mist:null,loop:0};
+// the poem hangs beside the 五; where the paper is short it climbs up beside 技能 so it never meets the buttons
+function placeMenuSub(G0){
+  const {VW,k,kx,X5,Y5}=G0,sub=$('menuSub'),ks=Math.min(kx,1.3);
+  const fs=13.5*ks;sub.style.right=(VW-X5+6*kx)+'px';sub.style.fontSize=fs.toFixed(1)+'px';sub.style.lineHeight=(22*ks).toFixed(1)+'px';
+  // the column's length comes from its character count (every glyph advances 1em + the tracking), never from whichever
+  // font happens to be loaded yet: the art painted around it stays right when the fonts arrive
+  const n=Math.max(...sub.innerHTML.split(/<br\s*\/?>/i).map(t=>[...t.replace(/<[^>]*>/g,'').trim()].length)),h=Math.ceil(n*(fs+2.2)+2);
+  sub.style.height=h+'px';
+  sub.style.top=Math.max(Y5-82*k,Math.min(Y5+44*k,G0.limit-h))+'px';
+  return sub;
+}
+// menu art without any text — the sheet's glow, three ranges of 米点 hills, the plum, the drifting mist. It needs no
+// fonts, so it starts at once; the title (技能五子棋 and its seals) is a separate layer painted once the fonts settle.
 async function buildMenu(){
-  const G0=menuGeom(),s=dprArt(),key=G0.VW+'x'+G0.VH+'@'+s+'|'+artFontsOK+'|'+G0.resOn;
+  const G0=menuGeom(),s=dprArt(),key=G0.VW+'x'+G0.VH+'@'+s+'|'+G0.resOn;
+  const sub=placeMenuSub(G0);
+  if(fontsSettled)buildMenuTitle(G0);
   if(ART.menuKey===key)return;ART.menuKey=key;
-  const {VW,VH,k,kx,S5,X5,colX,Y5,X0,plumX,pk}=G0,live=()=>ART.menuKey===key;
-  const sub=$('menuSub'),ks=Math.min(kx,1.3);sub.style.right=(VW-X5+6*kx)+'px';sub.style.fontSize=(13.5*ks).toFixed(1)+'px';sub.style.lineHeight=(22*ks).toFixed(1)+'px';
-  // the poem hangs beside the 五; where the paper is short it climbs up beside 技能 so it never meets the buttons
-  sub.style.top=Math.max(Y5-82*k,Math.min(Y5+44*k,G0.limit-sub.offsetHeight))+'px';
+  const {VW,VH,k,kx,colX,Y5,X0,plumX,pk}=G0,live=()=>ART.menuKey===key;
   const ac=$('menuArt'),W=Math.round(VW*s),H=Math.round(VH*s);ac.classList.remove('in');
   const A=I.mk(W,H),x=A.x;
-  const step=async fn=>{await idle();if(!live())throw 0;fn();};
+  // a player who leaves the menu mid-way stops the painting (it resumes from scratch when the menu is shown again)
+  const step=async fn=>{await idle();if(live()&&$('scMenu').hidden)ART.menuKey='';if(!live())throw 0;fn();};
+  ART.busy++;
   try{
     // the sheet glows a little where the eye should rest
     await step(()=>{const g=x.createRadialGradient((colX-40)*s,(Y5+90*k)*s,0,(colX-40)*s,(Y5+90*k)*s,260*s);g.addColorStop(0,'rgba(255,253,246,.34)');g.addColorStop(1,'rgba(255,253,246,0)');x.fillStyle=g;x.fillRect(0,0,W,H);});
-    const B=G0.btnTop-300*k-20,BH=300*k+10,my=v=>v*k,vary=VW>=600;
+    // the hills hang from the buttons; where the sheet is too short for the title to shrink any further (k at its floor,
+    // or the resume slip lifting the buttons) they would rise into 五 and 子棋, so they keep below the title's foot
+    // instead (棋 a little above the first peaks, which stand 126*k below B, and the 手谈 seal on them, as in the full
+    // composition) and melt into mist above the buttons
+    const Bn=G0.btnTop-300*k-20,B=G0.land?Bn:Math.max(Bn,Y5+G0.S5-33*k),sunk=B-Bn,BH=300*k+10,my=v=>v*k,vary=VW>=600;
     await step(()=>I.miShan3(x,W,tilePlane({s,seed:3,y0:B,h:BH,base:my(200),a:.1,ink:[104,114,124],fall:.5,rim:.35,rimW:4,crown:.45,fold:.1,lump:.05,
       domes:[{x:214,wl:76,wr:80,h:my(40),p:1},{x:296,wl:86,wr:96,h:my(60),p:1,b:[[-.45,.25,.1]]},{x:384,wl:80,wr:100,h:my(46),p:1,b:[[-.4,.22,.1]]},{x:120,wl:70,wr:80,h:my(30),p:1}],
       A:{n:90,a:.06,size:30,band:.8},B:{n:420,a:.17,size:7,band:.28},C:{n:40,a:.22,size:3.5},baseFade:.6,vary},VW,X0,kx)));
@@ -3128,33 +3204,53 @@ async function buildMenu(){
       A:{n:240,a:.08,size:40,band:.85},B:{n:1500,a:.3,size:10,band:.26,fold:.06},C:{n:220,a:.45,size:4.2},baseFade:.5,occlude:.92,
       mist:[{y:my(204),h:22,wav:4,soft:1.4,amt:.8,x0:96,x1:160},{y:my(250),h:40,wav:5,soft:2,amt:.7,x0:220,x1:270}],gaps:[{x:140,w:8,top:my(172),amt:.85}],
       trees:[{x0:160,x1:206,y:my(266),h:24,n:6,a:.75}],vary},VW,X0,kx)));
+    if(sunk>8)await step(()=>{const y1=G0.btnTop-6,y0=y1-Math.min(70,sunk+30),g=x.createLinearGradient(0,y0*s,0,y1*s);
+      g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.6,'rgba(0,0,0,.62)');g.addColorStop(1,'rgba(0,0,0,1)');
+      x.globalCompositeOperation='destination-out';x.fillStyle=g;x.fillRect(0,y0*s,W,H-y0*s);x.globalCompositeOperation='source-over';});
     if(G0.land)await step(()=>{const g=x.createLinearGradient((G0.navL-70)*s,0,(G0.navL+6)*s,0);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.9)');
       x.globalCompositeOperation='destination-out';x.fillStyle=g;x.fillRect(0,0,W,H);x.globalCompositeOperation='source-over';});
     // 留白 behind the 题跋: where the inscription runs into the hills a drifting cloud thins them
-    await step(()=>{const sr=sub.getBoundingClientRect(),L0=sr.left-6,R0=sr.right+6,Bt=sr.bottom+6,nm=I.fbm2(44,3);if(Bt<B+40)return;
+    await step(()=>{const sr=sub.getBoundingClientRect(),L0=sr.left-6,R0=sr.right+6,Bt=sr.bottom+6,nm=I.fbm2(44,3);
+      // and on a phone held sideways, where the hills run along the foot, 子 棋 and the 手谈 seal stand in them: a second
+      // wisp opens round the title's foot (the first peaks stand about 126*k below B)
+      const tT=Y5+G0.S5+4*k,tB=Y5+G0.S5+118*k,tx=colX-12*k,ty=(tT+tB)/2,RX=46*k,RY=(tB-tT)/2+10*k,ta=I.clamp((tB-(B+126*k)-22)/36,0,1);
+      if(Bt<B+40&&!ta)return;
       x.globalCompositeOperation='destination-out';
-      I.field(x,W,H,s,2,(cx,cy)=>{if(cy<sr.top||cy>Bt+70)return null;const dx=Math.max(0,L0-cx,cx-R0),dy=Math.max(0,cy-Bt);const d=Math.hypot(dx/16,dy/38)+.55*(nm(cx/26,cy/22)-.5);return d>1.2?null:[0,0,0,.8*I.smooth(1.1,.15,d)];});
+      if(ta)I.field(x,W,H,s,2,(cx,cy)=>{if(cy<tT-RY*.4||cy>tB+RY*.6)return null;const d=Math.hypot((cx-tx)/RX,(cy-ty)/(RY*1.15))+.5*(nm(cx/24+7,cy/20)-.5);return d>1.2?null:[0,0,0,.74*ta*I.smooth(1.15,.35,d)];});
+      if(Bt>=B+40)I.field(x,W,H,s,2,(cx,cy)=>{if(cy<sr.top||cy>Bt+70)return null;const dx=Math.max(0,L0-cx,cx-R0),dy=Math.max(0,cy-Bt);const d=Math.hypot(dx/16,dy/38)+.55*(nm(cx/26,cy/22)-.5);return d>1.2?null:[0,0,0,.8*I.smooth(1.1,.15,d)];});
       x.globalCompositeOperation='source-over';});
     await step(()=>I.plum2(x,s,plumX,6*k,pk,PLUM,11));
-    await step(()=>{
-      const g=(ch,cy,sz,o)=>{const c=I.glyph(ch,sz*s,Object.assign({seed:ch.charCodeAt(0),ink:[30,27,24],a:.86,bleed:.16,mottle:.12},o));x.drawImage(c,colX*s-c.width/2,cy*s-c.height/2);};
-      const gs=38*k;
-      g('技',Y5-70*k,gs,{dry:.35});g('能',Y5-28*k,gs,{dry:.35});
-      { const nm=I.fbm2(12,4),cx0=X5+S5*.38,cy0=Y5+S5*.66,RX=S5*.62,RY=S5*.42;
-        I.field(x,W,H,s,2,(cx,cy)=>{const dx=(cx-cx0)/RX,dy=(cy-cy0)/RY,d=Math.hypot(dx,dy)+.35*(nm(cx/40,cy/40)-.5);if(d>1.1)return null;return [70,70,72,.07*I.smooth(1.05,.55,d)*(.7+.6*nm(cx/14+9,cy/14))];}); }
-      I.drawWu(x,X5*s,Y5*s,S5*s,{seed:1});
-      g('子',Y5+S5+26*k,gs,{dry:.35});g('棋',Y5+S5+68*k,gs,{dry:.45});
-      I.stamp(x,I.seal(24*s*k,'手谈',{seed:3,h:1.62}),(colX-34*k)*s,(Y5+S5+96*k)*s,.03,.95);
-      const sr=sub.getBoundingClientRect();
-      I.stamp(x,I.seal(16*s,'坐隐',{seed:9,type:'zhu',h:1.62,border:.1}),(sr.right-11)*s,(sr.top-22)*s,-.02,.9);
-    });
-    await step(()=>{ac.width=W;ac.height=H;ac.getContext('2d').drawImage(A.c,0,0);showArt(ac);});
+    await step(()=>{ac.width=W;ac.height=H;ac.getContext('2d').drawImage(A.c,0,0);A.c.width=A.c.height=0;showArt(ac);});
     // 云气: two paper-tone wisps drift through the mountains' middle band (the menu's only motion)
     const W1=Math.round(VW*1.6);
     MENU.mist=[{c:I.mistStrip(W1,46,s,17,{bands:[[.5,.22,.75]],color:[244,239,227]}),y:B+214*k,sp:5.5,a:.85,ph:0},
                {c:I.mistStrip(W1,34,s,29,{bands:[[.5,.2,.6]],color:[244,239,227]}),y:B+252*k,sp:-3.8,a:.7,ph:170}];
     const fx=$('menuFx');fx.width=W;fx.height=H;MENU.s=s;menuMistFrame(performance.now(),true);
   }catch(e){if(e!==0)throw e;}
+  finally{ART.busy--;}
+}
+// the title column: 技 能 written down the paper, the hand-built 五 on its grey wash, 子 棋, the 手谈 and 坐隐 seals
+async function buildMenuTitle(G0){
+  G0=G0||menuGeom();const s=dprArt(),key=G0.VW+'x'+G0.VH+'@'+s+'|'+artFontsOK+'|'+G0.resOn;
+  if(ART.titleKey===key)return;ART.titleKey=key;
+  const {VW,VH,k,S5,X5,colX,Y5}=G0,live=()=>ART.titleKey===key,W=Math.round(VW*s),H=Math.round(VH*s),tc=$('menuTitle');
+  tc.classList.remove('in');
+  await idle();if(live()&&$('scMenu').hidden)ART.titleKey='';if(!live())return;
+  const A=I.mk(W,H),x=A.x,sub=$('menuSub');
+  const g=(ch,cy,sz,o)=>{const c=I.glyph(ch,sz*s,Object.assign({seed:ch.charCodeAt(0),ink:[30,27,24],a:.86,bleed:.16,mottle:.12},o));x.drawImage(c,colX*s-c.width/2,cy*s-c.height/2);};
+  const gs=38*k;
+  g('技',Y5-70*k,gs,{dry:.35});g('能',Y5-28*k,gs,{dry:.35});
+  { const nm=I.fbm2(12,4),cx0=X5+S5*.38,cy0=Y5+S5*.66,RX=S5*.62,RY=S5*.42,x0=Math.floor((cx0-RX*1.2)*s),y0=Math.floor((cy0-RY*1.2)*s),w=Math.ceil(RX*2.4*s),h=Math.ceil(RY*2.4*s);
+    const F=I.mk(w,h);
+    I.field(F.x,w,h,s,2,(cx,cy)=>{cx+=x0/s;cy+=y0/s;const dx=(cx-cx0)/RX,dy=(cy-cy0)/RY,d=Math.hypot(dx,dy)+.35*(nm(cx/40,cy/40)-.5);if(d>1.1)return null;return [70,70,72,.07*I.smooth(1.05,.55,d)*(.7+.6*nm(cx/14+9,cy/14))];});
+    x.drawImage(F.c,x0,y0); }
+  await idle();if(!live())return;
+  I.drawWu(x,X5*s,Y5*s,S5*s,{seed:1});
+  g('子',Y5+S5+26*k,gs,{dry:.35});g('棋',Y5+S5+68*k,gs,{dry:.45});
+  I.stamp(x,I.seal(24*s*k,'手谈',{seed:3,h:1.62}),(colX-34*k)*s,(Y5+S5+96*k)*s,.03,.95);
+  const sr=sub.getBoundingClientRect();
+  I.stamp(x,I.seal(16*s,'坐隐',{seed:9,type:'zhu',h:1.62,border:.1}),(sr.right-11)*s,(sr.top-22)*s,-.02,.9);
+  tc.width=W;tc.height=H;tc.getContext('2d').drawImage(A.c,0,0);A.c.width=A.c.height=0;showArt(tc);
 }
 function menuMistFrame(tm,force){
   const fx=$('menuFx');if(!MENU.mist||$('scMenu').hidden)return;
@@ -3184,7 +3280,7 @@ async function buildLobby(){
 // game: the space under the controls stays 留白 — one very quiet distant ridge along the bottom
 async function buildGameBg(){
   const VW=innerWidth,VH=innerHeight,s=dprArt(),rest=document.querySelector('#scGame .rest').getBoundingClientRect();
-  const h=Math.min(150,Math.max(rest.height+30,90)),side=rest.width<VW*.5&&rest.height>230,key=VW+'x'+VH+'@'+s+'|'+Math.round(h)+'|'+(side?Math.round(rest.left)+','+Math.round(rest.top):'')+artFontsOK;if(ART.gameKey===key)return;ART.gameKey=key;
+  const h=Math.min(150,Math.max(rest.height+30,90)),side=rest.width<VW*.5&&rest.height>170,key=VW+'x'+VH+'@'+s+'|'+Math.round(h)+'|'+(side?Math.round(rest.left)+','+Math.round(rest.top):'')+artFontsOK;if(ART.gameKey===key)return;ART.gameKey=key;
   const W=Math.round(VW*s),A=I.mk(W,Math.round(VH*s)),x=A.x;await idle();if(ART.gameKey!==key)return;
   const y0=VH-h;
   I.miShan3(x,W,tilePlane({s,seed:13,y0,h,base:h-4,a:.085,ink:[96,106,116],fall:.7,rim:.3,rimW:4,crown:.35,fold:0,lump:.05,
@@ -3233,6 +3329,11 @@ function layoutGame(){
   wrap.style.width=wrap.style.height=BS+'px';
   // a very short column (a small phone on its side) gives up the log line before anything else
   if(isLand()){const lg=$('log').getBoundingClientRect(),gb=g.getBoundingClientRect();if(lg.height&&lg.bottom>gb.bottom-2)g.classList.add('nolog');}
+  // landscape: the game's scrolls hang over the board (as far as the viewport allows), not over the middle of the screen
+  const root=document.documentElement.style,sc=$('scGame');
+  if(isLand()&&!sc.hidden&&sc.style.visibility!=='hidden'){const br=wrap.getBoundingClientRect(),dx=br.left+br.width/2-innerWidth/2,mx=Math.max(0,(innerWidth-540)/2);
+    root.setProperty('--ovdx',Math.round(Math.max(-mx,Math.min(mx,dx)))+'px');}
+  else root.removeProperty('--ovdx');
   return BS;
 }
 let boardKey='',boardJob=0;
@@ -3244,11 +3345,11 @@ function resize(){
     cv.width=cv.height=Math.round(BS*d);cv.style.width=cv.style.height=BS+'px';
     const SB=BS+BPAD*2;cvB.width=cvB.height=Math.round(SB*d);Object.assign(cvB.style,{width:SB+'px',height:SB+'px',left:-BPAD+'px',top:-BPAD+'px'});
     ctx.setTransform(d,0,0,d,0,0);
-    LS.key='';fxLayerFit();winHold.key='';
+    LS.key='';fxLayerFit();fxSizeChanged();
     paintBoardQuick();scheduleBoardPaint();fxPrewarm();
   }
   buildGameBg();
-  if(spritesReady){for(const el of document.querySelectorAll('#scGame .dk'))deco(el);}
+  if(artReady){for(const el of document.querySelectorAll('#scGame .dk'))deco(el);}
   placeBubbles();fitHint();
 }
 let _rsT=0;
@@ -3311,8 +3412,12 @@ function liveSprites(){
   LS.mist=I.mistStrip(cell*4.4,cell*1.3,s,7);
   { const c=I.mk(cell*.9*s,cell*.75*s);I.cloudCurl2(c.x,cell*.54*s,cell*.37*s,cell*.8*s,{a:.8});LS.curl=c.c; }
   { const R=(SR+cell*.12)*s,c=I.mk(R*2+6*s,R*2+6*s);I.arcStroke(c.x,c.c.width/2,c.c.height/2,R,R,0,-2.2,3.5,Math.max(1.4,cell*.075)*s,IP.zhu,.9);LS.ring=c.c; }
-  { const R=(SR+cell*.1)*s,c=I.mk(R*2+8*s,R*2+8*s);I.arcStroke(c.x,c.c.width/2,c.c.height/2,R,R,0,-1.4,4.4,Math.max(1.8,cell*.1)*s,IP.zhu,.92);I.arcStroke(c.x,c.c.width/2,c.c.height/2,R*1.12,R*1.1,0,1.6,3.1,Math.max(1,cell*.05)*s,IP.zhu,.55);LS.sel=c.c; }
-  { const R=cell*.13*s,c=I.mk(R*3,R*3),x=c.x,g=x.createRadialGradient(R*1.5,R*1.5,0,R*1.5,R*1.5,R);g.addColorStop(0,rgba([40,34,28],.55));g.addColorStop(.7,rgba([40,34,28],.35));g.addColorStop(1,rgba([40,34,28],0));x.fillStyle=g;x.beginPath();x.arc(R*1.5,R*1.5,R,0,7);x.fill();LS.dot=c.c; }
+  // 移形, the chosen stone: a closed vermilion ring (the last move's ring is broken), drawn round the lifted stone
+  { const R=(SR+cell*.11)*s,c=I.mk(R*2+10*s,R*2+10*s);I.arcStroke(c.x,c.c.width/2,c.c.height/2,R,R*.98,.1,-1.9,-1.9+6.36,Math.max(1.8,cell*.085)*s,IP.zhu,.95);LS.sel=c.c; }
+  // 移形, a free destination: a pale vermilion halo with a hollow brushed ring — clearly not a star point
+  { const R=cell*.36*s,c=I.mk(R*2+4*s,R*2+4*s),x=c.x,cx=c.c.width/2,g=x.createRadialGradient(cx,cx,0,cx,cx,R);
+    g.addColorStop(0,rgba(IP.zhu,.2));g.addColorStop(.6,rgba(IP.zhu,.12));g.addColorStop(1,rgba(IP.zhu,0));x.fillStyle=g;x.beginPath();x.arc(cx,cx,R,0,7);x.fill();
+    I.arcStroke(x,cx,cx,cell*.19*s,cell*.185*s,.15,-1.2,-1.2+6.2,Math.max(1.3,cell*.06)*s,IP.zhu,.88);LS.tgt=c.c; }
   return LS;
 }
 function springDabs(sp,own,prog){
@@ -3325,12 +3430,16 @@ const blit=(x,c,cx,cy,a)=>{const s=G.dpr;if(a!=null)x.globalAlpha=a;x.drawImage(
 // what the viewer may see on a point: hidden enemy stones are empty for them
 const visAt=(i,v)=>{const p=S.board[i];if(!p)return 0;if(S.hidden[i]!=null&&p!==v&&S.phase!=='over')return 0;return p;};
 function stoneAt(x,cx,cy,p,a){FX1.stone(x,cx,cy,G.cell*.44,p,TH,{dpr:G.dpr,a});}
-function fogStone(x,cx,cy,p,t){   // my hidden 迷雾 stone: half-seen through drifting mist, a 祥云 curl only I can see
-  const L=liveSprites(),cell=G.cell,s=G.dpr,SR=cell*.44;
-  stoneAt(x,cx,cy,p,.52);
-  x.save();x.beginPath();x.arc(cx,cy,SR*1.25,0,7);x.clip();
+const FOG_A=.72;
+function fogStone(x,cx,cy,p,t){stoneAt(x,cx,cy,p,FOG_A);fogVeilOn(x,cx,cy,p,t,1);}
+// my hidden 迷雾 stone: half-seen through drifting mist, a dashed ring in its own colour, a 祥云 curl only I can see
+function fogVeilOn(x,cx,cy,p,t,a){
+  if(a<=0)return;const L=liveSprites(),cell=G.cell,s=G.dpr,SR=cell*.44;
+  x.save();x.beginPath();x.arc(cx,cy,SR*1.25,0,7);x.clip();x.globalAlpha=.62*a;
   const per=L.mist.width/2/s,off=((t*.2*cell)%per);x.drawImage(L.mist,cx-cell*1.6-off,cy-cell*.65,L.mist.width/s,L.mist.height/s);x.restore();
-  x.drawImage(L.curl,cx+SR*.3,cy-SR*2.05,L.curl.width/s,L.curl.height/s);
+  x.save();x.globalAlpha=a;x.setLineDash([cell*.07,cell*.06]);x.lineDashOffset=-t*cell*.05;x.lineWidth=Math.max(1,cell*.045);x.strokeStyle=p===1?rgba([28,26,26],.78):rgba([150,140,124],.85);
+  x.beginPath();x.arc(cx,cy,SR*1.08,0,7);x.stroke();x.setLineDash([]);
+  x.drawImage(L.curl,cx+SR*.3,cy-SR*2.05,L.curl.width/s,L.curl.height/s);x.restore();
 }
 // the persistent vermilion cord through the five, for 看棋盘 after a win
 const cordC={key:'',c:null};
@@ -3348,6 +3457,8 @@ function drawBoard(now){
   x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,cv.width,cv.height);x.setTransform(s,0,0,s,0,0);
   const H=fxHidden(now);
   fxPass(x,now,'under');
+  // persistent per-stone marks with an 'under' part (FX2's fogMark) for this viewer's own hidden stones
+  if(FXP.hidden&&!over)for(let i=0;i<NN;i++)if(S.board[i]===v&&S.hidden[i]!=null&&!H.cells.has(i)){const [px,py]=pos(i);fxMark(x,i,v,px,py,t,'under');}
   // springs: an empty spring breathes (one broken ripple widening); three 氵 dabs show the owner's charge
   for(const sp of SPRINGS){
     const [px,py]=pos(sp),own=visAt(sp,v),tk=own?Math.min(3,S.tick[sp]||0):0;
@@ -3361,31 +3472,43 @@ function drawBoard(now){
   if(S.replace&&!H.marks.has('rewind')){const [px,py]=pos(S.replace.forbid);FX1.rewindMark(x,px,py,cell,TH,S.replace.forbid%89+1);}
   const cordOn=over&&S.winLine&&S.winLine.length&&showBoardAfterEnd;
   if(cordOn){const c=winCord();x.drawImage(c,0,0,G.size,G.size);}
-  // stones
+  // stones (移形: the chosen stone is lifted off the paper, its shadow left behind)
+  const shiftSel=sel&&sel.skill==='shift'&&sel.from!=null&&S.phase==='play'?sel.from:-1,lift=cell*.08;
   for(let i=0;i<NN;i++){
     const p=S.board[i];if(!p||H.cells.has(i))continue;
     const hid=S.hidden[i]!=null&&!over;if(hid&&p!==v)continue;
     const [px,py]=pos(i);
-    if(hid)fogStone(x,px,py,p,t);else stoneAt(x,px,py,p);
+    if(hid){if(FXP.hidden)fxMark(x,i,p,px,py,t,'over');else fogStone(x,px,py,p,t);}
+    else if(i===shiftSel){const g=x.createRadialGradient(px+cell*.04,py+cell*.08,0,px+cell*.04,py+cell*.08,cell*.5);g.addColorStop(0,'rgba(40,30,18,.32)');g.addColorStop(1,'rgba(40,30,18,0)');
+      x.fillStyle=g;x.beginPath();x.arc(px+cell*.04,py+cell*.08,cell*.5,0,7);x.fill();stoneAt(x,px,py-lift,p);}
+    else stoneAt(x,px,py,p);
   }
-  // the last move: a vermilion dot and a broken ring
+  // the last move: a vermilion dot and a broken ring. While its stone is still being placed it is drawn over the
+  // effect layer, fading in as the stone settles (no pop at the hand-over)
+  const late=[];
   for(const p of [1,2]){
-    const i=S.last[p];if(i==null||S.board[i]!==p||H.cells.has(i))continue;
+    const i=S.last[p];if(i==null||S.board[i]!==p||i===shiftSel)continue;
+    if(H.cells.has(i)&&!H.fade.has(i))continue;
     if(S.hidden[i]!=null&&p!==v&&!over)continue;
     if(p!==3-S.turn&&!over)continue;
     if(over&&p!==S.winner)continue;
-    const [px,py]=pos(i),k=H.lastFade(i);
-    x.globalAlpha=k;x.fillStyle=rgba(IP.zhu,.95);x.beginPath();x.arc(px-cell*.02,py-cell*.04,Math.max(2.2,cell*.12),0,7);x.fill();blit(x,L.ring,px,py,k);x.globalAlpha=1;
+    if(H.cells.has(i))late.push(i);else lastMark(x,i,1);
   }
-  // 移形: the chosen stone ringed in vermilion, the free neighbours dotted
-  if(sel&&sel.skill==='shift'&&sel.from!=null&&S.phase==='play'){
-    const [px,py]=pos(sel.from);blit(x,L.sel,px,py);
-    const [r,c]=rc(sel.from);
-    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(!inb(rr,cc))continue;const j=ix(rr,cc);if(visAt(j,v))continue;const [qx,qy]=pos(j);blit(x,L.dot,qx,qy,.9);}
+  // 移形: the chosen stone ringed in vermilion, the free neighbours marked
+  if(shiftSel>=0){
+    const [px,py]=pos(shiftSel);blit(x,L.sel,px,py-lift);
+    const [r,c]=rc(shiftSel);
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(!inb(rr,cc))continue;const j=ix(rr,cc);if(visAt(j,v))continue;const [qx,qy]=pos(j);blit(x,L.tgt,qx,qy);}
   }
   // hover ghost (mouse): only on points that look empty to this viewer
   if(hover>=0&&controls()&&!sel&&!visAt(hover,v)&&!(S.seal&&S.seal.i===hover)){const [px,py]=pos(hover);stoneAt(x,px,py,S.actor,.3);}
-  return fxPass(x,now,'over');
+  const busy=fxPass(x,now,'over');
+  for(const i of late)lastMark(x,i,H.lastFade(i));
+  return busy;
+}
+function lastMark(x,i,k){
+  if(k<=0)return;const [px,py]=pos(i),cell=G.cell;
+  x.globalAlpha=k;x.fillStyle=rgba(IP.zhu,.95);x.beginPath();x.arc(px-cell*.02,py-cell*.04,Math.max(2.2,cell*.12),0,7);x.fill();x.globalAlpha=1;blit(x,liveSprites().ring,px,py,k);
 }
 // =====================================================================================================
 // app part 3 — effect dispatch.
@@ -3393,39 +3516,87 @@ function drawBoard(now){
 // them, and adopting a state quietly (reconnect, resume, undo, a fresh game) never replays one.
 // FXR maps an effect kind to its renderer. Each entry:
 //   dur(e)          duration in ms (before the reduced-motion factor)
-//   draw(ctx,k,e,pass) draws one frame, k ∈ [0,1]; may return {shake:[dx,dy]}. pass is 'over' (own transparent
-//                   layer composited over board + stones) or, for layer:'two' entries, also 'under' (straight onto
-//                   the board canvas before the stones — FX2's two-pass contract).
+//   draw(ctx,k,e,pass) draws one frame, k ∈ [0,1]; may return {shake:[dx,dy], vignette:{a,x,y,col}}.
+//                   pass 'over': the effect's own transparent layer, composited over board + stones.
+//                   layer:'two' entries are ALSO called with pass 'under', straight onto the board canvas before the
+//                   stones (FX2's two-pass contract: pass it on as o.layer).
+//   layer           'two' (see above) | 'screen': drawn on a layer over the whole game screen in board coordinates, so
+//                   it can leave the board (FX2 gain flies to the energy pip; fxO gives the pip as o.tx/o.ty)
 //   hide(e)         points whose stone the effect draws itself (not drawn by the board meanwhile)
 //   marks           persistent marks the effect draws itself ('seal' | 'rewind')
 //   dabs(e)         springs whose charge dabs the effect draws itself (FX2 gain)
 //   skip / skipAfter  tap-to-skip target k and the ms after which it is allowed
+//   heavy           drawn at ≤2x while it plays (board-wide effects)
+//   lead            {kind, at, opts(e)}: another effect played first (FX2 cast); this one starts at lead k = at
+//   blocksResult    the result sheet waits until it has finished (win)
 //   end(e)          called once when it finishes
-// FX2 integration = add/replace entries here (e.g. shock:{dur:()=>FX2.dur.shock,layer:'two',hide:..,draw:(c,k,e,pass)=>
-//   FX2.shock(c,k,Object.assign({},fxO(e),{layer:pass}))}) — nothing else has to change.
+// r.shake moves the whole #app; r.vignette drives the #fxVig DOM overlay (never drawn on a canvas).
+// Persistent per-stone marks go through FXP (FXP.hidden draws the viewer's own 迷雾 stone, both passes).
+// Prewarm providers go in FXPROV ({ready(), jobs(ctx,o) → [{name, when:'boot'|'game'|'late', fn}]}).
+// FX2 integration = add/replace FXR entries, set FXP.hidden, push a provider; e.g.
+//   shock:{dur:()=>FX2.dur.shock,layer:'two',hide:e=>[e.i],lead:{kind:'cast',at:.74,opts:e=>({text:'震荡'})},
+//          draw:(c,k,e,pass)=>FX2.shock(c,k,Object.assign({},e.o,{layer:pass}))}
+//   cast:{dur:()=>FX2.dur.cast,draw:(c,k,e)=>FX2.cast(c,k,e.o)}   gain:{layer:'screen',dabs:e=>[e.i],..}
+//   FXP.hidden=(c,q)=>FX2.fogMark(c,q.t,Object.assign(fxO({i:q.i,p:q.p,seed:3}),{layer:q.pass}))
+//   FXPROV.push({ready:()=>!!window.FX2,jobs:(c,o)=>FX2.prewarmJobs(c,o).map((fn,n)=>({name:'fx2:'+n,when:'game',fn}))})
 // =====================================================================================================
 let effects=[];
-const fxL={c:null,x:null};
-function fxLayerFit(){if(!fxL.c)fxL.c=document.createElement('canvas');fxL.c.width=cv.width;fxL.c.height=cv.height;fxL.x=fxL.c.getContext('2d');}
+const fxL={c:null,x:null};                 // board-sized effect layer
+const fxS={c:null,x:null,on:false};        // screen-sized effect layer (#fxTop), allocated only while used
+// the layer runs at the board's resolution, except while a heavy effect (the board-wide win) plays: soft ink loses
+// nothing at 2x and a 3x phone composites less than half the pixels
+function fxLayerFit(d){d=d||G.dpr;if(!fxL.c)fxL.c=document.createElement('canvas');const n=Math.round(G.size*d);if(fxL.c.width!==n||fxL.d!==d){fxL.c.width=fxL.c.height=n;fxL.x=fxL.c.getContext('2d');}fxL.d=d;}
 const sst=(a,b,v)=>I.smooth(a,b,v);
-// options object every effect receives (lengths in board CSS px)
+// the board's top-left inside the game screen (CSS px), for the screen layer and the vignette
+function boardOrigin(){const b=cv.getBoundingClientRect(),g=$('scGame').getBoundingClientRect();return [b.left-g.left,b.top-g.top,b.width/(G.size||1)];}
+// centre of player p's energy pip k (board coordinates)
+function pipAt(p,k){const el=document.querySelectorAll('#p'+p+' .energy .pip')[Math.max(0,Math.min(2,k))];if(!el)return null;const r=el.getBoundingClientRect(),b=cv.getBoundingClientRect(),q=G.size/(b.width||1);return [(r.left+r.width/2-b.left)*q,(r.top+r.height/2-b.top)*q];}
+// options object every effect receives (lengths in board CSS px). Textures are built at ≤2x (soft ink loses nothing);
+// stones that sit still are drawn by the game itself at full resolution.
 function fxO(e){
-  const o={cell:G.cell,T:TH,W:G.size,H:G.size,board:[0,0,G.size,G.size],grid:[G.m,G.m,G.m+14*G.cell,G.m+14*G.cell],dpr:G.dpr,r:G.cell*.44,p:e.p,seed:e.seed};
+  const o={cell:G.cell,T:TH,W:G.size,H:G.size,board:[0,0,G.size,G.size],grid:[G.m,G.m,G.m+14*G.cell,G.m+14*G.cell],dpr:Math.min(2,G.dpr),r:G.cell*.44,p:e.p,seed:e.seed,
+    drawStone:(c,x,y,r,p,a)=>FX1.stone(c,x,y,r,p,TH,{dpr:G.dpr,a})};
   if(e.i!=null){const [x,y]=pos(e.i);o.x=x;o.y=y;}
   if(e.j!=null){const [x,y]=pos(e.j);o.tx=x;o.ty=y;}
+  if(e.pip){const q=pipAt(e.pip[0],e.pip[1]);if(q){o.tx=q[0];o.ty=q[1];}o.clip=[0,0,G.size,G.size];}
   if(e.line)o.line=e.line.map(pos);
   if(e.avoid)o.avoid=e.avoid.map(pos);
+  if(e.extra)Object.assign(o,e.extra);
   return o;
 }
 // stones this viewer can see, minus the effect's own points (FX1 keeps its ink off them)
 function visibleStones(except){const v=viewer(),out=[];for(let i=0;i<NN;i++)if(visAt(i,v)&&!except.includes(i))out.push(i);return out;}
 const fi=name=>(c,k,e)=>{FXI.prep();return FXI[name](c,k,e);};   // interim effects build their few textures on first use
+// FX1's paper wash feathers over the outer 1.4 cells of the sheet, but the outer lines sit only .92 cell in: this fills
+// the feather back in (behind the effect's own drawing) so stones on the edge rows step back like all the others
+const edgeVeil={key:'',c:null};
+function drawEdgeVeil(x,a){
+  if(a<=0)return;const B=G.size,key=B+'@'+G.dpr;
+  if(edgeVeil.key!==key){const n=64,{c,x:ex}=I.mk(n,n),id=ex.createImageData(n,n),d=id.data,f=G.cell*1.4/B*n;
+    for(let j=0;j<n;j++)for(let i=0;i<n;i++){const e=Math.min(i+.5,j+.5,n-i-.5,n-j-.5),q=(j*n+i)*4;d[q]=244;d[q+1]=238;d[q+2]=223;d[q+3]=(1-sst(0,f,e))*255;}
+    ex.putImageData(id,0,0);edgeVeil.c=c;edgeVeil.key=key;}
+  // only the ring that needs it (four strips, no overlap): a full-sheet pass would double the compositing work
+  const n=edgeVeil.c.width,bd=Math.min(B/2,G.cell*1.6),t=bd/B*n,c=edgeVeil.c;
+  x.save();x.globalCompositeOperation='destination-over';x.globalAlpha=a;x.imageSmoothingEnabled=true;
+  x.drawImage(c,0,0,n,t,0,0,B,bd);x.drawImage(c,0,n-t,n,t,0,B-bd,B,bd);
+  x.drawImage(c,0,t,t,n-2*t,0,bd,bd,B-2*bd);x.drawImage(c,n-t,t,t,n-2*t,B-bd,bd,bd,B-2*bd);x.restore();
+}
+const winVeilA=k=>.7*sst(.17,.32,k);           // FX1's own wash strength for the light theme
+// the losing side: the cord through the five and a quiet wash — no 胜, no seal, no shake (FX1 writes 胜 only after k=.24)
+const LOSE_K=.235;
+function drawLose(x,k,o){
+  const kk=LOSE_K*k;FX1.win(x,kk,o);
+  const add=.42*sst(.15,1,k);          // bring the wash up to a calm, even dimming
+  if(add>0){x.save();x.globalCompositeOperation='destination-over';x.globalAlpha=add;x.fillStyle='#f4eedf';x.fillRect(0,0,G.size,G.size);x.restore();}
+  drawEdgeVeil(x,winVeilA(kk));
+}
 const FXR={
   place:{dur:()=>FX1.dur.place,hide:e=>[e.i],draw:(c,k,e)=>FX1.place(c,k,e.o)},
   seal:{dur:()=>FX1.dur.seal,marks:['seal'],shake:1,draw:(c,k,e)=>FX1.seal(c,k,e.o)},
   rewind:{dur:()=>FX1.dur.rewind,marks:['rewind'],skip:FX1.skip.rewind,skipAfter:FX1.skipAfter.rewind,draw:(c,k,e)=>FX1.rewind(c,k,e.o)},
   shift:{dur:()=>FX1.dur.shift,hide:e=>[e.j],draw:(c,k,e)=>FX1.shift(c,k,e.o)},
-  win:{dur:()=>FX1.dur.win,skip:FX1.skip.win,skipAfter:FX1.skipAfter.win,shake:1,draw:(c,k,e)=>FX1.win(c,k,e.o),end:()=>render()},
+  win:{dur:()=>FX1.dur.win,heavy:1,skip:FX1.skip.win,skipAfter:FX1.skipAfter.win,shake:1,blocksResult:1,draw:(c,k,e)=>{const r=FX1.win(c,k,e.o);drawEdgeVeil(c,winVeilA(k));return r;},end:()=>render()},
+  lose:{dur:()=>FX1.dur.win*LOSE_K+500,heavy:1,skip:1,skipAfter:300,blocksResult:1,draw:(c,k,e)=>drawLose(c,k,e.o),end:()=>render()},
   // ---- interim ink versions until FX2 lands (built from the ink library; no rings of light, no glow)
   fog:{dur:()=>1050,hide:e=>[e.i],draw:fi('fog')},
   fogVeil:{dur:()=>1400,draw:fi('fogVeil')},
@@ -3434,14 +3605,33 @@ const FXR={
   turn:{dur:()=>850,hide:e=>[e.i],draw:fi('turn')},
   gain:{dur:()=>1500,draw:fi('gain')},
 };
+// persistent per-stone marks (FX2 replaces .hidden with its fogMark); a failing mark falls back to the ink version
+const FXP={hidden:null};
+function fxMark(x,i,p,px,py,t,pass){
+  x.save();
+  try{FXP.hidden(x,{i,p,x:px,y:py,t,pass});}
+  catch(err){console.error(err);FXP.hidden=null;x.restore();x.save();if(pass==='over')fogStone(x,px,py,p,t);}
+  x.restore();
+}
+// the board changed size: drop every texture built for the old size (FX1 keeps one set per size otherwise)
+const FX1_KEEP=/^(roles|tile|bloom|oil|vortex|puff)\b/;
+function fxSizeChanged(){
+  winHold.key='';if(winHold.c){winHold.c.width=winHold.c.height=0;winHold.c=null;}
+  edgeVeil.key='';edgeVeil.c=null;FXI.key='';FXI.puff=FXI.band=FXI.band2=FXI.splash=FXI.crack=null;
+  if(window.FX1&&FX1._cache)for(const k of [...FX1._cache.keys()])if(!FX1_KEEP.test(k))FX1._cache.delete(k);
+}
 function fxStart(kind,e){
   const spec=FXR[kind];if(!spec||!G.size)return null;
   e=Object.assign({kind,spec,seed:1,delay:0},e);
-  e.dur=spec.dur(e)*SPD;e.t0=performance.now()+e.delay*SPD;e.o=null;
+  if(spec.lead&&FXR[spec.lead.kind]&&!e.noLead){   // e.g. FX2: the skill's name is cast first, the effect starts as it dissolves
+    const L=spec.lead,le=fxStart(L.kind,Object.assign({p:e.p,seed:e.seed,delay:e.delay,extra:L.opts?L.opts(e):null}));
+    if(le)e.delay+=FXR[L.kind].dur(le)*(L.at==null?1:L.at);
+  }
+  e.dur=Math.max(1,spec.dur(e)*SPD);e.t0=performance.now()+e.delay*SPD;e.o=null;
   e.avoid=visibleStones([e.i,e.j].filter(q=>q!=null).concat(e.line||[]));
   effects.push(e);return e;
 }
-function fxClear(){effects=[];winHold.key='';document.getElementById('app').style.transform='';}
+function fxClear(){effects=[];winHold.key='';document.getElementById('app').style.transform='';fxVignette(null);fxScreenFree();}
 function fxKOf(e,now){return I.clamp((now-e.t0)/e.dur,0,1);}
 function fxHidden(now){
   const H={cells:new Set(),marks:new Set(),dabs:new Set(),fade:new Map(),lastFade(i){return H.fade.has(i)?H.fade.get(i):1;}};
@@ -3450,47 +3640,73 @@ function fxHidden(now){
     if(sp.hide)for(const q of sp.hide(e))H.cells.add(q);
     if(sp.marks)for(const m of sp.marks)H.marks.add(m);
     if(sp.dabs)for(const q of sp.dabs(e))H.dabs.add(q);
-    if(e.kind==='place')H.fade.set(e.i,sst(.72,1,fxKOf(e,now)));
+    if(e.kind==='place')H.fade.set(e.i,now<e.t0?0:sst(.72,1,fxKOf(e,now)));
   }
   return H;
 }
+// a failing effect is retired (logged once), never allowed to stop the board from drawing
+function fxFail(e,err){if(!e.dead){e.dead=1;console.error(err);}e.t0=-1e9;}
+function fxScreenFree(){if(fxS.c&&fxS.on){fxS.c.width=fxS.c.height=0;fxS.on=false;}}
+function fxVignette(v){
+  const el=$('fxVig');if(!el)return;
+  if(!v||!(v.a>0)){if(el.style.opacity!=='0')el.style.opacity='0';return;}
+  const [bx,by,q]=boardOrigin(),col=v.col||[20,18,16];
+  el.style.background=`radial-gradient(circle at ${(bx+v.x*q).toFixed(0)}px ${(by+v.y*q).toFixed(0)}px,rgba(${col.join(',')},0) 28%,rgba(${col.join(',')},.9) 100%)`;
+  el.style.opacity=Math.min(1,v.a).toFixed(3);
+}
 const winHold={key:'',c:null};
+const heavyD=()=>Math.min(2,G.dpr,Math.max(1,1300/G.size));   // ≤2x, and ≤1.7 M px on a big desktop board
 function fxPass(x,now,pass){
-  let sx=0,sy=0;
+  let sx=0,sy=0,vig=null;
   if(pass==='under'){
-    for(const e of effects){if(e.spec.layer!=='two'||now<e.t0)continue;e.o=fxO(e);x.save();e.spec.draw(x,fxKOf(e,now),e,'under');x.restore();}
+    for(const e of effects){if(e.spec.layer!=='two'||now<e.t0)continue;e.o=fxO(e);x.save();try{e.spec.draw(x,fxKOf(e,now),e,'under');}catch(err){fxFail(e,err);}x.restore();}
     return null;
   }
   const done=[],live=effects.filter(e=>now>=e.t0);
-  const hold=!effects.some(e=>e.kind==='win')&&S&&S.phase==='over'&&S.winLine&&S.winLine.length&&!showBoardAfterEnd;
-  if(live.length){
-    const fx=fxL.x;fx.setTransform(1,0,0,1,0,0);fx.clearRect(0,0,fxL.c.width,fxL.c.height);fx.setTransform(G.dpr,0,0,G.dpr,0,0);
-    for(const e of live){
-      const k=fxKOf(e,now);e.o=fxO(e);fx.save();
-      let r=null;try{r=e.spec.draw(fx,k,e,'over');}catch(err){console.error(err);k<1&&(e.t0=-1e9);}
-      fx.restore();
-      if(r&&r.shake&&!RM){sx+=r.shake[0];sy+=r.shake[1];}
-      if(k>=1)done.push(e);
-    }
-    x.save();x.setTransform(1,0,0,1,0,0);x.drawImage(fxL.c,0,0);x.restore();
+  const hold=!effects.some(e=>e.spec.blocksResult)&&S&&S.phase==='over'&&S.winLine&&S.winLine.length&&!showBoardAfterEnd;
+  const onBoard=live.filter(e=>e.spec.layer!=='screen'),onScreen=live.filter(e=>e.spec.layer==='screen');
+  const run=(c,e)=>{
+    const k=fxKOf(e,now);e.o=fxO(e);c.save();
+    let r=null;try{r=e.spec.draw(c,k,e,'over');}catch(err){fxFail(e,err);}
+    c.restore();
+    if(r&&r.shake&&!RM){sx+=r.shake[0];sy+=r.shake[1];}
+    if(r&&r.vignette&&!RM)vig=r.vignette;
+    if(k>=1||e.t0<0)done.push(e);
+  };
+  if(onBoard.length){
+    const d=onBoard.some(e=>e.spec.heavy)?heavyD():G.dpr;if(fxL.d!==d)fxLayerFit(d);
+    const fx=fxL.x;fx.setTransform(1,0,0,1,0,0);fx.clearRect(0,0,fxL.c.width,fxL.c.height);fx.setTransform(d,0,0,d,0,0);
+    for(const e of onBoard)run(fx,e);
+    x.save();x.setTransform(1,0,0,1,0,0);x.imageSmoothingEnabled=true;x.drawImage(fxL.c,0,0,cv.width,cv.height);x.restore();
   }
+  if(onScreen.length){
+    const c=fxS.c||(fxS.c=$('fxTop')),g=$('scGame'),d=dprHi(),W=Math.round(g.clientWidth*d),H=Math.round(g.clientHeight*d);
+    if(c.width!==W||c.height!==H){c.width=W;c.height=H;fxS.x=c.getContext('2d');}fxS.on=true;
+    const sxx=fxS.x||(fxS.x=c.getContext('2d')),[bx,by,q]=boardOrigin();sxx.setTransform(1,0,0,1,0,0);sxx.clearRect(0,0,W,H);sxx.setTransform(d*q,0,0,d*q,bx*d,by*d);
+    for(const e of onScreen)run(sxx,e);
+  }else fxScreenFree();
   if(hold)drawWinHold(x);
-  if(done.length){effects=effects.filter(e=>!done.includes(e));for(const e of done)e.spec.end&&e.spec.end(e);}
+  if(done.length){effects=effects.filter(e=>!done.includes(e));for(const e of done){try{e.spec.end&&e.spec.end(e);}catch(err){console.error(err);}}}
   const app=document.getElementById('app'),tr=(sx||sy)?`translate(${sx.toFixed(2)}px,${sy.toFixed(2)}px)`:'';
   if(app.style.transform!==tr)app.style.transform=tr;
+  fxVignette(vig);
   return live.length>0;
 }
+// the viewer did not win (against the computer, or online): their screen keeps the cord and a quiet wash, not 胜
+function viewerLost(){return !!(S&&S.winner&&!S.draw&&mode!=='local'&&S.winner!==viewer());}
 // after the win effect, its last frame stays (veiled board, 胜, the seal) until 看棋盘 or a new game
 function drawWinHold(x){
-  const key=S.winLine.join()+'|'+S.winner+'|'+G.size+'@'+G.dpr;
+  const lost=viewerLost(),key=S.winLine.join()+'|'+S.winner+'|'+lost+'|'+G.size+'@'+G.dpr;
   if(winHold.key!==key){
-    const c=winHold.c||document.createElement('canvas');c.width=cv.width;c.height=cv.height;const fx=c.getContext('2d');fx.setTransform(G.dpr,0,0,G.dpr,0,0);
-    const e={kind:'win',p:S.winner,line:S.winLine,seed:2,avoid:visibleStones(S.winLine)};FX1.win(fx,1,fxO(e));winHold.c=c;winHold.key=key;
+    const d=heavyD(),c=winHold.c||document.createElement('canvas');c.width=c.height=Math.round(G.size*d);const fx=c.getContext('2d');fx.setTransform(d,0,0,d,0,0);
+    const e={kind:'win',p:S.winner,line:S.winLine,seed:2,avoid:visibleStones(S.winLine)},o=fxO(e);
+    if(lost)drawLose(fx,1,o);else{FX1.win(fx,1,o);drawEdgeVeil(fx,winVeilA(1));}
+    winHold.c=c;winHold.key=key;
   }
-  x.save();x.setTransform(1,0,0,1,0,0);x.drawImage(winHold.c,0,0);x.restore();
+  x.save();x.setTransform(1,0,0,1,0,0);x.imageSmoothingEnabled=true;x.drawImage(winHold.c,0,0,cv.width,cv.height);x.restore();
 }
-function fxBlocksResult(){return effects.some(e=>e.kind==='win');}
-// tap to skip (rewind / win), only after FX1.skipAfter
+function fxBlocksResult(){return effects.some(e=>e.spec.blocksResult);}
+// tap to skip (rewind / win), only after skipAfter
 function fxSkip(now){
   for(const e of effects){const sp=e.spec;if(sp.skip==null||now<e.t0)continue;if(now-e.t0<(sp.skipAfter||0)*SPD)continue;const k=fxKOf(e,now);if(k<sp.skip){e.t0=now-sp.skip*e.dur;return true;}}
   return false;
@@ -3504,7 +3720,10 @@ function fxFromState(f){
   const seed=(i==null?1:i%89+1);
   if(f.kind==='place'){
     fxStart('place',{i,p:f.p,seed:i%7+1});
-    if(S.phase==='over'&&S.winLine&&S.winLine.includes(i)){fxStart('win',{p:f.p,line:S.winLine.slice(),seed:2,delay:420});setTimeout(()=>haptic(18),(420+FX1.dur.win*.7)*SPD);}
+    if(S.phase==='over'&&S.winLine&&S.winLine.includes(i)){
+      if(viewerLost())fxStart('lose',{p:f.p,line:S.winLine.slice(),seed:2,delay:420});
+      else{fxStart('win',{p:f.p,line:S.winLine.slice(),seed:2,delay:420});setTimeout(()=>haptic(18),(420+FX1.dur.win*.7)*SPD);}
+    }
     return;
   }
   if(f.kind==='seal'){fxStart('seal',{i,p:f.p,seed});setTimeout(()=>haptic(14),FX1.dur.seal*.22*SPD);return;}
@@ -3514,11 +3733,41 @@ function fxFromState(f){
   if(f.kind==='shock'){fxStart('shock',{i,p:3-f.p,seed});setTimeout(()=>haptic(22),180*SPD);return;}
   if(f.kind==='turn'){fxStart('turn',{i,p:f.p,seed});return;}
 }
+// ---------------- prewarm: textures are built in real idle time, in the order they are needed ----------------
+//   'boot'  (FX1 place)            once the menu art is up
+//   'game'  (seal, rewind, shift, interim effects)   while a game is open and nobody is touching the screen
+//   'late'  (win)                  after a few moves — nobody can win before the 9th stone
+// FX1 builds one effect per call, so a job is one effect; FX textures are capped at 2x, which keeps each job short.
+const FXPROV=[
+  {ready:()=>!!window.FX1,jobs:(c,o)=>FX1.names.map(n=>({name:'fx1:'+n,when:n==='place'?'boot':n==='win'?'late':'game',fn:()=>FX1.prewarm(c,o,[n])}))},
+  {ready:()=>true,jobs:()=>[{name:'fxi',when:'game',fn:()=>FXI.prep()}]},
+];
+const PW={gen:0,queue:[],t:0,lastInput:0,busy:false};
+window.addEventListener('pointerdown',()=>{PW.lastInput=performance.now();},true);
+window.addEventListener('keydown',()=>{PW.lastInput=performance.now();},true);
 function fxPrewarm(){
-  if(!G.size||!window.FX1)return;
-  const job=fxPrewarm.job=(fxPrewarm.job||0)+1,o=fxO({p:1,seed:1});o.avoid=[];
-  const go=()=>{if(job!==fxPrewarm.job)return;try{FX1.prewarmAsync(fxL.x||ctx,o,FX1.names,()=>{if(job===fxPrewarm.job)FXI.prep();});}catch(e){}};
-  if(artFontsOK)go();else fontsReady.then(()=>setTimeout(go,50));
+  if(!G.size)return;
+  PW.gen++;const o=fxO({p:1,seed:1});o.avoid=[];const c=fxL.x||ctx;
+  PW.queue=[];for(const pr of FXPROV){try{if(pr.ready())PW.queue.push(...pr.jobs(c,o));}catch(e){console.error(e);}}
+  pwKick();
+}
+function pwWhen(j){
+  if(!fontsSettled||ART.busy)return false;
+  if(j.when==='boot')return true;
+  if(!S||$('scGame').hidden)return false;
+  if(j.when==='game')return true;
+  return S.board.reduce((n,v)=>n+(v?1:0),0)>=6;
+}
+function pwKick(){if(!PW.t&&PW.queue.length)PW.t=setTimeout(pwTick,300);}
+function pwTick(){
+  PW.t=0;if(!PW.queue.length||PW.busy)return;
+  const now=performance.now(),calm=!effects.length&&now-PW.lastInput>900&&!document.hidden,j=PW.queue.find(pwWhen);
+  if(!j||!calm){pwKick();return;}
+  const gen=PW.gen;PW.busy=true;
+  const run=()=>{PW.busy=false;if(gen!==PW.gen){pwKick();return;}
+    if(effects.length||performance.now()-PW.lastInput<900){pwKick();return;}
+    PW.queue.splice(PW.queue.indexOf(j),1);try{j.fn();}catch(e){console.error(e);}pwKick();};
+  window.requestIdleCallback?requestIdleCallback(run,{timeout:2000}):setTimeout(run,0);
 }
 
 // ---------------- interim effects (ink library) ----------------
@@ -3554,10 +3803,10 @@ const FXI={key:'',
   puffAt(x,cx,cy,scale,a,rot){if(!FXI.puff||a<=0)return;const s=G.dpr,w=FXI.puff.width/s*scale;x.save();x.globalAlpha=a;x.translate(cx,cy);x.rotate(rot||0);x.drawImage(FXI.puff,-w/2,-w/2,w,w);x.restore();},
   fog(x,k,e){   // caster: mist gathers round the stone, which sinks to half-seen; the 祥云 mark settles
     const o=e.o,env=sst(0,.22,k)*(1-sst(.62,1,k));
-    stoneAt(x,o.x,o.y,e.p,1-.48*sst(.25,.75,k));
+    stoneAt(x,o.x,o.y,e.p,1-(1-FOG_A)*sst(.25,.75,k));
     FXI.puffAt(x,o.x,o.y,.55+.55*I.ease.out(k),.95*env,k*.6);
     FXI.puffAt(x,o.x-G.cell*.3,o.y+G.cell*.1,.4+.4*k,.7*env,-k*.8);
-    if(k>.7){const L=liveSprites(),s=G.dpr;x.globalAlpha=sst(.7,1,k);x.drawImage(L.curl,o.x+o.r*.3,o.y-o.r*2.05,L.curl.width/s,L.curl.height/s);x.globalAlpha=1;}
+    fogVeilOn(x,o.x,o.y,e.p,RM?0:performance.now()/1000,sst(.6,1,k));   // hands over to the board's own fog stone
   },
   fogVeil(x,k,e){   // the other side: mist rolls across the whole board — no position given away
     if(!FXI.band)return;const s=G.dpr,B=G.size,env=Math.sin(Math.PI*k);
@@ -3641,9 +3890,9 @@ function toast(m){
 function show(id){
   for(const s of ['scMenu','scLobby','scPeer','scGame'])$(s).hidden=s!==id;
   if(id!=='scGame')for(const o of ['ovPick','ovResult','ovReq','ovEmote'])$(o).hidden=true;   // game sheets never linger over a menu
-  if(id==='scGame')resize();
+  if(id==='scGame')resize();else document.documentElement.style.removeProperty('--ovdx');
   if(id==='scMenu'&&typeof refreshResume==='function')refreshResume();
-  if(spritesReady){
+  if(artReady){
     if(id==='scMenu')buildMenu();
     if(id==='scPeer'||id==='scLobby')buildLobby();
     decoWatch($(id));
@@ -3881,7 +4130,7 @@ function renderPick(){
       else{pickBuf.push(k);if(pickBuf.length>2)pickBuf.shift();}
       renderPick();
     };
-    if(spritesReady)decoWatch(box);}
+    if(artReady)decoWatch(box);}
   $('pickOk').disabled=pickBuf.length!==2;
 }
 $('pickOk').onclick=()=>{
@@ -3946,12 +4195,14 @@ function render(){
     render();
   };
   const ht=hintText();if(setHTML($('hint'),ht?`<span class="ht">${ht}</span>`:''))fitHint();
-  $('log').textContent=logLines().slice(-2).join('　·　');
+  { const L=logLines(),el=$('log');el.textContent=L.slice(-2).join('　·　');
+    // one line only (short screens): when both entries do not fit, the newest one alone
+    if(L.length>1&&el.clientHeight&&el.scrollHeight>el.clientHeight+3)el.textContent=L[L.length-1]; }
   $('gResign').disabled=S.phase!=='play';
   const cu=canUndo();
   $('gUndo').disabled=!cu;$('resUndo').disabled=!cu;
   $('gUndo').textContent=mode==='online'?'请求悔棋':'悔棋';
-  $('resUndo').hidden=S.draw;
+  $('resUndo').hidden=S.draw;$('resUndo').parentNode.classList.toggle('two',!!S.draw);
   $('ovReq').hidden=!(mode==='online'&&S.req&&S.req.from!==mySeat);
   // title
   $('gTitle').textContent=mode==='online'?`房间 ${roomCode}`:mode==='ai'?'对战电脑':'同机对战';
@@ -3969,10 +4220,11 @@ function render(){
     else{t='你输了';seal='再战';}
     $('resTitle').textContent=t;
     $('resNote').textContent=S.log[S.log.length-1]||'';
-    const sh=ov.querySelector('.sheet');if(sh.dataset.seal!==seal){sh.dataset.seal=seal;if(!ov.hidden&&spritesReady)paintSheet(sh);}
+    const sh=ov.querySelector('.sheet');if(sh.dataset.seal!==seal){sh.dataset.seal=seal;if(!ov.hidden&&artReady)paintSheet(sh);}
     ov.hidden=false;
   }else ov.hidden=true;
-  if(spritesReady&&!$('scGame').hidden)decoWatch($('scGame'));
+  $('scGame').classList.toggle('resOn',!ov.hidden);
+  if(artReady&&!$('scGame').hidden)decoWatch($('scGame'));
 }
 // a hint that does not fit drops its side rules, then a size (never an ellipsis on an instruction)
 function fitHint(){
@@ -4004,7 +4256,8 @@ cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'){const h=cellAt
 cv.addEventListener('pointerleave',()=>{hover=-1;boardDirty=true;});
 cv.addEventListener('click',e=>{
   if(!S)return;
-  if(fxSkip(performance.now()))return;          // a tap during 回溯 / 胜 jumps to its end first
+  // a tap during 回溯 / 胜 jumps to its end first; a player who may move keeps going (the tap also places)
+  if(fxSkip(performance.now())&&!(S.phase==='play'&&controls()&&cellAt(e)>=0))return;
   if(S.phase==='over'&&showBoardAfterEnd){showBoardAfterEnd=false;render();return;}
   const i=cellAt(e);if(i<0)return;
   if(S.phase!=='play'){return;}
@@ -4047,7 +4300,7 @@ function syncGain(){
   for(const sp of g.src||[]){
     if(typeof sp!=='number')continue;
     if(S.hidden[sp]!=null&&g.p!==v&&S.phase!=='over')continue; // a hidden stone's spring stays secret
-    fxStart('gain',{i:sp,p:g.p,seed:sp%7+1});
+    fxStart('gain',{i:sp,p:g.p,seed:sp%7+1,pip:[g.p,Math.min(2,Math.max(0,(S.energy[g.p]||1)-1))]});
   }
   if(g.p===v)tock(880);
 }
@@ -4101,7 +4354,7 @@ function watchRooms(){
       b.onclick=()=>joinRoom(r.code);
       el.append(b);
     }
-    if(spritesReady)decoWatch(el);
+    if(artReady)decoWatch(el);
   },()=>{$('rooms').innerHTML='<div class="note">读取房间失败，请刷新页面再试。</div>';});
 }
 $('lCreate').onclick=async()=>{
@@ -4375,8 +4628,8 @@ function refreshResume(){
   const was=$('mResume').hidden;
   $('mResume').hidden=!r;
   if(r)$('mResumeInfo').innerHTML=`房间 <span class="code">${r.code}</span><span class="seat"> · ${r.seat===1?'黑方':'白方'}</span>`;
-  if(r&&was&&spritesReady)deco($('mResume'));
-  if(was!==!r&&spritesReady&&!$('scMenu').hidden)buildMenu();   // the composition makes room for the slip
+  if(r&&was&&artReady)deco($('mResume'));
+  if(was!==!r&&artReady&&!$('scMenu').hidden)buildMenu();   // the composition makes room for the slip
 }
 async function peerResume(){
   const r=loadResume();if(!r){refreshResume();return;}
@@ -4432,27 +4685,35 @@ async function peerJoin(code){
   });
 }
 $('pBack').onclick=()=>show('scMenu');
+// room-code inputs: each typed character shows centred in its own cell
+function syncCells(inp){
+  const v=(inp.value||'').toUpperCase(),cells=inp.parentNode.querySelectorAll('.cells i'),f=document.activeElement===inp;
+  cells.forEach((c,k)=>{c.textContent=v[k]||'';c.classList.toggle('cur',f&&k===Math.min(v.length,cells.length-1)&&v.length<cells.length);});
+  inp.parentNode.classList.toggle('empty',!v);
+}
+for(const id of ['pCode','joinCode']){const inp=$(id);for(const ev of ['input','focus','blur','change'])inp.addEventListener(ev,()=>syncCells(inp));}
 $('pCreate').onclick=peerCreate;
 $('pJoin').onclick=()=>peerJoin($('pCode').value);
 // an invite link like  …/gomoku/#AB12  drops the friend straight into the room
 if(standalone&&/^#[A-Za-z0-9]{4}$/.test(location.hash)){
   const c=location.hash.slice(1).toUpperCase();
   history.replaceState(null,'',location.pathname+location.search);
-  show('scPeer');$('pCode').value=c;peerJoin(c);
+  show('scPeer');$('pCode').value=c;syncCells($('pCode'));peerJoin(c);
 }
 
 // ---------- overlays: each sheet is mounted as a paper scroll the moment it opens ----------
 function openSheet(ov){
-  if(!spritesReady||ov.hidden)return;
+  if(!artReady||ov.hidden)return;
   const sh=ov.querySelector('.sheet');
-  decoWatch(ov);paintSheet(sh);
+  decoWatch(ov);paintSheet(sh);sh._openT=performance.now();
   if(!sh._ro){sh._ro=1;sheetRO&&sheetRO.observe(sh);}
 }
-const ovMO=new MutationObserver(ms=>{for(const m of ms)if(!m.target.hidden)openSheet(m.target);});
+const ovMO=new MutationObserver(ms=>{for(const m of ms){if(!m.target.hidden)openSheet(m.target);else freeSheet(m.target);}});
 document.querySelectorAll('.overlay').forEach(ov=>ovMO.observe(ov,{attributes:true,attributeFilter:['hidden']}));
 
-// ---------- start-up: paper first, then (fonts in, or 3.2 s) sprites and art; the board and the effects are
-// built in idle time while the menu is up, so the first move never waits for a texture ----------
+// ---------- start-up. Paper and the brushed frames at once (no text in them); the menu's hills and plum at once,
+// back to back; the title, the sprites and the scroll seals as soon as the fonts settle (loaded, or 3.2 s). Only then
+// the board, and the effect textures in real idle time (see the prewarm scheduler in part 3) ----------
 function decorateAll(){decoWatch(document);document.querySelectorAll('.overlay').forEach(openSheet);}
 function prepareBoard(){
   const g=$('scGame');
@@ -4462,24 +4723,29 @@ function prepareBoard(){
 }
 async function boot(){
   buildPaper();
-  const ok=await fontsReady;artFontsOK=!!ok;
-  try{buildSprites();}catch(e){console.error(e);}
-  spritesReady=true;
-  decorateAll();
-  if(!$('scMenu').hidden)buildMenu();
-  if(!$('scPeer').hidden||!$('scLobby').hidden)buildLobby();
-  if(S&&!$('scGame').hidden){render();}
+  artReady=true;decorateAll();
+  const fontsP=fontsReady.then(async ok=>{
+    artFontsOK=!!ok;fontsSettled=true;
+    if(!$('scMenu').hidden)buildMenuTitle();
+    await buildSpritesAsync();
+    spritesReady=true;
+    if(ok)decorateAll();                       // open scrolls repaint their 闲章 in the real face
+    if(S&&!$('scGame').hidden)render();
+    if(!ok)fontLoad.then(late=>{if(late&&document.fonts.check('40px "Ma Shan Zheng"','五'))lateFonts();});
+    return ok;
+  });
+  const art=!$('scMenu').hidden?buildMenu():(!$('scPeer').hidden||!$('scLobby').hidden)?buildLobby():null;
+  await Promise.all([fontsP,art]);
   await idle();prepareBoard();
-  if(!ok)fontLoad.then(late=>{if(late&&document.fonts.check('40px "Ma Shan Zheng"','五'))lateFonts();});
 }
 function lateFonts(){       // the fonts arrived after the 3.2 s cut-off: redraw everything that drew text on canvas
   artFontsOK=true;
   for(const k of [...FX1._cache.keys()])if(/^(glyph|wgeom):/.test(k))FX1._cache.delete(k);
   winHold.key='';
   try{buildSprites();}catch(e){}
-  DECO.clear();SHEETC.clear();
   decorateAll();
-  ART.menuKey='';if(!$('scMenu').hidden)buildMenu();
+  ART.titleKey='';if(!$('scMenu').hidden)buildMenuTitle();
+  if(!$('scGame').hidden)buildGameBg();
   if(!$('scGame').hidden||G.size){scheduleBoardPaint();fxPrewarm();}
 }
 boot();
