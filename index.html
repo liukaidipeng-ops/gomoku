@@ -37,6 +37,12 @@ b,strong{font-weight:inherit}
 .dk{position:relative;isolation:isolate}
 .dk::before{content:"";position:absolute;left:calc(var(--pad,10px)*-1);top:calc(var(--pad,10px)*-1);right:calc(var(--pad,10px)*-1);bottom:calc(var(--pad,10px)*-1);background:var(--deco,none) 0 0/100% 100% no-repeat;pointer-events:none;z-index:-1}
 .dk:active:not(:disabled)>*{transform:translateY(1px)}
+/* until its painted frame arrives (made off the page's thread, a few ms later) an element wears a plain paper stand-in;
+   the painted frame then fades in over it */
+.dk.nodk::before{left:0;top:0;right:0;bottom:0;background:rgba(251,248,239,.66);box-shadow:inset 0 0 0 1px rgba(60,50,40,.15),0 1px 2px rgba(60,40,20,.08);border-radius:2px}
+.mb.primary.nodk::before,.lbtn.nodk::before,.btn.primary.nodk::before{background:#2b2722;box-shadow:0 2px 6px rgba(40,30,20,.18);border-radius:3px}
+.dk.dkin::before{animation:dkIn .3s ease both}
+@keyframes dkIn{from{opacity:0}}
 /* sprites (set as custom properties on :root once the fonts are in) */
 .chip{display:inline-block;flex:none;background:center/100% 100% no-repeat}
 .chip.k-seal{background-image:var(--sp-c-seal)}.chip.zhu.k-seal{background-image:var(--sp-z-seal)}.chip.grey.k-seal{background-image:var(--sp-g-seal)}
@@ -47,14 +53,16 @@ b,strong{font-weight:inherit}
 .chip.k-turn{background-image:var(--sp-c-turn)}.chip.zhu.k-turn{background-image:var(--sp-z-turn)}.chip.grey.k-turn{background-image:var(--sp-g-turn)}
 
 #app{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;will-change:transform}
-#paperBg{position:absolute;left:-8px;top:-8px;width:calc(100% + 16px);height:calc(100% + 16px);display:block;pointer-events:none}
+#paperBg{position:absolute;left:-8px;top:-8px;width:calc(100% + 16px);height:calc(100% + 16px);display:block;pointer-events:none;opacity:0;transition:opacity .5s ease}
+#paperBg.in{opacity:1}
 .screen{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;overflow:hidden;animation:scIn .45s ease both}
 @keyframes scIn{from{opacity:0}to{opacity:1}}
 .screen>canvas.art{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .6s ease}
 .screen>canvas.art.in{opacity:1}
 
 /* ---------------- MENU ---------------- */
-#menuFx{opacity:1!important}
+/* 云气: two periodic mist strips slid by the compositor (sizes and opacity set inline) */
+.screen>canvas.mist{width:auto;height:auto;will-change:transform}
 .menu .sub{position:absolute;right:calc(50% - 18px);top:max(56px,min(21vh,170px));margin:0;writing-mode:vertical-rl;font-size:13.5px;line-height:22px;letter-spacing:2.2px;color:var(--ink2);z-index:1;white-space:nowrap}
 .mbtns{position:absolute;left:0;right:0;bottom:max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:6px;z-index:2}
 .mb{width:min(330px,calc(100vw - 48px));display:flex;align-items:center;gap:12px;height:44px;padding:0 10px 0 16px;white-space:nowrap;--pad:2px}
@@ -86,6 +94,8 @@ b,strong{font-weight:inherit}
 .lhead{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:clamp(4px,4vh,40px);margin-top:clamp(4px,4dvh,40px)}
 #scPeer .lhead{margin-top:clamp(70px,13vh,140px);margin-top:clamp(70px,13dvh,140px)}
 #scLobby .lhead{margin-top:clamp(64px,9vh,100px);margin-top:clamp(64px,9dvh,100px)}
+/* a tablet or a desktop: the peer lobby's few controls sit in the middle of the sheet above the hills, not at its top */
+@media (min-width:600px) and (min-height:600px){#scPeer .lcol{padding-bottom:calc(max(16px,env(safe-area-inset-bottom)) + min(210px,20vh))}#scPeer .lhead{margin-top:auto}#scPeer #pStatus{margin-bottom:auto}}
 .lhead .big{font-family:var(--fd);font-size:clamp(40px,11vw,54px);letter-spacing:8px;line-height:1.1;padding-left:8px}
 .lhead .sm{font-size:13px;color:var(--mute);letter-spacing:2px}
 .lbtn{height:64px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:27px;letter-spacing:6px;color:#f6f0e2;--pad:12px;padding-left:6px}
@@ -115,7 +125,9 @@ b,strong{font-weight:inherit}
 .rooms .note{margin-top:6px}
 
 /* ---------------- GAME ---------------- */
-.game.resOn .hint,.game.resOn .log{opacity:0;transition:opacity .3s}   /* the docked result scroll says it already; its roller must not slice the line */
+.game .hint,.game .log,.game .skillbar,.game .actions{transition:opacity .3s}
+/* under the result scroll the controls step back (the scroll says it already, and its roller must not slice them) */
+.game.resOn .hint,.game.resOn .log,.game.resOn .skillbar,.game.resOn .actions,.game.resOn .bubble{opacity:0;pointer-events:none}
 #fxTop,#fxVig{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3}#fxVig{opacity:0}
 .game .gcol{position:absolute;top:0;bottom:0;left:0;right:0;margin:0 auto;max-width:720px;display:flex;flex-direction:column;padding:max(4px,env(safe-area-inset-top)) 12px max(4px,env(safe-area-inset-bottom));gap:8px;gap:var(--gap,8px);z-index:1;overflow-x:hidden;overflow-y:auto}
 .topbar{flex:none;height:48px;display:flex;align-items:center;padding:4px 0 0 2px;gap:6px}
@@ -153,16 +165,16 @@ b,strong{font-weight:inherit}
 .springline{display:flex;align-items:center;gap:3px;margin-top:clamp(2px,.6vh,6px);margin-top:clamp(2px,.6dvh,6px);font-size:12.5px;color:var(--ink2);white-space:nowrap;height:16px;letter-spacing:-.1px;min-width:0}
 .springline span{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .springline i{width:25px;height:16px;flex:none;background:center/100% 100% no-repeat}
-.springline .no{color:var(--mute)}
+.springline .no{color:var(--ink2)}
 .springline.pz i{opacity:.55}.springline.pz span{color:#4e4539}
 .springline i.s0{background-image:var(--sp-spr0)}.springline i.s1{background-image:var(--sp-spr1)}.springline i.s2{background-image:var(--sp-spr2)}.springline i.s3{background-image:var(--sp-spr3)}
-@media (max-width:384px){.who{gap:5px}.who .st{width:24px;height:24px}.who .nm{letter-spacing:0;font-size:19px}.who .chips{gap:3px}.players{gap:8px}.pcard{padding:8px 8px 0 9px}.springline{letter-spacing:-.2px;gap:2px;font-size:12px}.springline i{width:22px}.energy em{font-size:12px}}
+@media (max-width:384px){.who .nm i{margin:0 1px}.who .chips small{font-size:11px;letter-spacing:-.5px}.who{gap:5px}.who .st{width:24px;height:24px}.who .nm{letter-spacing:0;font-size:19px}.who .chips{gap:3px}.players{gap:8px}.pcard{padding:8px 8px 0 9px}.springline{letter-spacing:-.2px;gap:2px;font-size:12px}.springline i{width:22px}.energy em{font-size:12px}}
 
 /* taunt: a narrow vertical paper slip hung below the speaker's card */
-.bubble{position:absolute;z-index:6;width:26px;padding:9px 0 10px;display:flex;align-items:flex-start;justify-content:center;pointer-events:none;transform-origin:50% 0;animation:slipIn .32s cubic-bezier(.2,.9,.3,1.2) both;--pad:8px}
-.bubble span{writing-mode:vertical-rl;font-family:var(--fd);font-size:17px;line-height:1;letter-spacing:1px;color:rgba(28,25,21,.9);white-space:nowrap}
-.bubble.two{width:44px}
-.bubble.two span{white-space:normal;max-height:var(--tl,180px);line-height:1.05}
+.bubble{position:absolute;z-index:6;padding:9px 5px 10px;display:flex;align-items:flex-start;justify-content:center;pointer-events:none;transform-origin:50% 0;animation:slipIn .32s cubic-bezier(.2,.9,.3,1.2) both;--pad:8px}
+.bubble span{writing-mode:vertical-rl;font-family:var(--fd);font-size:17px;line-height:19px;letter-spacing:1px;color:rgba(28,25,21,.9);white-space:nowrap}
+.bubble.sm{padding:8px 4px 9px}.bubble.sm span{font-size:15px;line-height:17px}
+.bubble .cm{display:none}   /* a ， ends its column instead (the brush face has no vertical form of it) */
 @keyframes slipIn{from{transform:rotate(var(--rot,3deg)) scaleY(.2);opacity:0}to{transform:rotate(var(--rot,3deg)) scaleY(1);opacity:1}}
 
 .boardslot{flex:1 1 auto;min-height:0;display:flex;justify-content:center;align-items:center;margin:0 -6px;position:relative}
@@ -250,11 +262,16 @@ b,strong{font-weight:inherit}
 @keyframes ovIn{from{opacity:0}to{opacity:1}}
 .sheet{position:relative;isolation:isolate;max-width:500px;width:100%;display:flex;flex-direction:column;gap:12px;padding:30px 24px 30px;max-height:calc(100% - 8px);animation:sheetIn .42s cubic-bezier(.2,.8,.3,1) both}
 @keyframes sheetIn{from{transform:translateY(14px) scaleY(.94);opacity:0}to{transform:none;opacity:1}}
-.sheet>.sdeco{position:absolute;left:-14px;top:-12px;width:calc(100% + 28px);height:calc(100% + 24px);z-index:-1;pointer-events:none}
+.sheet>.sdeco{position:absolute;left:-14px;top:-12px;width:calc(100% + 28px);height:calc(100% + 24px);z-index:-1;pointer-events:none;transition:opacity .25s}
+.sheet.raw>.sdeco{opacity:0}
+/* the stand-in stays under the mount while the mount fades in, then steps away */
+.sheet::before{content:"";position:absolute;left:-4px;top:-2px;right:-4px;bottom:-2px;z-index:-2;background:#f8f3e6;box-shadow:0 10px 30px rgba(70,50,25,.22),inset 0 0 0 1px rgba(90,70,40,.16);pointer-events:none;opacity:0;transition:opacity .2s .26s}
+.sheet.raw::before{opacity:1;transition:none}
 .sheet h2{font-family:var(--fd);font-weight:400;font-size:29px;margin:0;letter-spacing:4px;line-height:1.2;padding-right:44px}
 .sheet .note{font-size:13px;line-height:1.7;color:var(--ink2)}
 .sbody{overflow-y:auto;min-height:0;margin:0 -8px;padding:0 8px 14px;-webkit-mask-image:linear-gradient(#000 calc(100% - 20px),transparent);mask-image:linear-gradient(#000 calc(100% - 20px),transparent)}
 .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+#ovReq .row{column-gap:24px}   /* the 同意 stroke's 收笔 runs past its box: keep it off the 拒绝 slip */
 .btn{min-height:44px;padding:0 18px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:20px;letter-spacing:3px;white-space:nowrap;--pad:8px}
 .btn.primary{color:#f6f0e2;min-width:132px;--pad:10px;letter-spacing:4px;padding:0 44px 0 22px}   /* the label stays on the stroke's loaded body, the 飞白 tail runs on beyond it */
 .btn:disabled{opacity:.4}
@@ -270,6 +287,9 @@ b,strong{font-weight:inherit}
 .pick p{margin:0;font-size:12.5px;color:var(--ink2);line-height:1.55}
 @media (max-height:699px){#ovPick .sheet{padding:24px 20px 22px;gap:8px}#ovPick .note{line-height:1.5}.picks{gap:8px 10px}.pick{gap:3px;padding:8px 9px 9px 10px}.pick p{line-height:1.42}#ovPick .sbody{padding-bottom:8px}}
 .pick.sel .top b{color:var(--zhu)}
+#pickNote::before{content:"";float:right;width:42px;height:1px}   /* the first line keeps clear of the 择技 seal */
+@media (max-width:384px){#pickTitle{font-size:25px;letter-spacing:2px}}
+@media (max-width:340px){#pickTitle{font-size:22px;letter-spacing:1px}}
 @media (max-width:370px){.picks{gap:10px 8px}.pick{padding:9px 7px 10px 8px}.pick .top{gap:6px}.pick .top .chip{width:30px;height:30px}.pick .top b{font-size:18px}.pick p{font-size:12px}}
 .rules{font-size:13.5px;line-height:1.75;color:var(--ink)}
 .rules h3{font-family:var(--fd);font-weight:400;font-size:19px;letter-spacing:2px;margin:12px 0 2px;color:var(--ink);display:flex;align-items:center;gap:7px}
@@ -300,6 +320,12 @@ b,strong{font-weight:inherit}
 .result .row.two{grid-template-columns:repeat(2,minmax(0,1fr));max-width:300px}
 .result .btn{min-width:0;padding:0 10px}
 .result .btn.primary{grid-column:1/-1;justify-self:center;width:min(100%,250px);padding:0 44px 0 20px;min-height:50px}
+/* landscape: the result hangs over the controls column (layoutGame sets --rcx / --rcw), never over the board */
+.result-ov.side{justify-content:flex-start;align-items:flex-end;padding:12px 0}
+.result-ov.side>.sheet{left:var(--rcx,0px);width:var(--rcw,360px);max-width:none;padding:22px 18px 20px;gap:6px}
+.result-ov.side .result h2{font-size:40px;letter-spacing:8px}
+.result-ov.side .result .btn{letter-spacing:1px;font-size:18.5px;padding:0 4px}
+.result-ov.side .result .btn.primary{padding:0 40px 0 16px}
 @media (max-width:380px){.result .btn{letter-spacing:2px;font-size:19px;padding:0 6px}.result .btn.primary{padding:0 40px 0 16px}}
 .codebig{display:flex;justify-content:center;gap:10px;margin:4px 0}
 .codebig span{width:54px;height:62px;display:grid;place-items:center;font-family:var(--fc);font-weight:700;font-size:34px;color:var(--ink);background:var(--sp-cbox) center/100% 100% no-repeat;padding-top:4px}
@@ -318,7 +344,7 @@ b,strong{font-weight:inherit}
   <!-- MENU -->
   <section class="screen menu" id="scMenu" aria-label="主菜单">
     <canvas class="art" id="menuArt" aria-hidden="true"></canvas>
-    <canvas class="art in" id="menuFx" aria-hidden="true"></canvas>
+    <canvas class="art" id="menuFx" aria-hidden="true"></canvas>
     <canvas class="art" id="menuTitle" aria-hidden="true"></canvas>
     <h1 class="sr">技能五子棋</h1>
     <p class="sub" id="menuSub">五子连珠的老规矩，<br>加上封印、迷雾、震荡这些技能。<br>能量要靠落子攒，<br>角落的泉眼值得一抢。</p>
@@ -657,7 +683,7 @@ function bestPlace(vb,cands,p,S){
 // ENGINE END
 </script>
 
-<script>
+<script id="jsInk">
 /* 宣纸·水墨 渲染库 (Direction A)
    全部程序生成：宣纸、米家山、墨梅、朱印、墨玉/羊脂玉棋子、界尺墨线、泉眼、迷雾。
    约定：所有函数以“设备像素”绘制，参数 s = 每个 CSS 像素对应的设备像素 (DPR)。
@@ -1439,7 +1465,358 @@ window.InkA = I;
 })();
 </script>
 
-<script>
+<script id="jsArt">
+/* 技能五子棋 · 宣纸水墨 — pure painters (window.AP).
+   Every function here paints from plain data into a fresh canvas and touches no DOM, so the same code runs on the
+   page and inside the art workers (OffscreenCanvas). Inputs are CSS-px geometry plus s = device px per CSS px.
+   Painters whose output has glyphs in it (seals, calligraphy) are listed in AP.FONT_JOBS: they need the web fonts. */
+(function () {
+'use strict';
+const I = self.InkA, IP = I.P, rgba = I.rgba;
+const AP = {};
+// theme handed to FX1 (its "A" palette; boardPaper matches the board's 画心 so the win/rewind veils blend in)
+AP.TH = { name: '宣纸水墨', dark: false, paper: '#efe6d3', paperRGB: [239, 230, 211], ink: [22, 22, 24], line: [40, 36, 32], accent: [176, 42, 32], accent2: [52, 96, 128], boardPaper: '#f4eedf', gold: [176, 138, 64], text: '#1c1a17', mute: '#6f6656' };
+const INK = [26, 23, 20];
+const tiles = {};
+AP.paperTile = s => tiles[s] || (tiles[s] = I.paper(420 * s, 320 * s, { s, seed: 21, base: [247, 242, 230], edge: 0, drift: .5, floc: .8, fibre: .7 }));
+const can = (w, h) => I.mk(w, h);
+
+/* ---------------- painted decorations for .dk elements (no text in any of them) ---------------- */
+AP.PAINT = {
+  card: { pad: 10, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 81, shadow: .1, sy: 1.5, tone: 'rgba(241,234,218,.45)' }); } },
+  cardOn: { pad: 10, paint(x, X, Y, W, H, s, e) {
+    I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 80, shadow: .24, sy: 3 });
+    I.brushFrame2(x, X + 3.5 * s, Y + 3.5 * s, W - 7 * s, H - 7 * s, 4.6 * s, { seed: 9, over: 6 * s });
+    if (!e || !e.st) return;
+    const cx = X + e.st[0] * s, cy = Y + e.st[1] * s, R = 17 * s, cp = [];
+    for (let k = 0; k <= 10; k++) { const an = -2.4 + k / 10 * 5.75; cp.push([cx + Math.cos(an) * R * (1 + .03 * Math.sin(k)), cy + Math.sin(an) * R, k === 0 ? .4 : k < 3 ? .95 : 1 - .55 * k / 10]); }
+    I.brush(x, cp, { w: 3.6 * s, ecc: .75, ink: IP.zhu, inkLight: [214, 120, 100], a: .95, seed: 14, load: t => .98 - .3 * t, dry: .45, dryFrom: .62, dryRamp: .25, lanes: 6, streakLen: 10 * s, bleed: 0, fibre: .4 }); } },
+  skill: { pad: 10, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 121, shadow: .1, sy: 1.4 }); } },
+  skillOff: { pad: 10, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 122, shadow: .08, sy: 1.2, tone: 'rgba(232,226,212,.5)' }); } },
+  skillSel: { pad: 10, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 120, shadow: .24, sy: 3 }); I.brushFrame2(x, X + 3.5 * s, Y + 3.5 * s, W - 7 * s, H - 7 * s, 4.6 * s, { seed: 19, over: 6 * s }); } },
+  ghost: { pad: 10, paint(x, X, Y, W, H, s) { I.frame(x, X + 2 * s, Y + 2 * s, W - 4 * s, H - 4 * s, .8 * s, .22, 171, { over: 0, ink: [60, 50, 40] }); } },
+  act: { pad: 8, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 150, shadow: .12, sy: 1.5 }); I.frame(x, X + 3.5 * s, Y + 3.5 * s, W - 7 * s, H - 7 * s, .9 * s, .55, 160, { over: 2 * s, ink: [40, 34, 28] }); } },
+  slip: { pad: 8, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 151, shadow: .12, sy: 1.5 }); I.frame(x, X + 3.5 * s, Y + 3.5 * s, W - 7 * s, H - 7 * s, .9 * s, .5, 161, { over: 2 * s, ink: [40, 34, 28] }); } },
+  slipSm: { pad: 7, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 152, shadow: .1, sy: 1.2, deckle: .7 }); I.frame(x, X + 3 * s, Y + 3 * s, W - 6 * s, H - 6 * s, .8 * s, .38, 162, { over: 1.5 * s, ink: [40, 34, 28] }); } },
+  pick: { pad: 8, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 131, shadow: .1, sy: 1.4 }); I.frame(x, X + 3.5 * s, Y + 3.5 * s, W - 7 * s, H - 7 * s, .8 * s, .3, 132, { over: 1.5 * s, ink: [40, 34, 28] }); } },
+  pickSel: { pad: 8, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 130, shadow: .22, sy: 2.6 }); I.brushFrame2(x, X + 3 * s, Y + 3 * s, W - 6 * s, H - 6 * s, 4 * s, { seed: 29, over: 5 * s }); } },
+  cta: { pad: 14, paint(x, X, Y, W, H, s) { I.ctaStroke(x, X + 2 * s, Y + H * .04, W - 4 * s, H * .92, { seed: 31 }); } },
+  ink: { pad: 10, paint(x, X, Y, W, H, s) { I.ctaStroke(x, X + 1 * s, Y + H * .06, W - 2 * s, H * .88, { seed: 33, dryFrom: .78, dryTo: .95, streakLen: W * .1 }); } },
+  resume: { pad: 10, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 171, shadow: .22, sy: 2.4 }); I.frame(x, X + 4 * s, Y + 4 * s, W - 8 * s, H - 8 * s, .9 * s, .5, 172, { over: 2 * s, ink: [40, 34, 28] }); } },
+  cin: { pad: 8, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 181, shadow: .14, sy: 1.6 }); I.frame(x, X + 4 * s, Y + 4 * s, W - 8 * s, H - 8 * s, 1 * s, .62, 182, { over: 2.5 * s, ink: [36, 30, 24] }); } },
+  bubble: { pad: 8, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 140, shadow: .22, sy: 2, deckle: .7 }); I.ruled(x, X + W * .5, Y + 3.5 * s, X + W * .5, Y + 5 * s, .5 * s, .01, 1);
+    x.fillStyle = rgba(IP.zhu, .85); x.beginPath(); x.ellipse(X + W / 2, Y + 4.2 * s, 1.7 * s, 1.5 * s, .3, 0, 7); x.fill(); } },
+  toast: { pad: 10, paint(x, X, Y, W, H, s) { I.slip(x, X, Y, W, H, { s, tile: AP.paperTile(s), seed: 190, shadow: .26, sy: 2.6, deckle: .8 }); I.frame(x, X + 3.5 * s, Y + 3.5 * s, W - 7 * s, H - 7 * s, .8 * s, .4, 191, { over: 1.5 * s, ink: [40, 34, 28] }); } },
+};
+AP.deco = function (kind, w, h, s, e) {
+  const P = AP.PAINT[kind] || AP.PAINT.slip, pad = P.pad, L = can((w + pad * 2) * s, (h + pad * 2) * s);
+  P.paint(L.x, pad * s, pad * s, w * s, h * s, s, e || {});
+  return L.c;
+};
+
+/* ---------------- an overlay sheet mounted as a paper scroll (silk border, 画心, rods, a 闲章 in the corner) ---------------- */
+AP.scroll = function (w, h, s, seal, dock) {
+  const W = Math.round((w + 28) * s), H = Math.round((h + 24) * s), L = can(W, H), x = L.x;
+  const m = 14 * s, t = 12 * s, X = m, Y = t, ww = W - 2 * m, hh = H - 2 * t;
+  // soft lift shadow
+  { const k = 6, b = 16 * s, sw = Math.ceil((ww + b * 2) / k), sh = Math.ceil((hh + b * 2) / k), Sh = can(sw, sh), sx = Sh.x; sx.fillStyle = 'rgba(60,40,18,.34)'; sx.fillRect(b / k, b / k, ww / k, hh / k);
+    x.save(); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(Sh.c, X - b, Y - b + 5 * s, sw * k, sh * k); x.restore(); }
+  // silk mount (绫): warm celadon-beige with a faint woven sheen
+  const silk = x.createLinearGradient(0, Y, 0, Y + hh); silk.addColorStop(0, '#d9cfb6'); silk.addColorStop(.5, '#e1d8c1'); silk.addColorStop(1, '#d5caaf');
+  x.fillStyle = silk; x.fillRect(X, Y, ww, hh);
+  { const r = I.rng(77); x.globalAlpha = .07; x.fillStyle = '#fff'; for (let yy = Y; yy < Y + hh; yy += 2 * s) { if (r() < .5) x.fillRect(X, yy, ww, .6 * s); } x.globalAlpha = 1; }
+  x.strokeStyle = 'rgba(120,98,66,.45)'; x.lineWidth = 1 * s; x.strokeRect(X + .5 * s, Y + .5 * s, ww - s, hh - s);
+  // 画心 paper
+  const bx = X + 6 * s, by = Y + (dock ? 7 : 12) * s, bw = ww - 12 * s, bh = hh - (dock ? 14 : 24) * s;
+  x.save(); const pat = x.createPattern(AP.paperTile(s), 'repeat'); x.fillStyle = pat; x.fillRect(bx, by, bw, bh);
+  const vg = x.createRadialGradient(bx + bw / 2, by + bh * .45, Math.min(bw, bh) * .3, bx + bw / 2, by + bh / 2, Math.hypot(bw, bh) * .62); vg.addColorStop(0, 'rgba(255,252,242,.18)'); vg.addColorStop(1, 'rgba(160,128,84,.12)'); x.fillStyle = vg; x.fillRect(bx, by, bw, bh); x.restore();
+  x.strokeStyle = 'rgba(90,70,44,.38)'; x.lineWidth = .8 * s; x.strokeRect(bx, by, bw, bh);
+  I.frame(x, bx + 5 * s, by + 5 * s, bw - 10 * s, bh - 10 * s, .7 * s, .26, 201, { over: 0, ink: [70, 56, 40] });
+  // rods (天杆 / 地轴) with knobs
+  const rod = (ry, rh, knob) => {
+    const g = x.createLinearGradient(0, ry - rh / 2, 0, ry + rh / 2); g.addColorStop(0, '#5c4330'); g.addColorStop(.35, '#8a6a4c'); g.addColorStop(.6, '#4a3424'); g.addColorStop(1, '#2a1d14');
+    x.fillStyle = g; x.fillRect(X - 2 * s, ry - rh / 2, ww + 4 * s, rh);
+    if (knob) for (const ex of [X - 2 * s - knob, X + ww + 2 * s]) { const kg = x.createLinearGradient(0, ry - rh * .8, 0, ry + rh * .8); kg.addColorStop(0, '#efe6d0'); kg.addColorStop(.45, '#cdbf9e'); kg.addColorStop(1, '#8e7e5c');
+      x.fillStyle = kg; x.beginPath(); x.roundRect ? x.roundRect(ex, ry - rh * .8, knob, rh * 1.6, 2 * s) : x.rect(ex, ry - rh * .8, knob, rh * 1.6); x.fill(); x.strokeStyle = 'rgba(60,44,28,.5)'; x.lineWidth = .8 * s; x.stroke(); }
+  };
+  if (!dock) { rod(Y + 1 * s, 7 * s, 0); rod(Y + hh - 1 * s, 10 * s, 7 * s); }
+  else { rod(Y + 1 * s, 6 * s, 6 * s); }
+  // 闲章 (seal) in the upper right of the 画心
+  if (seal) { const n = [...seal].length, sz = (n > 1 ? 26 : 32) * s, sc = I.seal(sz, seal, { seed: seal.charCodeAt(0) % 89, type: n === 2 ? 'zhu' : 'bai', h: n === 2 ? 1.62 : 1, border: .09, fs: n === 1 ? .7 : undefined });
+    I.stamp(x, sc, bx + bw - 14 * s - sc.width / 2, by + 16 * s + sc.height / 2, -.03, .92); }
+  return L.c;
+};
+
+// the 闲章 of a scroll on its own (rotated a hair, no paper): the page stamps it on the mount with multiply
+AP.scrollSeal = function (seal, s) {
+  const n = [...seal].length, sz = (n > 1 ? 26 : 32) * s, sc = I.seal(sz, seal, { seed: seal.charCodeAt(0) % 89, type: n === 2 ? 'zhu' : 'bai', h: n === 2 ? 1.62 : 1, border: .09, fs: n === 1 ? .7 : undefined });
+  const P = Math.ceil(Math.hypot(sc.width, sc.height)) + 2, L = can(P, P); L.x.translate(P / 2, P / 2); L.x.rotate(-.03); L.x.drawImage(sc, -sc.width / 2, -sc.height / 2);
+  return { c: L.c, w: sc.width, h: sc.height };
+};
+
+/* ---------------- full-screen paper ---------------- */
+AP.paper = function (VW, VH, s) {
+  const W = Math.round((VW + 16) * s), H = Math.round((VH + 16) * s);
+  return I.paper(W, H, { s, seed: 7 });
+};
+
+/* ---------------- sprites (small images exposed to CSS); a name → its painter ---------------- */
+const SKG = { seal: '封', rewind: '溯', shift: '移', fog: '雾', shock: '震', turn: '策' };
+const sealC = (s, px, ch, o) => I.seal(px * s, ch, Object.assign({ seed: ch.charCodeAt(0) % 97 }, o || {}));
+function sprite(w, h, s, fn) { const L = can(w * s, h * s); fn(L.x, L.c.width, L.c.height, s); return L.c; }
+const centre = (x, w, h, sc) => x.drawImage(sc, (w - sc.width) / 2, (h - sc.height) / 2);
+AP.SPRITES = {
+  chip(s, ch) { const zhu = ch === '续'; return sprite(36, 36, s, (x, w, h) => centre(x, w, h, sealC(s, 32, ch, { color: zhu ? IP.zhu : [48, 42, 36], seed: ch.charCodeAt(0) % 97 }))); },
+  stB(s) { return sprite(26, 26, s, (x, w, h) => self.FX1.stone(x, w / 2, h / 2, 10.4 * s, 1, AP.TH, { dpr: 1 })); },
+  stW(s) { return sprite(26, 26, s, (x, w, h) => self.FX1.stone(x, w / 2, h / 2, 10.4 * s, 2, AP.TH, { dpr: 1 })); },
+  pip1(s) { return sprite(14, 14, s, (x, w, h) => I.waterDab(x, w / 2, h / 2, w * .33, true, -.3, 3, { round: 1, ringInk: [40, 36, 32], ringA: .4 })); },
+  pip0(s) { return sprite(14, 14, s, (x, w, h) => I.waterDab(x, w / 2, h / 2, w * .33, false, -.3, 3, { round: 1, ringInk: [40, 36, 32], ringA: .4 })); },
+  cost(s) { return sprite(12, 12, s, (x, w, h) => I.waterDab(x, w / 2, h / 2, w * .33, true, -.3, 7, { round: 1, ringInk: [40, 36, 32], ringA: .4 })); },
+  spr(s, pg) { return sprite(25, 16, s, (x, w, h) => { for (let k = 0; k < 3; k++) I.waterDab(x, (4.6 + k * 7.9) * s, h / 2 + .8 * s, 3.1 * s, k < pg, -1.75, k + 3, { ringA: .62 }); }); },
+  c(s, k) { return sprite(46, 46, s, (x, w, h) => centre(x, w, h, sealC(s, 42, SKG[k], { color: INK }))); },
+  z(s, k) { return sprite(46, 46, s, (x, w, h) => centre(x, w, h, sealC(s, 42, SKG[k], { color: IP.zhu }))); },
+  g(s, k) { return sprite(46, 46, s, (x, w, h) => { const sc = sealC(s, 40, SKG[k], { seed: 11, color: [128, 120, 108] }); x.globalAlpha = .7; centre(x, w, h, sc); x.globalAlpha = 1;
+    I.brush(x, [[w * .1, h * .86, .3], [w * .3, h * .66, .9], [w * .7, h * .3, .8], [w * .92, h * .1, .2]], { w: 3.4 * s, a: .78, seed: 23, dry: .45, dryFrom: .35, lanes: 7, bleed: 0, fibre: .4, streakLen: 12 * s }); }); },
+  need(s) { return sprite(34, 34, s, (x, w, h) => centre(x, w, h, sealC(s, 30, '能量不足', { seed: 17, type: 'zhu', border: .08, color: [44, 38, 33], rows: 1 }))); },
+  used(s) { return sprite(34, 34, s, (x, w, h) => centre(x, w, h, sealC(s, 28, '已用', { seed: 19, type: 'zhu', border: .09, color: [44, 38, 33] }))); },
+  tick(s) { return sprite(6, 14, s, (x, w, h) => I.brush(x, [[w * .55, h * .08, .5], [w * .45, h * .5, .9], [w * .5, h * .92, .3]], { w: 2.2 * s, a: .4, seed: 4, bleed: 0, dry: .2, dryFrom: .5, lanes: 4, fibre: .3 })); },
+  five(s) { return sprite(38, 36, s, (x) => I.drawWu(x, 1 * s, -3 * s, 36 * s, { seed: 1, wu: 38, over: { bleed: .1, lanes: 18 } })); },
+  hl(s) { return sprite(52, 8, s, (x, w, h) => { const cy = h / 2; I.brush(x, [[w * .02, cy, .1], [w * .5, cy, .7], [w * .86, cy, .9], [w * .97, cy, .4]], { w: 1.7 * s, a: .62, seed: 2, bleed: 0, dry: 0, fibre: .2 });
+    x.fillStyle = rgba([30, 26, 22], .85); x.beginPath(); x.ellipse(w - 2.2 * s, cy, 1.9 * s, 1.6 * s, .4, 0, 7); x.fill(); }); },
+  cbox(s) { return sprite(54, 62, s, (x, w, h) => { I.slip(x, 3 * s, 3 * s, w - 6 * s, h - 6 * s, { s, tile: AP.paperTile(s), seed: 61, shadow: .12, sy: 1.2, deckle: .6 }); I.frame(x, 6.5 * s, 6.5 * s, w - 13 * s, h - 13 * s, .9 * s, .5, 62, { over: 1.5 * s, ink: [40, 34, 28] }); }); },
+  // the 泉 label beside a spring on the board (drawn by the live board pass, faded when an edge stone covers it)
+  quan(s, px) { const S = Math.ceil(px * 1.5 * s), L = can(S, S); L.x.font = `${px * s}px "Ma Shan Zheng",serif`; L.x.textAlign = 'center'; L.x.textBaseline = 'middle'; L.x.fillStyle = rgba(IP.qing, .8); L.x.fillText('泉', S / 2, S / 2 + .5 * s); return L.c; },
+};
+// which sprites draw glyphs (need the fonts)
+AP.SPRITE_FONTS = { chip: 1, c: 1, z: 1, g: 1, need: 1, used: 1, quan: 1 };
+AP.sprite = (name, s, a) => AP.SPRITES[name](s, a);
+
+/* ---------------- 墨梅 and the 米点 hills (menu, lobby, game) ---------------- */
+AP.PLUM = { branches: [
+    { pts: [[-26, 44, 1], [2, 56, 1], [18, 61, .96], [27, 70, .92], [40, 80, .9], [56, 86, .84], [68, 95, .78], [82, 104, .7], [96, 110, .6], [103, 122, .5], [109, 135, .36]], w: 19,
+      o: { dry: .31, dryFrom: .04, dryRamp: .12, dryEdge: 1.3, streakLen: 16, streaky: .38, rag: .12, fibre: .85, mottle: .18, load: t => .96 - .22 * t, lanes: 12, edgeDry: .25 } },
+    { pts: [[-10, 47, .45], [10, 55, .5], [22, 62, .4], [34, 73, .35], [50, 80, .3]], w: 11, a: .55, o: { dry: .7, dryFrom: 0, dryRamp: .1, dryEdge: .5, streakLen: 7, streaky: .5, rag: .2, fibre: 1, bleed: 0, load: t => .8 - .3 * t, lanes: 10 } },
+    { pts: [[44, 87, .3], [52, 84, .8], [60, 78, .76], [72, 70, .68], [88, 62, .6], [108, 52, .52], [130, 45, .44], [152, 39, .34], [176, 37, .24], [212, 31, .07]], w: 6.4, dry: .22, dryFrom: .25 },
+    { pts: [[129, 46, .8], [135, 30, .55], [140, 14, .38], [146, -12, .08]], w: 3, o: { dry: .12, dryFrom: .6 } },
+    { pts: [[80, 103, .8], [72, 85, .6], [65, 66, .44], [55, 38, .08]], w: 2.9, o: { dry: .1, dryFrom: .6 } },
+    { pts: [[103, 120, .85], [101, 146, .66], [97, 168, .52], [95, 200, .34], [91, 238, .07]], w: 3.8, o: { dry: .14, dryFrom: .5 } },
+    { pts: [[103, 121, .75], [122, 127, .5], [137, 132, .32], [152, 131, .07]], w: 2.7, o: { dry: 0 } }],
+  moss: [[20, 62, 1.5, 5], [28, 70, 1.1, 3], [47, 83, 1.3, 4], [81, 102, 1.1, 3], [100, 115, 1.2, 4], [108, 52, .9, 3], [70, 96, 1, 2]],
+  blossoms: [[138, 44, 12, 'open', .5], [126, 36, 6, 'bud', -2.2], [184, 36, 9.5, 'side', -.35], [214, 31, 5.5, 'bud', .1, 1], [146, 1, 5, 'bud', -1.3], [55, 39, 5, 'bud', -1.9],
+    [68, 94, 9.5, 'back', .9], [99, 172, 9.5, 'side', 1.75], [91, 238, 5, 'bud', 1.6], [150, 131, 11, 'half', 2.1], [24, 60, 8.5, 'half', 4.3]], paper: [242, 236, 222] };
+// widen a 390-px mountain plane to any width. The authored composition stays in the middle; beyond it the range is
+// grown, not copied: domes of varied width and height that overlap enough for every saddle to stay shallow (no
+// V-notches, no dark blots in deep saddles), lowering toward the paper's edges, each flank under its own mist band.
+AP.tilePlane = function (o, VW, X0, sx) {
+  sx = sx || 1; const per = 390 * sx, out = Object.assign({}, o), r = I.rng((o.seed || 1) * 7 + 3), domes = [], mist = [], gaps = [], trees = [];
+  const f = Math.max(1, VW / per); for (const P of ['A', 'B', 'C']) if (o[P]) out[P] = Object.assign({}, o[P], { n: Math.round(o[P].n * f) });
+  for (const d of o.domes) domes.push(Object.assign({}, d, { x: d.x * sx + X0, wl: (d.wl || d.w) * sx, wr: (d.wr || d.w) * sx, w: undefined }));
+  for (const m of (o.mist || [])) mist.push(Object.assign({}, m, m.x0 == null ? {} : { x0: m.x0 * sx + X0, x1: m.x1 * sx + X0 }));
+  for (const g of (o.gaps || [])) gaps.push(Object.assign({}, g, { x: g.x * sx + X0 }));
+  for (const tr of (o.trees || [])) trees.push(Object.assign({}, tr, { x0: tr.x0 * sx + X0, x1: tr.x1 * sx + X0 }));
+  const Hm = Math.max(...o.domes.map(d => d.h)), wAv = o.domes.reduce((a, d) => a + ((d.wl || d.w) + (d.wr || d.w)) / 2, 0) / o.domes.length * sx;
+  for (const dir of [-1, 1]) {
+    // start from the authored dome that reaches furthest out on this side
+    let prev = null; for (const d of domes) { const e = dir > 0 ? d.x + d.wr : d.x - d.wl; if (!prev || (dir > 0 ? e > prev.e : e < prev.e)) prev = { d, e }; }
+    let p = prev.d, n = 0;
+    while (n < 40 && (dir > 0 ? p.x - p.wl < VW + 40 : p.x + p.wr > -40)) {
+      const wl = wAv * (.75 + r() * .6), wr = wAv * (.75 + r() * .6), ps = dir > 0 ? p.wr : p.wl, ns = dir > 0 ? wl : wr;
+      const x = p.x + dir * (ps + ns) * (.5 + r() * .1), dist = dir > 0 ? x - (X0 + per) : X0 - x;
+      const fall = 1 - .38 * I.clamp(dist / Math.max(300, VW * .45), 0, 1), h = Hm * (.42 + r() * .48) * fall;
+      const b = r() < .6 ? [[(r() - .5) * .9, .2 + r() * .12, .05 + r() * .06]] : [];
+      p = { x, wl, wr, h, p: 1, b }; domes.push(p); n++;
+    }
+    // each flank gets its own band of mist, its height and softness varied, ramped in at the composition's edge
+    for (const m of (o.mist || [])) { if (!o.vary || m.x0 == null) continue;   // full-width bands already reach the flanks
+      const rp = 70 * sx, y = m.y + (r() - .5) * 16, soft = (m.soft || 1.5) * (1.3 + r() * 1.2), amt = Math.min(1, (m.amt == null ? 1 : m.amt) * (.85 + r() * .3));
+      mist.push(Object.assign({}, m, dir > 0 ? { x0: X0 + per - rp, x1: X0 + per + rp, x2: undefined, x3: undefined, y, soft, amt } : { x0: undefined, x1: undefined, x2: X0 - rp, x3: X0 + rp, y, soft, amt })); }
+  }
+  out.domes = domes; out.mist = mist; out.gaps = gaps; out.trees = trees; if (VW > per + 40) { out.hlWin = Math.round(wAv * .7); out.smax = .55; }   // rounded saddles where ridges meet
+  return out;
+};
+
+/* menu art without any text — the sheet's glow, three ranges of 米点 hills, the plum. G0: the menu geometry (see
+   menuGeom on the page); sr: the poem column's box (CSS px) */
+AP.menu = function (G0, sr, s) {
+  const tilePlane = AP.tilePlane, { VW, VH, k, kx, colX, Y5, X0, plumX, pk } = G0, W = Math.round(VW * s), H = Math.round(VH * s);
+  const A = can(W, H), x = A.x;
+  // the sheet glows a little where the eye should rest
+  { const g = x.createRadialGradient((colX - 40) * s, (Y5 + 90 * k) * s, 0, (colX - 40) * s, (Y5 + 90 * k) * s, 260 * s); g.addColorStop(0, 'rgba(255,253,246,.34)'); g.addColorStop(1, 'rgba(255,253,246,0)'); x.fillStyle = g; x.fillRect(0, 0, W, H); }
+  // the hills hang from the buttons; where the sheet is too short for the title to shrink any further (k at its floor,
+  // or the resume slip lifting the buttons) they keep below the title's foot and melt into mist above the buttons
+  const Bn = G0.btnTop - 300 * k - 20, B = G0.land ? Bn : Math.max(Bn, Y5 + G0.S5 - 33 * k), sunk = B - Bn, BH = 300 * k + 10, my = v => v * k, vary = VW >= 600;
+  I.miShan3(x, W, tilePlane({ s, seed: 3, y0: B, h: BH, base: my(200), a: .1, ink: [104, 114, 124], fall: .5, rim: .35, rimW: 4, crown: .45, fold: .1, lump: .05,
+    domes: [{ x: 214, wl: 76, wr: 80, h: my(40), p: 1 }, { x: 296, wl: 86, wr: 96, h: my(60), p: 1, b: [[-.45, .25, .1]] }, { x: 384, wl: 80, wr: 100, h: my(46), p: 1, b: [[-.4, .22, .1]] }, { x: 120, wl: 70, wr: 80, h: my(30), p: 1 }],
+    A: { n: 90, a: .06, size: 30, band: .8 }, B: { n: 420, a: .17, size: 7, band: .28 }, C: { n: 40, a: .22, size: 3.5 }, baseFade: .6, vary }, VW, X0, kx));
+  I.miShan3(x, W, tilePlane({ s, seed: 5, y0: B, h: BH, base: my(236), a: .2, ink: [62, 66, 70], fall: .5, rim: .5, rimW: 4, crown: .55, fold: .14, lump: .05,
+    domes: [{ x: 116, wl: 90, wr: 88, h: my(80), p: 1, b: [[.42, .22, .1]] }, { x: 218, wl: 84, wr: 100, h: my(102), p: 1, b: [[.45, .2, .08]] }, { x: 304, wl: 60, wr: 90, h: my(52), p: 1 }],
+    A: { n: 160, a: .07, size: 34, band: .8 }, B: { n: 900, a: .24, size: 8.5, band: .26, fold: .06 }, C: { n: 90, a: .3, size: 3.8 }, baseFade: .5, occlude: .85,
+    mist: [{ y: my(168), h: 18, wav: 3, soft: 1.2, amt: .65, x0: 150, x1: 220 }], gaps: [{ x: 262, w: 8, top: my(150), amt: .8 }], vary }, VW, X0, kx));
+  I.miShan3(x, W, tilePlane({ s, seed: 9, y0: B, h: BH, base: my(292), a: .36, ink: [26, 26, 28], fall: .45, rim: .65, rimW: 5, crown: .7, fold: .16, lump: .05,
+    domes: [{ x: -24, wl: 100, wr: 100, h: my(124), p: 1, b: [[.45, .22, .08]] }, { x: 80, wl: 104, wr: 130, h: my(166), p: 1, b: [[.5, .2, .07]] }, { x: 196, wl: 70, wr: 104, h: my(78), p: 1, b: [[-.35, .25, .1]] }],
+    A: { n: 240, a: .08, size: 40, band: .85 }, B: { n: 1500, a: .3, size: 10, band: .26, fold: .06 }, C: { n: 220, a: .45, size: 4.2 }, baseFade: .5, occlude: .92,
+    mist: [{ y: my(204), h: 22, wav: 4, soft: 1.4, amt: .8, x0: 96, x1: 160 }, { y: my(250), h: 40, wav: 5, soft: 2, amt: .7, x0: 220, x1: 270 }], gaps: [{ x: 140, w: 8, top: my(172), amt: .85 }],
+    trees: [{ x0: 160, x1: 206, y: my(266), h: 24, n: 6, a: .75 }], vary }, VW, X0, kx));
+  if (sunk > 8) { const y1 = G0.btnTop - 6, y0 = y1 - Math.min(70, sunk + 30), g = x.createLinearGradient(0, y0 * s, 0, y1 * s);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(.6, 'rgba(0,0,0,.62)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+    x.globalCompositeOperation = 'destination-out'; x.fillStyle = g; x.fillRect(0, y0 * s, W, H - y0 * s); x.globalCompositeOperation = 'source-over'; }
+  if (G0.land) { const g = x.createLinearGradient((G0.navL - 70) * s, 0, (G0.navL + 6) * s, 0); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.9)');
+    x.globalCompositeOperation = 'destination-out'; x.fillStyle = g; x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over'; }
+  // 留白 behind the 题跋: where the inscription runs into the hills a drifting cloud thins them
+  { const L0 = sr.left - 6, R0 = sr.right + 6, Bt = sr.bottom + 6, nm = I.fbm2(44, 3);
+    // and on a phone held sideways, where the hills run along the foot, 子 棋 and the 手谈 seal stand in them: a second
+    // wisp opens round the title's foot (the first peaks stand about 126*k below B)
+    const tT = Y5 + G0.S5 + 4 * k, tB = Y5 + G0.S5 + 118 * k, tx = colX - 12 * k, ty = (tT + tB) / 2, RX = 46 * k, RY = (tB - tT) / 2 + 10 * k, ta = I.clamp((tB - (B + 126 * k) - 22) / 36, 0, 1);
+    if (!(Bt < B + 40 && !ta)) {
+      x.globalCompositeOperation = 'destination-out';
+      if (ta) I.field(x, W, H, s, 2, (cx, cy) => { if (cy < tT - RY * .4 || cy > tB + RY * .6) return null; const d = Math.hypot((cx - tx) / RX, (cy - ty) / (RY * 1.15)) + .5 * (nm(cx / 24 + 7, cy / 20) - .5); return d > 1.2 ? null : [0, 0, 0, .74 * ta * I.smooth(1.15, .35, d)]; });
+      if (Bt >= B + 40) I.field(x, W, H, s, 2, (cx, cy) => { if (cy < sr.top || cy > Bt + 70) return null; const dx = Math.max(0, L0 - cx, cx - R0), dy = Math.max(0, cy - Bt); const d = Math.hypot(dx / 16, dy / 38) + .55 * (nm(cx / 26, cy / 22) - .5); return d > 1.2 ? null : [0, 0, 0, .8 * I.smooth(1.1, .15, d)]; });
+      x.globalCompositeOperation = 'source-over'; } }
+  I.plum2(x, s, plumX, 6 * k, pk, AP.PLUM, 11);
+  return { c: A.c, B };
+};
+// 云气: two paper-tone wisps that drift through the hills' middle band (the menu's only motion), each strip painted
+// twice side by side so a CSS translate of one period loops without a seam
+AP.mist = function (VW, s) {
+  const W1 = Math.round(VW * 1.6);
+  return [I.mistStrip(W1, 46, s, 17, { bands: [[.5, .22, .75]], color: [244, 239, 227] }), I.mistStrip(W1, 34, s, 29, { bands: [[.5, .2, .6]], color: [244, 239, 227] })];
+};
+// the title column: 技 能 written down the paper, the hand-built 五 on its grey wash, 子 棋, the 手谈 and 坐隐 seals
+AP.title = function (G0, sr, s) {
+  const { VW, VH, k, S5, X5, colX, Y5 } = G0, W = Math.round(VW * s), H = Math.round(VH * s), A = can(W, H), x = A.x;
+  const g = (ch, cy, sz, o) => { const c = I.glyph(ch, sz * s, Object.assign({ seed: ch.charCodeAt(0), ink: [30, 27, 24], a: .86, bleed: .16, mottle: .12 }, o)); x.drawImage(c, colX * s - c.width / 2, cy * s - c.height / 2); };
+  const gs = 38 * k;
+  g('技', Y5 - 70 * k, gs, { dry: .35 }); g('能', Y5 - 28 * k, gs, { dry: .35 });
+  { const nm = I.fbm2(12, 4), cx0 = X5 + S5 * .38, cy0 = Y5 + S5 * .66, RX = S5 * .62, RY = S5 * .42, x0 = Math.floor((cx0 - RX * 1.2) * s), y0 = Math.floor((cy0 - RY * 1.2) * s), w = Math.ceil(RX * 2.4 * s), h = Math.ceil(RY * 2.4 * s);
+    const F = can(w, h);
+    I.field(F.x, w, h, s, 2, (cx, cy) => { cx += x0 / s; cy += y0 / s; const dx = (cx - cx0) / RX, dy = (cy - cy0) / RY, d = Math.hypot(dx, dy) + .35 * (nm(cx / 40, cy / 40) - .5); if (d > 1.1) return null; return [70, 70, 72, .07 * I.smooth(1.05, .55, d) * (.7 + .6 * nm(cx / 14 + 9, cy / 14))]; });
+    x.drawImage(F.c, x0, y0); }
+  I.drawWu(x, X5 * s, Y5 * s, S5 * s, { seed: 1 });
+  g('子', Y5 + S5 + 26 * k, gs, { dry: .35 }); g('棋', Y5 + S5 + 68 * k, gs, { dry: .45 });
+  I.stamp(x, I.seal(24 * s * k, '手谈', { seed: 3, h: 1.62 }), (colX - 34 * k) * s, (Y5 + S5 + 96 * k) * s, .03, .95);
+  I.stamp(x, I.seal(16 * s, '坐隐', { seed: 9, type: 'zhu', h: 1.62, border: .1 }), (sr.right - 11) * s, (sr.top - 22) * s, -.02, .9);
+  return A.c;
+};
+// lobby: one quiet distant range along the bottom and a plum sprig leaning in from the upper right. On tall tablets and
+// desktops the range is taller and carries its own mist, so the column of controls stands in a landscape, not on bare paper
+AP.lobby = function (VW, VH, s) {
+  const tilePlane = AP.tilePlane, W = Math.round(VW * s), H = Math.round(VH * s), A = can(W, H), x = A.x;
+  const big = VW >= 600 && VH >= 600, h = big ? Math.min(330, VH * .34) : Math.min(190, VH * .26), y0 = VH - h, X0 = Math.max(0, (VW - 390) / 2), kx = big ? Math.min(1.5, VW / 600) : 1;
+  I.miShan3(x, W, tilePlane({ s, seed: 13, y0, h, base: h - 4, a: .1, ink: [96, 106, 116], fall: .7, rim: .3, rimW: 4, crown: .35, fold: 0, lump: .05,
+    domes: [{ x: 40, wl: 90, wr: 120, h: h * .42, p: 1 }, { x: 196, wl: 120, wr: 100, h: h * .6, p: 1, b: [[.42, .2, .1]] }, { x: 340, wl: 100, wr: 130, h: h * .46, p: 1 }],
+    A: { n: 70, a: .05, size: 24, band: .8 }, B: { n: 300, a: .13, size: 6, band: .28, fold: .01 }, C: { n: 30, a: .17, size: 3 }, baseFade: .7, smax: .55, hlWin: 60 }, VW, big ? (VW - 390 * kx) / 2 : X0, kx));
+  // (no fold strokes down the saddles here: on these low, wide ranges they piled up into one dark blot)
+  I.miShan3(x, W, tilePlane({ s, seed: 15, y0: y0 + h * .3, h: h * .7, base: h * .7 - 2, a: .16, ink: [60, 64, 70], fall: .6, rim: .4, rimW: 4, crown: .5, fold: 0, lump: .05,
+    domes: [{ x: -10, wl: 90, wr: 110, h: h * .36, p: 1, b: [[.4, .22, .1]] }, { x: 290, wl: 110, wr: 120, h: h * .3, p: 1 }],
+    A: { n: 80, a: .06, size: 28, band: .8 }, B: { n: 420, a: .2, size: 7, band: .26, fold: .01 }, C: { n: 40, a: .3, size: 3.4 }, baseFade: .6, occlude: .8, smax: .55, hlWin: 60,
+    mist: big ? [{ y: h * .5, h: 26, wav: 4, soft: 1.8, amt: .7 }] : [] }, VW, big ? (VW - 390 * kx) / 2 : X0, kx));
+  // one slender sprig enters from the right edge below the top bar (the trunk and drooping twigs are left out)
+  { const sc = big ? Math.min(1.15, VW / 700) : Math.min(.78, VW / 480); x.save(); x.translate(W, 0); x.scale(-1, 1); I.plum2(x, s, -44 * sc - 5, 40, sc, { branches: [AP.PLUM.branches[2], AP.PLUM.branches[3]], moss: [], blossoms: AP.PLUM.blossoms.filter(b => b[0] > 90 && b[1] < 100), paper: AP.PLUM.paper }, 23); x.restore(); }
+  return A.c;
+};
+// game: the space under the controls stays 留白 — one very quiet distant ridge along the bottom; in landscape the foot of
+// the controls column carries a short 题款 and a 闲章 instead of empty paper (side: that column's free box)
+AP.gameBg = function (VW, VH, s, h, side) {
+  const W = Math.round(VW * s), A = can(W, Math.round(VH * s)), x = A.x, y0 = VH - h;
+  I.miShan3(x, W, AP.tilePlane({ s, seed: 13, y0, h, base: h - 4, a: .085, ink: [96, 106, 116], fall: .7, rim: .3, rimW: 4, crown: .35, fold: 0, lump: .05,
+    domes: [{ x: 40, wl: 90, wr: 120, h: h * .42, p: 1 }, { x: 196, wl: 120, wr: 100, h: h * .6, p: 1, b: [[.42, .2, .1]] }, { x: 340, wl: 100, wr: 130, h: h * .46, p: 1 }],
+    A: { n: 70, a: .045, size: 24, band: .8 }, B: { n: 300, a: .12, size: 6, band: .28, fold: .01 }, C: { n: 30, a: .16, size: 3 }, baseFade: .7 }, VW, Math.max(0, (VW - 390) / 2)));
+  if (side) {
+    const gs = Math.min(34, side.h / 7), cx = side.x + side.w * .5, y = side.y + Math.min(48, side.h * .12);
+    [...'棋逢对手'].forEach((ch, i) => { const c = I.glyph(ch, gs * s, { seed: ch.charCodeAt(0), ink: [30, 27, 24], a: .62, bleed: .14, mottle: .14, dry: .4 }); x.globalAlpha = .62; x.drawImage(c, cx * s - c.width / 2, (y + gs * .5 + i * gs * 1.12) * s - c.height / 2); });
+    x.globalAlpha = 1; I.stamp(x, I.seal(18 * s, '烂柯', { seed: 5, type: 'zhu', h: 1.62, border: .1 }), (cx + gs * .95) * s, (y + gs * .5 + 4 * gs * 1.12 + 4) * s, .04, .88);
+  }
+  return A.c;
+};
+
+/* ---------------- the board's static sheet: 画心 paper with one distant ridge, springs, the hand-ruled grid ----------------
+   g: {size, cell, m, pad} in CSS px; s: device px per CSS px; K: {N, SPRINGS, STARS} from the rules engine */
+AP.board = function (g, s, K) {
+  const BS = g.size, cell = g.cell, BPAD = g.pad, N = K.N, rc = i => [Math.floor(i / N), i % N];
+  const SB = BS + BPAD * 2, L = can(Math.round(SB * s), Math.round(SB * s)), x = L.x, O = BPAD * s, PW = Math.round(BS * s);
+  const pt = (c, r) => [(BPAD + g.m + c * cell) * s, (BPAD + g.m + r * cell) * s], ks = BS / 378;
+  const cornerAng = sp => { const [r, c] = rc(sp); return Math.atan2(r < 7 ? -1 : 1, c < 7 ? -1 : 1); };
+  // 画心: a slightly whiter 熟宣 with one distant ridge across its lower part, cut clean by mist at its foot
+  const hua = I.paper(PW, PW, { s, seed: 31, base: [247, 243, 232], edge: .06, drift: .6, fibre: .4, specks: .4 });
+  { const hc = hua.getContext('2d'), ih = BS;
+    I.miShan3(hc, PW, { s, seed: 41, y0: ih * .64, h: ih * .36, base: ih * .3, a: .12, ink: [86, 98, 108], fall: .6, rim: .4, rimW: 4, crown: .45, fold: 0, lump: .05,
+      domes: [{ x: ih * .08, wl: 80 * ks, wr: 96 * ks, h: ih * .11, p: 1 }, { x: ih * .4, wl: 110 * ks, wr: 130 * ks, h: ih * .19, p: 1, b: [[.45, .2, .08]] }, { x: ih * .8, wl: 120 * ks, wr: 120 * ks, h: ih * .14, p: 1, b: [[-.4, .22, .1]] }, { x: ih * 1.04, w: 80 * ks, h: ih * .09, p: 1 }],
+      A: { n: Math.round(90 * ks), a: .05, size: 26 * ks, band: .8 }, B: { n: Math.round(420 * ks), a: .14, size: 6.5 * Math.sqrt(ks), band: .28, fold: .01 }, C: { n: Math.round(40 * ks), a: .2, size: 3 }, baseFade: .2,
+      mist: [{ y: ih * .245, h: ih * .2, wav: 2.5, soft: .9, foot: 2 }] }); }
+  I.slip(x, O, O, PW, PW, { s, tile: hua, tileAt: [O, O], seed: 1, shadow: .26, sy: 3, deckle: 1.1 });
+  I.frame(x, O + 4.5 * s, O + 4.5 * s, PW - 9 * s, PW - 9 * s, .8 * s, .32, 7, { over: 0, ink: [70, 56, 40] });
+  for (const sp of K.SPRINGS) { const [r, c] = rc(sp), [px, py] = pt(c, r); I.springPool(x, px, py, cell * .6 * s, c * 7 + r, { a: .42 }); }
+  const [ax, ay] = pt(0, 0), [bx, by] = pt(N - 1, N - 1), rr = I.rng(5);
+  for (let i = 0; i < N; i++) {
+    const [px, py] = pt(i, i), edge = i === 0 || i === N - 1, wd = (edge ? Math.max(1.6, 2 * Math.sqrt(ks)) : Math.max(.8, .9 * Math.sqrt(ks))) * s, a = edge ? .9 : .5 + rr() * .06, ink = edge ? [30, 26, 22] : [52, 44, 36];
+    I.ruled(x, ax - (edge ? 1 : 0) * s, py, bx + (edge ? 1 : 0) * s, py, wd, a, 100 + i, ink);
+    I.ruled(x, px, ay - (edge ? 1 : 0) * s, px, by + (edge ? 1 : 0) * s, wd, a, 200 + i, ink);
+  }
+  for (const st of K.STARS) { const [r, c] = rc(st), [px, py] = pt(c, r); x.fillStyle = rgba([24, 21, 18], .9); x.beginPath(); x.ellipse(px, py, cell * .11 * s, cell * .1 * s, .3, 0, 7); x.fill(); }
+  for (const sp of K.SPRINGS) { const [r, c] = rc(sp), [px, py] = pt(c, r); I.springRipples(x, px, py, cell * .56 * s, cornerAng(sp), c + r, { lw: 1.7 * s * Math.sqrt(ks), a: .9 }); }
+  return L.c;
+};
+
+/* ---------------- textures of the interim skill effects (迷雾 / 震荡 …) until FX2 lands. g: {size, cell}; s: dpr ---------------- */
+AP.fxi = function (g, s) {
+  const cell = g.cell, out = {};
+  // a round puff of paper-white mist with pale ink wisps
+  { const R = cell * 2.3, c = can(R * 2 * s, R * 2 * s), x = c.x, m1 = I.mistStrip(R * 2, R * 2, s, 41, { bands: [[.5, .36, 1]], color: [246, 242, 232] }), m2 = I.mistStrip(R * 2, R * 2, s, 43, { bands: [[.42, .16, .7], [.62, .14, .6]], color: [150, 150, 152] });
+    x.drawImage(m1, 0, 0); x.globalAlpha = .35; x.drawImage(m2, 0, 0); x.globalAlpha = 1;
+    const gr = x.createRadialGradient(R * s, R * s, 0, R * s, R * s, R * s); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.55, 'rgba(0,0,0,.8)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    x.globalCompositeOperation = 'destination-in'; x.fillStyle = gr; x.fillRect(0, 0, c.c.width, c.c.height); out.puff = c.c; }
+  // a board-wide mist band for the opponent's view of 迷雾
+  out.band = I.mistStrip(g.size * 1.6, g.size * .55, s, 47, { bands: [[.5, .3, .95]], color: [246, 242, 232] });
+  out.band2 = I.mistStrip(g.size * 1.6, g.size * .4, s, 49, { bands: [[.5, .26, .7]], color: [140, 140, 144] });
+  // 泼墨 burst for 震荡: radiating tapered strokes and a wet core
+  { const R = cell * 1.9, c = can(R * 2 * s, R * 2 * s), x = c.x, r = I.rng(91), cx = R * s, cy = R * s;
+    for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283 + (r() - .5) * .7, L = R * (.28 + r() * .42) * s, w = cell * (.2 + r() * .16) * s, pts = [], bend = (r() - .5) * .5;
+      for (let q = 0; q <= 6; q++) { const t = q / 6; pts.push([cx + Math.cos(a + bend * t * t) * L * t, cy + Math.sin(a + bend * t * t) * L * t, t < .12 ? .85 : t > .8 ? (1 - t) * 3.4 : 1 - t * .5]); }
+      I.brush(x, pts, { w, ink: [18, 16, 15], a: .9, seed: 200 + k, load: t => .95 - .45 * t, dry: .42, dryFrom: .5, lanes: 7, bleed: .16, bleedR: 3, fibre: .7, rag: .16 }); }
+    const gr = x.createRadialGradient(cx, cy, 0, cx, cy, cell * .62 * s); gr.addColorStop(0, 'rgba(16,15,14,.92)'); gr.addColorStop(.7, 'rgba(24,22,20,.75)'); gr.addColorStop(1, 'rgba(24,22,20,0)'); x.fillStyle = gr; x.beginPath(); x.arc(cx, cy, cell * .62 * s, 0, 7); x.fill();
+    for (let k = 0; k < 14; k++) { const a = r() * 6.283, d = R * (.55 + r() * .42) * s, rr = cell * (.03 + r() * .07) * s; x.fillStyle = rgba([20, 18, 16], .8); x.beginPath(); x.ellipse(cx + Math.cos(a) * d, cy + Math.sin(a) * d, rr * 1.4, rr, a, 0, 7); x.fill(); }
+    out.splash = c.c; }
+  // cracks over the struck stone
+  { const R = cell * .44, c = can(R * 2.4 * s, R * 2.4 * s), x = c.x, r = I.rng(17), cx = c.c.width / 2, cy = c.c.height / 2; x.lineCap = 'round';
+    for (let k = 0; k < 5; k++) { let a = k / 5 * 6.283 + r() * .6, px = cx + Math.cos(a) * R * .08 * s, py = cy + Math.sin(a) * R * .08 * s; x.beginPath(); x.moveTo(px, py);
+      for (let q = 0; q < 4; q++) { a += (r() - .5) * .7; const l = R * (.22 + r() * .12) * s; px += Math.cos(a) * l; py += Math.sin(a) * l; x.lineTo(px, py); }
+      x.strokeStyle = 'rgba(250,246,236,.85)'; x.lineWidth = Math.max(1, cell * .035 * s); x.stroke(); }
+    out.crack = c.c; }
+  return out;
+};
+
+/* ---------------- job table: the art queue (page or worker) calls these by name with plain-data arguments ---------------- */
+AP.RUN = {
+  deco: a => AP.deco(a.kind, a.w, a.h, a.s, a.e),
+  scroll: a => AP.scroll(a.w, a.h, a.s, a.seal, a.dock),
+  scrollSeal: a => AP.scrollSeal(a.seal, a.s),
+  paper: a => AP.paper(a.VW, a.VH, a.s),
+  menu: a => AP.menu(a.G0, a.sr, a.s),
+  mist: a => AP.mist(a.VW, a.s),
+  title: a => AP.title(a.G0, a.sr, a.s),
+  lobby: a => AP.lobby(a.VW, a.VH, a.s),
+  gameBg: a => AP.gameBg(a.VW, a.VH, a.s, a.h, a.side),
+  board: a => AP.board(a.g, a.s, a.K),
+  fxi: a => AP.fxi(a.g, a.s),
+  sprite: a => AP.sprite(a.name, a.s, a.arg),
+  // FX1 textures for one effect: a few frames of it (each builds what it needs), or the whole prewarm of it. o comes
+  // without functions: the stone painter is put back here
+  fx1: a => {
+    const FX1 = self.FX1, o = Object.assign({}, a.o, { T: AP.TH, drawStone: (c, x, y, r, p, al) => FX1.stone(c, x, y, r, p, AP.TH, { dpr: a.sd, a: al }) });
+    const sc = I.mk(2, 2); sc.x.setTransform(o.dpr, 0, 0, o.dpr, 0, 0);
+    if (a.full) { FX1.prewarm(sc.x, o, a.names); return null; }
+    const B = o.board || [0, 0, o.W, o.H], c = o.cell, cx = B[0] + B[2] / 2, cy = B[1] + B[3] / 2;
+    const base = Object.assign({ x: cx, y: cy, tx: cx + c, ty: cy, line: [0, 1, 2, 3, 4].map(i => [cx + (i - 2) * c, cy + (i - 2) * c]), avoid: [] }, o);
+    for (const n of a.names) for (const k of a.ks) FX1[n](sc.x, k, base);
+    return null;
+  },
+};
+
+self.AP = AP;
+})();
+</script>
+
+<script id="jsFx1">
 /* FX1 · 水墨技能特效：落子 place / 封印 seal / 回溯 rewind / 移形 shift / 胜 win
  *
  * Usage:  const r = FX1.place(ctx, k, o)   // draws ONE frame, k ∈ [0,1] linear progress; returns {shake:[dx,dy]} or undefined
@@ -1467,6 +1844,15 @@ window.InkA = I;
  *  - Persistent marks, identical to the effect's last frame: FX1.sealMark(ctx,x,y,cell,T,seed) after seal,
  *    FX1.rewindMark(ctx,x,y,cell,T,seed) after rewind (keep it until the next move).
  *  - FX1.skip[name] = k to jump to when the player taps (rewind / win), allowed after FX1.skipAfter[name] ms.
+ *
+ * GAME COPY (技能五子棋): this file is the art/fx1 module with these changes, all marked "game copy" below:
+ *  - 胜's 月 stroke is traced on the glyph's centre line (it ran along the stroke's edge, so its 飞白 ended in a seam);
+ *  - 飞白 lanes blend hair to hair, the paper-tooth gaps run along the stroke, and a dry stroke's dryness fades out where
+ *    it meets a wet one (no rectangular blocks, no straight seams);
+ *  - a glyph pixel always finds every stroke it could belong to (stroke boundaries no longer step along a bucket grid);
+ *  - winGeom keeps the 胜 off the other stones (o.avoid) where the board allows;
+ *  - the seal's 五 and 子 are squared on the modern structure (the small-seal ☓ 五 reads as 文);
+ *  - the file also runs in the game's art worker (document.createElement is shimmed there with OffscreenCanvas).
  */
 (function () {
 'use strict';
@@ -1779,7 +2165,7 @@ const GLYPH_DIP = { '溯': 4, '胜': 6 };   // the stroke before which the calli
 const GLYPH_DRY = { '溯': { 9: 1, 1: .7 }, '胜': { 11: 1, 1: .8 } };   // strokes that end in 飞白 (fast, long, late in a brushload)
 const GLYPH_PATHS = {
   '溯': [[.07, [[.245, .17], [.285, .215], [.29, .25], [.255, .3], [.225, .34], [.21, .4], [.22, .45], [.255, .49]]], [.065, [[.255, .48], [.24, .53], [.22, .6], [.2, .66], [.205, .72]]], [.05, [[.21, .65], [.255, .57], [.3, .505]]], [.05, [[.405, .19], [.415, .215], [.42, .25]]], [.065, [[.49, .155], [.535, .175], [.555, .215], [.53, .26], [.49, .31], [.44, .345], [.395, .37]]], [.06, [[.285, .455], [.33, .44], [.39, .405], [.44, .37], [.455, .335]]], [.065, [[.515, .3], [.555, .31], [.565, .33], [.53, .38], [.5, .42], [.51, .45], [.55, .465], [.56, .48], [.52, .51], [.49, .56], [.47, .62], [.44, .67], [.41, .71], [.37, .725]]], [.06, [[.435, .41], [.41, .455], [.38, .495], [.35, .535], [.33, .57], [.345, .605], [.38, .595], [.425, .575]]], [.075, [[.61, .3], [.6, .4], [.585, .48], [.57, .56], [.555, .63], [.53, .69], [.505, .72]]], [.085, [[.61, .295], [.66, .27], [.72, .235], [.76, .23], [.79, .26], [.795, .4], [.795, .55], [.8, .7], [.805, .78], [.79, .815], [.75, .79], [.72, .75]]], [.05, [[.64, .355], [.66, .385], [.7, .385], [.735, .395]]], [.05, [[.745, .42], [.71, .48], [.69, .535], [.735, .55]]], [.06, [[.65, .48], [.645, .55], [.66, .6], [.65, .65], [.62, .7], [.61, .715], [.66, .7], [.71, .69]]], [.055, [[.735, .58], [.745, .64], [.74, .7]]]],
-  '胜': [[.07, [[.22, .335], [.25, .34], [.255, .4], [.25, .48], [.24, .56], [.22, .64], [.18, .74]]], [.07, [[.25, .33], [.3, .27], [.36, .21], [.4, .205], [.44, .235], [.44, .33], [.44, .45], [.445, .6], [.445, .72], [.44, .78]]], [.05, [[.3, .43], [.3, .52], [.29, .6]]], [.05, [[.3, .4], [.34, .39], [.38, .39]]], [.045, [[.37, .5], [.35, .53], [.36, .56]]], [.055, [[.28, .63], [.32, .66], [.36, .7], [.4, .75], [.43, .78]]], [.06, [[.565, .265], [.57, .32], [.55, .37], [.52, .42], [.505, .46]]], [.05, [[.52, .46], [.58, .43], [.63, .41]]], [.075, [[.645, .185], [.665, .22], [.71, .27], [.77, .295], [.78, .32], [.72, .36], [.68, .4], [.665, .46], [.63, .53], [.6, .6], [.565, .66]]], [.055, [[.55, .535], [.6, .52], [.65, .48], [.72, .47], [.75, .48]]], [.05, [[.72, .5], [.74, .56], [.72, .62]]], [.065, [[.515, .69], [.56, .69], [.62, .67], [.7, .655], [.78, .64], [.815, .65]]]]
+  '胜': [[.07, [[.22, .335], [.25, .34], [.255, .4], [.25, .48], [.24, .56], [.22, .64], [.18, .74]]], [.07, [[.25, .33], [.3, .27], [.35, .225], [.39, .213], [.413, .235], [.413, .33], [.414, .45], [.42, .6], [.428, .72], [.437, .78]]], [.05, [[.3, .43], [.3, .52], [.29, .6]]], [.05, [[.3, .4], [.34, .39], [.38, .39]]], [.045, [[.37, .5], [.35, .53], [.36, .56]]], [.055, [[.28, .63], [.32, .66], [.36, .7], [.4, .75], [.43, .78]]], [.06, [[.565, .265], [.57, .32], [.55, .37], [.52, .42], [.505, .46]]], [.05, [[.52, .46], [.58, .43], [.63, .41]]], [.075, [[.645, .185], [.665, .22], [.71, .27], [.77, .295], [.78, .32], [.72, .36], [.68, .4], [.665, .46], [.63, .53], [.6, .6], [.565, .66]]], [.055, [[.55, .535], [.6, .52], [.65, .48], [.72, .47], [.75, .48]]], [.05, [[.72, .5], [.74, .56], [.72, .62]]], [.065, [[.515, .69], [.56, .69], [.62, .67], [.7, .655], [.78, .64], [.815, .65]]]]
 };
 /* two-pass chamfer distance (1, √2): D = distance (px) from every src pixel to the nearest non-src pixel */
 function chamfer(src, S, cap) {
@@ -1858,7 +2244,9 @@ function glyphBuild(ch, boxCSS, dpr, T, seed) {
     const dryPick = GLYPH_DRY[ch] || {};
     strokes.forEach(st => { st.dryEnd = (dryPick[st.i] || 0) * (.6 + .4 * clamp((1 - loadAt(st, st.len)) * 1.6, 0, 1)); });
     // ---- bucket the chain points
-    const BKS = 18, nbx = Math.ceil(S / BKS), buckets = Array.from({ length: nbx * nbx }, () => []);
+    // (game copy) buckets at least as wide as the widest stroke's half-width: the 3×3 search then always sees every
+    // stroke a pixel could belong to (with fixed 18 px buckets, big glyphs got stair-stepped stroke boundaries)
+    const BKS = Math.max(18, Math.ceil(Math.max(...strokes.map(st => st.hwn)) + 2)), nbx = Math.ceil(S / BKS), buckets = Array.from({ length: nbx * nbx }, () => []);
     strokes.forEach(st => st.P.forEach((p, c) => { const bx = clamp(Math.floor(p[0] / BKS), 0, nbx - 1), by = clamp(Math.floor(p[1] / BKS), 0, nbx - 1); buckets[by * nbx + bx].push(st.i, c); }));
     // ---- assign every glyph pixel (and the bleed fringe around it) to a stroke + its nearest chain point
     const lab = new Int8Array(N).fill(-1), cpt = new Int16Array(N), acr = new Float32Array(N), alo = new Float32Array(N);
@@ -1909,6 +2297,16 @@ function glyphBuild(ch, boxCSS, dpr, T, seed) {
     const Vb = blurField(V, Wt, S, Math.max(2, Math.round(3 * dpr))), LDb = blurField(LD, Wt, S, Math.max(2, Math.round(3 * dpr)));
     // ---- final shading: bristle grain along the stroke, 飞白 lanes where the brush runs dry (edges and the outside of
     //      turns go first), wet-edge darkening, a crisp but fibrous edge, and a thin fibre-broken bleed into the paper
+    const DRY = new Float32Array(N);
+    for (let q = 0; q < N; q++) {
+      const li = lab[q]; if (li < 0) continue;
+      const st = strokes[li], c = cpt[q], a = acr[q], sAl = clamp((st.s[c] + alo[q]) / st.len, 0, 1);
+      const hwSide = Math.max(1, a > 0 ? st.eLs[c] : st.eRs[c]), u = clamp(Math.abs(a) / hwSide, 0, 1);
+      const outer = (a > 0 ? 1 : -1) * (st.kap[c] > 0 ? -1 : 1) > 0 ? clamp(Math.abs(st.kap[c]) * 2.5, 0, 1) : 0;
+      DRY[q] = clamp(st.dryEnd * sstep(.42, 1, sAl) + .35 * st.dryEnd * outer * sstep(.3, .9, u), 0, 1);
+    }
+    // (game copy) feathered dry field
+    { const Db = blurField(DRY, Wt, S, Math.max(3, Math.round(4 * dpr))); for (let q = 0; q < N; q++) if (DRY[q] > Db[q]) DRY[q] = Db[q] + (DRY[q] - Db[q]) * .25; }
     const SH = new Uint8ClampedArray(N * 4), EV = new Float32Array(N);
     for (let q = 0; q < N; q++) {
       const li = lab[q]; if (li < 0) continue;
@@ -1918,15 +2316,15 @@ function glyphBuild(ch, boxCSS, dpr, T, seed) {
       const ac = a * k1, sc2 = sPx * k1;   // CSS-px stroke coordinates → the texture looks the same at any dpr
       // bristle lanes: every stroke is a brush of NB hairs, each with its own ink capacity; a dry hair leaves a white lane
       const us = clamp(a / hwSide, -1, 1), lane = (us * .97 + 1) * .5 * st.NB + .6 * st.wob(sc2 * .035), b0 = clamp(Math.floor(lane), 0, st.NB), bf = lane - b0;
-      const capL = lerp(st.cap[b0], st.cap[Math.min(st.NB, b0 + 1)], sstep(.3, .7, bf));
-      const br = capL * (.72 + .56 * samp(nt3, b0 * 11.3 + li * 31, sc2 * .05 + li * 9));
-      let dry = st.dryEnd * sstep(.42, 1, sAl) + .35 * st.dryEnd * outer * sstep(.3, .9, u);
-      dry = clamp(dry, 0, 1);
+      const bw2 = sstep(.2, .8, bf), b1 = Math.min(st.NB, b0 + 1);
+      const capL = lerp(st.cap[b0], st.cap[b1], bw2);
+      const br = capL * (.72 + .56 * lerp(samp(nt3, b0 * 11.3 + li * 31, sc2 * .05 + li * 9), samp(nt3, b1 * 11.3 + li * 31, sc2 * .05 + li * 9), bw2));
+      const dry = DRY[q];
       let keep = 1;
       if (dry > .02) {
         const thr = dry * (.85 + .6 * u * u) - .06;
         keep = sstep(thr - .04, thr + .07, br);
-        const grit = samp(ntF, i * sc * 7.3, j * sc * 7.3);     // grains of paper tooth inside the dry zone
+        const grit = samp(ntF, ac * 1.6 + li * 17, sc2 * .16 + li * 5);   // paper tooth skipped by the dry hairs: streaks along the stroke
         keep *= sstep(dry * .5 - .1, dry * .5 + .03, grit);
       }
       const s = sd[q];
@@ -2695,11 +3093,12 @@ function winStroke(cell, diag, T, dpr) {
       col, col2: mix(col, [255, 200, 170], .12), alpha: .96, seed: 7 + (diag ? 1 : 0), tone: t => 1.08 - .25 * t, dryJit: 1, bleed: .26, cut: cell * .5, jit0: .08 }, dpr), s0, s1, L, col };
 }
 /* composition of the climax, solved once per winning line (memoised): the largest 「胜」 (≤ .66 of the board) whose ink
- * keeps ≥ 1 cell of clean paper from the cord and its flung drops, placed beside the line; the 朱文 seal is stamped
+ * keeps ≥ 1 cell of clean paper from the cord and its flung drops, placed beside the line over as few of the other
+ * stones (o.avoid) as it can; the 朱文 seal is stamped
  * beside the character like a 落款 — never on the line, never off the paper */
 function winGeom(o, a, b, G) {
-  const B = boardOf(o), c = o.cell;
-  return memo(`wgeom:${a.map(Math.round)}:${b.map(Math.round)}:${Math.round(c * 10)}:${B.x | 0},${B.y | 0},${B.w | 0}`, () => {
+  const B = boardOf(o), c = o.cell, av = o.avoid || [];
+  return memo(`wgeom:${a.map(Math.round)}:${b.map(Math.round)}:${Math.round(c * 10)}:${B.x | 0},${B.y | 0},${B.w | 0}:${av.map(p => (p[0] | 0) + ',' + (p[1] | 0)).join(';')}`, () => {
     const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
     const p0 = [a[0] - ux * c * 1.2, a[1] - uy * c * 1.2], p1 = [b[0] + ux * c * 3.2, b[1] + uy * c * 3.2], L2 = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
     const segD = (px, py) => { const t = clamp(((px - p0[0]) * (p1[0] - p0[0]) + (py - p0[1]) * (p1[1] - p0[1])) / (L2 * L2), 0, 1); return Math.hypot(px - p0[0] - (p1[0] - p0[0]) * t, py - p0[1] - (p1[1] - p0[1]) * t); };
@@ -2721,7 +3120,12 @@ function winGeom(o, a, b, G) {
         let mn = rectD(rx0, ry0, rx1, ry1);
         if (mn < clr) { mn = 1e9; for (const q of cells) { const d = segD(cx + q[0] * big, cy + q[1] * big); if (d < mn) mn = d; if (mn < clr) break; } }
         if (mn < clr) continue;
-        const sc = Math.min(mn, c * 2.4) - .3 * Math.hypot(cx - B.cx, cy - B.cy);
+        // (game copy) the other stones on the board: the character is written on clean paper where it can be (each stone under its
+        // ink costs as much as a good stretch of clearance)
+        let hit = 0;
+        for (const q of av) { const u = (q[0] - cx) / big + .5, v = (q[1] - cy) / big + .5; if (u < 0 || v < 0 || u >= 1 || v >= 1) continue; const gi = (u * OG) | 0, gj = (v * OG) | 0;
+          if (G.occ[gj * OG + gi]) hit += 1; else if ((gi > 0 && G.occ[gj * OG + gi - 1]) || (gi < OG - 1 && G.occ[gj * OG + gi + 1]) || (gj > 0 && G.occ[(gj - 1) * OG + gi]) || (gj < OG - 1 && G.occ[(gj + 1) * OG + gi])) hit += .4; }
+        const sc = Math.min(mn, c * 2.4) - .3 * Math.hypot(cx - B.cx, cy - B.cy) - hit * c * .8;
         if (sc > bs) { bs = sc; bp = [cx, cy]; }
       }
       return bp ? { cx: bp[0], cy: bp[1], big } : null;
@@ -2904,112 +3308,235 @@ window.FX1 = FX;
 <script>
 // =====================================================================================================
 // 技能五子棋 · 宣纸水墨 — presentation layer.
+//   app part 0: the art queue. Every heavy painting job (paper, hills, plum, brushed frames, scrolls, the board sheet,
+//               sprites, effect textures) runs in three art workers on OffscreenCanvas, so the page's own thread only
+//               lays out, blits and answers taps. Where workers (or web fonts inside them) are not available the very
+//               same painters (window.AP) run here instead, one job per idle slot, most urgent first.
 //   app part 1: basics, fonts, sprites, painted decorations (.dk), paper, menu / lobby / game background art
 //   app part 2: board geometry, static board sheet, live board drawing
 //   app part 3: effect dispatch (FX1 now; FX2 drops in by adding FXR entries)
 //   app part 4: game flow, overlays, online transports (unchanged behaviour)
-// Everything is painted with window.InkA (procedural ink library) and window.FX1 (skill effects, set 1).
+// =====================================================================================================
+const AQ = (() => {
+  const Q = { mode: 'main', lanes: {}, seq: 0, pend: new Map(), mainQ: [], mainT: 0, wFonts: null, fontGen: 0, fontWait: [], stats: { worker: 0, main: 0 } };
+  // ---- the worker's own runtime (stringified; runs after ink + AP + FX1 inside the worker)
+  function workerMain() {
+    const AP = self.AP, FX1 = self.FX1, q = [], sent = new Set();
+    let fontState = 'none', fontGen = 0, busy = false;   // none: the page has not sent the fonts yet — font jobs wait
+    const isOC = v => typeof OffscreenCanvas !== 'undefined' && v instanceof OffscreenCanvas;
+    const isCX = v => typeof OffscreenCanvasRenderingContext2D !== 'undefined' && v instanceof OffscreenCanvasRenderingContext2D;
+    // results go back as ImageBitmaps (fresh canvases are handed over, cached ones copied) or PNG blobs
+    async function pack(v, copy, tr) {
+      if (v == null) return v;
+      if (typeof v === 'function') throw 'np';
+      if (typeof v !== 'object') return v;
+      if (isOC(v)) { const b = copy ? await createImageBitmap(v) : v.transferToImageBitmap(); tr.push(b); return { __cv: b }; }
+      if (ArrayBuffer.isView(v) || v instanceof ImageData) return v;
+      if (isCX(v)) throw 'np';
+      if (Array.isArray(v)) { const o = []; for (const e of v) o.push(await pack(e, copy, tr)); return o; }
+      if (Object.getPrototypeOf(v) !== Object.prototype) throw 'np';
+      const o = {};
+      for (const k of Object.keys(v)) { const e = v[k]; if (isCX(e)) { const sib = Object.keys(v).find(p => v[p] === e.canvas); if (!sib) throw 'np'; o[k] = { __cx: sib }; } else o[k] = await pack(e, copy, tr); }
+      return o;
+    }
+    async function run(m) {
+      const t0 = performance.now(), tr = [];
+      let res = AP.RUN[m.fn](m.a);
+      if (m.fn === 'fx1') {   // hand over every texture FX1 built in this job (FX1 on the page then never builds them)
+        const out = [];
+        for (const [k, v] of FX1._cache) { if (sent.has(k)) continue; sent.add(k); try { out.push([k, await pack(v, true, tr)]); } catch (e) { } }
+        res = out;
+      } else if (m.out === 'png') res = await res.convertToBlob({ type: 'image/png' });
+      else res = await pack(res, false, tr);
+      postMessage({ t: 'done', id: m.id, res, ms: performance.now() - t0 }, tr);
+    }
+    function next() {
+      if (busy) return;
+      let bi = -1;
+      for (let i = 0; i < q.length; i++) { const m = q[i]; if (m.fonts && (fontState === 'loading' || fontState === 'none')) continue; if (bi < 0 || m.pri < q[bi].pri) bi = i; }
+      if (bi < 0) return;
+      const m = q.splice(bi, 1)[0];
+      if (m.fonts && fontState !== 'ok') { postMessage({ t: 'err', id: m.id, msg: 'nofonts' }); setTimeout(next, 0); return; }
+      busy = true;
+      run(m).catch(e => postMessage({ t: 'err', id: m.id, msg: String(e && e.stack || e) })).then(() => { busy = false; setTimeout(next, 0); });
+    }
+    onmessage = e => {
+      const m = e.data;
+      if (m.t === 'job') { q.push(m); setTimeout(next, 0); return; }
+      if (m.t === 'pri') { const j = q.find(x => x.id === m.id); if (j) j.pri = Math.min(j.pri, m.pri); return; }
+      if (m.t === 'drop') { for (let i = q.length - 1; i >= 0; i--) if (m.ids.includes(q[i].id)) { postMessage({ t: 'err', id: q[i].id, msg: 'dropped' }); q.splice(i, 1); } return; }
+      if (m.t === 'fxReset') { const keep = new RegExp(m.keep); for (const k of [...FX1._cache.keys()]) if (!keep.test(k)) { FX1._cache.delete(k); sent.delete(k); } return; }
+      if (m.t === 'fonts') {   // the latest message wins (none for now at the cut-off, the real files when they land)
+        const g = fontGen = m.gen; fontState = 'loading';
+        const ok = !!(self.fonts && self.FontFace) && m.list.length;
+        if (!ok) { fontState = 'fail'; postMessage({ t: 'fonts', ok: false, gen: g }); setTimeout(next, 0); return; }
+        Promise.all(m.list.map(f => { const ff = new FontFace(f.family, `url(${f.url})`, f.desc || {}); self.fonts.add(ff); return ff.load(); }))
+          .then(() => m.check.every(c => self.fonts.check(c[0], c[1])), () => false)
+          .then(r => { if (g !== fontGen) return; fontState = r ? 'ok' : 'fail'; postMessage({ t: 'fonts', ok: r, gen: g }); setTimeout(next, 0); });
+      }
+    };
+    postMessage({ t: 'ready' });
+  }
+  // ---- start the workers (any failure: everything runs on the page, exactly as painted there)
+  function start() {
+    try {
+      if (window.GOMOKU_NO_WORKER || typeof OffscreenCanvas === 'undefined' || !window.Worker || !window.Blob || !URL.createObjectURL) return;
+      const t = new OffscreenCanvas(4, 4), x = t.getContext('2d'); if (!x || !t.convertToBlob || !t.transferToImageBitmap) return;
+      const src = id => { const e = document.getElementById(id); return e ? e.textContent : ''; };
+      const ink = src('jsInk'), art = src('jsArt'), fx1 = src('jsFx1'); if (!ink || !art || !fx1) return;
+      const code = '"use strict";self.window=self;self.document={createElement:function(){return new OffscreenCanvas(1,1);}};\n' + ink + '\n' + art + '\n' + fx1 + '\n(' + workerMain.toString() + ')();';
+      const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+      Q.mode = 'worker';
+      // ui: small urgent pictures (decorations, scroll mounts, sprites, seals); fx: the board sheet and effect textures;
+      // scene: the big full-screen art (paper, menu hills and title, lobby, game background), so a menu still being painted
+      // never holds up the next screen's frames
+      for (const lane of ['ui', 'fx', 'scene']) {
+        const w = new Worker(url), L = { w, lane, ready: false, dead: false };
+        w.onmessage = e => onMsg(L, e.data);
+        w.onerror = e => { e.preventDefault && e.preventDefault(); laneDead(L, 'error ' + (e.message || '')); };
+        Q.lanes[lane] = L;
+      }
+      // a worker that never says hello (blocked by a content policy, say) is given up after 4 s
+      setTimeout(() => { for (const L of Object.values(Q.lanes)) if (!L.ready) laneDead(L, 'no ready'); }, 4000);
+    } catch (e) { Q.mode = 'main'; }
+  }
+  function laneDead(L, why) {
+    if (L.dead) return; L.dead = true; try { L.w.terminate(); } catch (e) { }
+    if (Object.values(Q.lanes).every(l => l.dead)) Q.mode = 'main';
+    for (const [id, j] of Q.pend) if (j.lane === L) { j.lane = null; toMain(j); }
+  }
+  function onMsg(L, m) {
+    if (m.t === 'ready') { L.ready = true; return; }
+    if (m.t === 'fonts') { if (m.gen !== Q.fontGen) return; if (!m.ok) Q.wFonts = false; else if (Q.wFonts !== false) Q.wFonts = true; return; }
+    const j = Q.pend.get(m.id); if (!j) return;
+    if (m.t === 'done') { Q.pend.delete(m.id); Q.stats.worker++; j.ok(unpackRes(j, m.res)); return; }
+    if (m.t === 'err') {
+      if (m.msg === 'dropped') { Q.pend.delete(m.id); j.no('dropped'); return; }
+      if (m.msg !== 'nofonts') console.warn('art worker:', j.fn, m.msg);
+      j.lane = null; toMain(j);
+    }
+  }
+  const unpackRes = (j, r) => j.out === 'png' ? r : unpack(r);
+  // {__cv: ImageBitmap} stays an ImageBitmap (drawImage takes it) unless a sibling context needs a real canvas
+  function unpack(v) {
+    if (v == null || typeof v !== 'object') return v;
+    if (v.__cv) return v.__cv;
+    if (ArrayBuffer.isView(v) || (window.ImageData && v instanceof ImageData) || (window.ImageBitmap && v instanceof ImageBitmap) || (window.Blob && v instanceof Blob)) return v;
+    if (Array.isArray(v)) return v.map(unpack);
+    const o = {}, cx = [];
+    for (const k of Object.keys(v)) { const e = v[k]; if (e && e.__cx) cx.push([k, e.__cx]); else o[k] = unpack(e); }
+    for (const [k, sib] of cx) { let c = o[sib]; if (!(c instanceof HTMLCanvasElement)) { const n = document.createElement('canvas'); n.width = c.width; n.height = c.height; n.getContext('2d').drawImage(c, 0, 0); if (c.close) c.close(); o[sib] = c = n; } o[k] = c.getContext('2d'); }
+    return o;
+  }
+  // ---- the page's own queue: one job per idle slot (urgent ones on the next task), most urgent first
+  function toMain(j) { Q.mainQ.push(j); kickMain(); }
+  function kickMain() {
+    if (Q.mainT || !Q.mainQ.length) return;
+    const urgent = Q.mainQ.some(j => j.pri <= 1);
+    const go = () => { Q.mainT = 0; runMain(); };
+    Q.mainT = 1;
+    if (urgent || !window.requestIdleCallback) setTimeout(go, urgent ? 0 : 16); else requestIdleCallback(go, { timeout: 400 });
+  }
+  function runMain() {
+    if (!Q.mainQ.length) return;
+    let bi = 0; for (let i = 1; i < Q.mainQ.length; i++) if (Q.mainQ[i].pri < Q.mainQ[bi].pri) bi = i;
+    const j = Q.mainQ.splice(bi, 1)[0];
+    if (!Q.pend.has(j.id)) { kickMain(); return; }
+    let res;
+    try {
+      res = AP.RUN[j.fn](j.a);
+      Q.pend.delete(j.id); Q.stats.main++;
+      if (j.out === 'png') { const c = res; c.toBlob(b => { c.width = c.height = 0; b ? j.ok(b) : j.no('toBlob'); }); }
+      else j.ok(j.fn === 'fx1' ? null : res);
+    } catch (e) { Q.pend.delete(j.id); console.error(e); j.no(e); }
+    kickMain();
+  }
+  // ---- public: run(fn, args, {lane, pri, out:'bmp'|'png', fonts}) → Promise of the result
+  function run(fn, a, o) {
+    o = o || {};
+    const id = ++Q.seq, j = { id, fn, a, pri: o.pri == null ? 5 : o.pri, out: o.out || 'bmp', fonts: !!o.fonts, lane: null };
+    const p = new Promise((ok, no) => { j.ok = ok; j.no = no; });
+    p.jobId = id; Q.pend.set(id, j);
+    const L = Q.mode === 'worker' && Q.lanes[o.lane || 'ui'];
+    if (L && !L.dead && !(j.fonts && Q.wFonts === false)) { j.lane = L; L.w.postMessage({ t: 'job', id, fn, a, pri: j.pri, out: j.out, fonts: j.fonts }); }
+    else toMain(j);
+    return p;
+  }
+  function bump(p, pri) { const j = p && Q.pend.get(p.jobId); if (!j || j.pri <= pri) return; j.pri = pri; if (j.lane) j.lane.w.postMessage({ t: 'pri', id: j.id, pri }); else kickMain(); }
+  function drop(ps) { const by = new Map(); for (const p of ps) { const j = p && Q.pend.get(p.jobId); if (!j) continue; if (j.lane) { if (!by.has(j.lane)) by.set(j.lane, []); by.get(j.lane).push(j.id); } else { Q.pend.delete(j.id); j.no('dropped'); } } for (const [L, ids] of by) L.w.postMessage({ t: 'drop', ids }); }
+  // the workers load the web fonts from the page's own files (by then in the HTTP cache)
+  // (sent again with the real files when they arrive after the cut-off: the workers then load them and take font jobs again)
+  function fonts(list, check) { if (Q.mode !== 'worker') { Q.wFonts = false; return; } const gen = ++Q.fontGen; if (list.length) Q.wFonts = null; for (const L of Object.values(Q.lanes)) if (!L.dead) L.w.postMessage({ t: 'fonts', list, check, gen }); }
+  function fxReset(keep) { for (const L of Object.values(Q.lanes)) if (!L.dead) L.w.postMessage({ t: 'fxReset', keep }); }
+  start();
+  return { run, bump, drop, fonts, fxReset, get mode() { return Q.mode; }, get wFonts() { return Q.wFonts; }, Q };
+})();
+// =====================================================================================================
+// app part 1 — basics, fonts, sprites, painted decorations (.dk), sheets, paper, menu / lobby / game background art.
+// Nothing here paints pixels itself any more: it measures the page, asks the art queue (part 0) for a picture and
+// puts the picture in place when it arrives. Until then every element has a plain CSS stand-in (.nodk / .sheet.raw).
 // =====================================================================================================
 const $=id=>document.getElementById(id);
 const I=window.InkA, IP=I.P, rgba=I.rgba;
-// theme handed to FX1 (its "A" palette; boardPaper matches the board's 画心 so the win/rewind veils blend in)
-const TH={name:'宣纸水墨',dark:false,paper:'#efe6d3',paperRGB:[239,230,211],ink:[22,22,24],line:[40,36,32],accent:[176,42,32],accent2:[52,96,128],boardPaper:'#f4eedf',gold:[176,138,64],text:'#1c1a17',mute:'#6f6656'};
+const TH=AP.TH;
 const RM=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 const SPD=RM?.55:1;                                            // effect duration factor (reduced motion: shorter, no shake)
-const dprArt=()=>Math.min(2,window.devicePixelRatio||1);       // soft full-screen art (paper, mountains)
+const dprArt=()=>Math.min(2,window.devicePixelRatio||1);       // soft full-screen art (paper, mountains), sheets
 const dprHi=()=>Math.min(3,window.devicePixelRatio||1);        // board, sprites, decorations
 const idle=()=>new Promise(r=>window.requestIdleCallback?requestIdleCallback(r,{timeout:80}):setTimeout(r,16));
 const raf=()=>new Promise(r=>requestAnimationFrame(r));
 const mq=q=>!!(window.matchMedia&&matchMedia(q).matches);
 const MENU_LAND_Q='(min-aspect-ratio:23/20) and (max-height:540px)';
 function cnv(w,h){const c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c;}
-const INK=[26,23,20];
+// put a finished picture (ImageBitmap or canvas) on a canvas; css: its CSS size (so a later viewport change only crops it)
+function blitTo(c,img,css){c.width=img.width;c.height=img.height;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);x.drawImage(img,0,0);if(css){c.style.width=css[0]+'px';c.style.height=css[1]+'px';}}
+const isBmp=v=>!!(window.ImageBitmap&&v instanceof ImageBitmap);
 
 // ---------- fonts: never block the game. Art is built after the fonts or after 3.2 s, whichever is first;
 // if they arrive later, everything that drew text on canvas is rebuilt once.
 let fontsLoaded=false,artFontsOK=false,fontsSettled=false;   // settled: loaded, or the 3.2 s cut-off passed
+const FONT_FILES=[['Ma Shan Zheng','fonts/ma-shan-zheng-400.woff2',{}],['Noto Serif SC','fonts/noto-serif-sc-400.woff2',{weight:'400'}],['Zhi Mang Xing','fonts/zhi-mang-xing-400.woff2',{}]];
+const ZMX_CHARS='溯胜封印回移形迷雾震荡策反';   // every glyph FX1 / FX2 write in Zhi Mang Xing
 const fontLoad=(()=>{
   try{
     if(!document.fonts||!document.fonts.load)return Promise.resolve(false);
-    return Promise.all([document.fonts.load('40px "Ma Shan Zheng"','技能五子棋泉封溯移雾震策'),document.fonts.load('16px "Noto Serif SC"','五子连珠'),document.fonts.load('40px "Zhi Mang Xing"','溯胜')])
+    return Promise.all([document.fonts.load('40px "Ma Shan Zheng"','技能五子棋泉封溯移雾震策'),document.fonts.load('16px "Noto Serif SC"','五子连珠'),document.fonts.load('40px "Zhi Mang Xing"',ZMX_CHARS)])
       .then(()=>{fontsLoaded=document.fonts.check('40px "Ma Shan Zheng"','五');return fontsLoaded;},()=>false);
   }catch(e){return Promise.resolve(false);}
 })();
 const fontsReady=Promise.race([fontLoad,new Promise(r=>setTimeout(()=>r(false),3200))]);
+// the art workers load the same files (from the HTTP cache by then) once the page has them. Fonts not in by the
+// 3.2 s cut-off: the workers are told there are none for now (font jobs are painted here with the fallback faces,
+// like everything else at that point); when the files do arrive, the workers are sent them and take font jobs again.
+let fontsSent='';   // '' | 'none' | 'real'
+const sendFonts=list=>{const k=list.length?'real':'none';if(fontsSent==='real'||fontsSent===k)return;fontsSent=k;AQ.fonts(list,[['40px "Ma Shan Zheng"','五'],['40px "Zhi Mang Xing"','溯']]);};
+fontLoad.then(ok=>{const base=document.baseURI;sendFonts(ok?FONT_FILES.map(([family,u,desc])=>({family,url:new URL(u,base).href,desc})):[]);});
+fontsReady.then(ok=>{if(!ok)sendFonts([]);});
 
-// ---------- small sprites, exposed to CSS as custom properties on :root
-function sprite(w,h,fn){const s=dprHi(),c=cnv(w*s,h*s);fn(c.getContext('2d'),c.width,c.height,s);return c;}
-function setVar(name,c){document.documentElement.style.setProperty('--'+name,`url("${c.toDataURL()}")`);}
-const SKG={seal:'封',rewind:'溯',shift:'移',fog:'雾',shock:'震',turn:'策'};
-function sealC(px,ch,o){const s=dprHi();return I.seal(px*s,ch,Object.assign({seed:ch.charCodeAt(0)%97},o||{}));}
-// sprites are built in small jobs (one skill's chips per job), so start-up never blocks a tap for long
-function spriteJobs(){
-  const s=dprHi(),J=[];
-  J.push(()=>{   // menu seal chips (static elements) first: they are on screen
-    document.querySelectorAll('.mb .chip[data-seal]').forEach((el,i)=>{const ch=el.dataset.seal,zhu=ch==='续';
-      el.style.backgroundImage=`url("${sprite(36,36,(x,w,h)=>{const sc=sealC(32,ch,{color:zhu?IP.zhu:[48,42,36],seed:ch.charCodeAt(0)%97});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}).toDataURL()}")`;
-      el.style.transform=`rotate(${[-2,-3,2,-1.5][i]||0}deg)`;});
-  });
-  J.push(()=>{
-    const icon=p=>sprite(26,26,(x,w,h)=>FX1.stone(x,w/2,h/2,10.4*s,p,TH,{dpr:1}));
-    setVar('sp-stB',icon(1));setVar('sp-stW',icon(2));
-    const dab=(lit,sz,seed)=>sprite(sz,sz,(x,w,h)=>I.waterDab(x,w/2,h/2,w*.33,lit,-.3,seed,{round:1,ringInk:[40,36,32],ringA:.4}));
-    setVar('sp-pip1',dab(true,14,3));setVar('sp-pip0',dab(false,14,3));setVar('sp-cost',dab(true,12,7));
-    for(let pg=0;pg<4;pg++)setVar('sp-spr'+pg,sprite(25,16,(x,w,h,s)=>{for(let k=0;k<3;k++)I.waterDab(x,(4.6+k*7.9)*s,h/2+.8*s,3.1*s,k<pg,-1.75,k+3,{ringA:.62});}));
-  });
-  for(const k of ORDER)J.push(()=>{
-    const g=SKG[k];
-    setVar('sp-c-'+k,sprite(46,46,(x,w,h)=>{const sc=sealC(42,g,{color:INK});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
-    setVar('sp-z-'+k,sprite(46,46,(x,w,h)=>{const sc=sealC(42,g,{color:IP.zhu});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
-    setVar('sp-g-'+k,sprite(46,46,(x,w,h,s)=>{const sc=sealC(40,g,{seed:11,color:[128,120,108]});x.globalAlpha=.7;x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);x.globalAlpha=1;
-      I.brush(x,[[w*.1,h*.86,.3],[w*.3,h*.66,.9],[w*.7,h*.3,.8],[w*.92,h*.1,.2]],{w:3.4*s,a:.78,seed:23,dry:.45,dryFrom:.35,lanes:7,bleed:0,fibre:.4,streakLen:12*s});}));
-  });
-  J.push(()=>{
-    setVar('sp-need',sprite(34,34,(x,w,h)=>{const sc=sealC(30,'能量不足',{seed:17,type:'zhu',border:.08,color:[44,38,33],rows:1});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
-    setVar('sp-used',sprite(34,34,(x,w,h)=>{const sc=sealC(28,'已用',{seed:19,type:'zhu',border:.09,color:[44,38,33]});x.drawImage(sc,(w-sc.width)/2,(h-sc.height)/2);}));
-    setVar('sp-tick',sprite(6,14,(x,w,h,s)=>I.brush(x,[[w*.55,h*.08,.5],[w*.45,h*.5,.9],[w*.5,h*.92,.3]],{w:2.2*s,a:.4,seed:4,bleed:0,dry:.2,dryFrom:.5,lanes:4,fibre:.3})));
-  });
-  J.push(()=>{
-    setVar('sp-five',sprite(38,36,(x,w,h,s)=>I.drawWu(x,1*s,-3*s,36*s,{seed:1,wu:38,over:{bleed:.1,lanes:18}})));
-    setVar('sp-hl',sprite(52,8,(x,w,h,s)=>{const cy=h/2;I.brush(x,[[w*.02,cy,.1],[w*.5,cy,.7],[w*.86,cy,.9],[w*.97,cy,.4]],{w:1.7*s,a:.62,seed:2,bleed:0,dry:0,fibre:.2});
-      x.fillStyle=rgba([30,26,22],.85);x.beginPath();x.ellipse(w-2.2*s,cy,1.9*s,1.6*s,.4,0,7);x.fill();}));
-    setVar('sp-cbox',sprite(54,62,(x,w,h,s)=>{I.slip(x,3*s,3*s,w-6*s,h-6*s,{s,tile:paperTile(),seed:61,shadow:.12,sy:1.2,deckle:.6});I.frame(x,6.5*s,6.5*s,w-13*s,h-13*s,.9*s,.5,62,{over:1.5*s,ink:[40,34,28]});}));
-  });
-  return J;
+// ---------- sprites, exposed to CSS as custom properties on :root (blob URLs, never synchronous PNG encodes)
+const SPRITE_URL=new Map();
+function setVarURL(name,url){document.documentElement.style.setProperty('--'+name,`url("${url}")`);}
+function spriteJob(name,arg,pri,apply){
+  const s=dprHi(),fonts=!!AP.SPRITE_FONTS[name];
+  return AQ.run('sprite',{name,s,arg},{lane:'ui',pri,out:'png',fonts}).then(b=>{const u=URL.createObjectURL(b);apply(u);return u;},()=>null);
 }
-function buildSprites(){for(const j of spriteJobs())j();}
-async function buildSpritesAsync(){for(const j of spriteJobs()){try{j();}catch(e){console.error(e);}await new Promise(r=>setTimeout(r,0));}}
-let _tile=null;
-function paperTile(){if(!_tile){const s=dprHi();_tile=I.paper(420*s,320*s,{s,seed:21,base:[247,242,230],edge:0,drift:.5,floc:.8,fibre:.7});}return _tile;}
+function spriteList(){
+  const L=[];
+  document.querySelectorAll('.mb .chip[data-seal]').forEach((el,i)=>{const ch=el.dataset.seal;L.push(['chip',ch,1,u=>{const o=SPRITE_URL.get(el);el.style.backgroundImage=`url("${u}")`;el.style.transform=`rotate(${[-2,-3,2,-1.5][i]||0}deg)`;SPRITE_URL.set(el,u);if(o)URL.revokeObjectURL(o);}]);});
+  const v=(n,a,pri,name)=>L.push([n,a,pri,u=>{const k=name||n,o=SPRITE_URL.get(k);setVarURL('sp-'+k,u);SPRITE_URL.set(k,u);if(o)URL.revokeObjectURL(o);}]);
+  v('five',null,1);v('stB',null,2);v('stW',null,2);v('pip1',null,2);v('pip0',null,2);v('cost',null,2);
+  for(let pg=0;pg<4;pg++)v('spr',pg,2,'spr'+pg);
+  for(const k of ORDER){v('c',k,2,'c-'+k);v('z',k,3,'z-'+k);v('g',k,3,'g-'+k);}
+  v('need',null,3);v('used',null,3);v('tick',null,2);v('hl',null,2);v('cbox',null,3);
+  return L;
+}
+function buildSprites(){return Promise.all(spriteList().map(([n,a,pri,apply])=>spriteJob(n,a,pri,apply)));}
+const buildSpritesAsync=buildSprites;
 
-// ---------- painted decorations: every .dk element gets an art layer sized to it, cached by kind + size
-const DECO=new Map(),DECO_MAX=48;   // data URLs by kind + size, least recently used dropped first
-const PAINT={
-  card:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:81,shadow:.1,sy:1.5,tone:'rgba(241,234,218,.45)'});}},
-  cardOn:{pad:10,paint(x,X,Y,W,H,s,el){
-    I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:80,shadow:.24,sy:3});
-    I.brushFrame2(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,4.6*s,{seed:9,over:6*s});
-    const st=el.querySelector('.st');if(!st)return;
-    const a=st.getBoundingClientRect(),b=el.getBoundingClientRect(),cx=X+(a.left-b.left+a.width/2)*s,cy=Y+(a.top-b.top+a.height/2)*s,R=17*s,cp=[];
-    for(let k=0;k<=10;k++){const an=-2.4+k/10*5.75;cp.push([cx+Math.cos(an)*R*(1+.03*Math.sin(k)),cy+Math.sin(an)*R,k===0?.4:k<3?.95:1-.55*k/10]);}
-    I.brush(x,cp,{w:3.6*s,ecc:.75,ink:IP.zhu,inkLight:[214,120,100],a:.95,seed:14,load:t=>.98-.3*t,dry:.45,dryFrom:.62,dryRamp:.25,lanes:6,streakLen:10*s,bleed:0,fibre:.4});}},
-  skill:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:121,shadow:.1,sy:1.4});}},
-  skillOff:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:122,shadow:.08,sy:1.2,tone:'rgba(232,226,212,.5)'});}},
-  skillSel:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:120,shadow:.24,sy:3});I.brushFrame2(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,4.6*s,{seed:19,over:6*s});}},
-  ghost:{pad:10,paint(x,X,Y,W,H,s){I.frame(x,X+2*s,Y+2*s,W-4*s,H-4*s,.8*s,.22,171,{over:0,ink:[60,50,40]});}},
-  act:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:150,shadow:.12,sy:1.5});I.frame(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,.9*s,.55,160,{over:2*s,ink:[40,34,28]});}},
-  slip:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:151,shadow:.12,sy:1.5});I.frame(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,.9*s,.5,161,{over:2*s,ink:[40,34,28]});}},
-  slipSm:{pad:7,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:152,shadow:.1,sy:1.2,deckle:.7});I.frame(x,X+3*s,Y+3*s,W-6*s,H-6*s,.8*s,.38,162,{over:1.5*s,ink:[40,34,28]});}},
-  pick:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:131,shadow:.1,sy:1.4});I.frame(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,.8*s,.3,132,{over:1.5*s,ink:[40,34,28]});}},
-  pickSel:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:130,shadow:.22,sy:2.6});I.brushFrame2(x,X+3*s,Y+3*s,W-6*s,H-6*s,4*s,{seed:29,over:5*s});}},
-  cta:{pad:14,paint(x,X,Y,W,H,s){I.ctaStroke(x,X+2*s,Y+H*.04,W-4*s,H*.92,{seed:31});}},
-  ink:{pad:10,paint(x,X,Y,W,H,s){I.ctaStroke(x,X+1*s,Y+H*.06,W-2*s,H*.88,{seed:33,dryFrom:.78,dryTo:.95,streakLen:W*.1});}},
-  resume:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:171,shadow:.22,sy:2.4});I.frame(x,X+4*s,Y+4*s,W-8*s,H-8*s,.9*s,.5,172,{over:2*s,ink:[40,34,28]});}},
-  cin:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:181,shadow:.14,sy:1.6});I.frame(x,X+4*s,Y+4*s,W-8*s,H-8*s,1*s,.62,182,{over:2.5*s,ink:[36,30,24]});}},
-  bubble:{pad:8,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:140,shadow:.22,sy:2,deckle:.7});I.ruled(x,X+W*.5,Y+3.5*s,X+W*.5,Y+5*s,.5*s,.01,1);
-    x.fillStyle=rgba(IP.zhu,.85);x.beginPath();x.ellipse(X+W/2,Y+4.2*s,1.7*s,1.5*s,.3,0,7);x.fill();}},
-  toast:{pad:10,paint(x,X,Y,W,H,s){I.slip(x,X,Y,W,H,{s,tile:paperTile(),seed:190,shadow:.26,sy:2.6,deckle:.8});I.frame(x,X+3.5*s,Y+3.5*s,W-7*s,H-7*s,.8*s,.4,191,{over:1.5*s,ink:[40,34,28]});}},
-};
+// ---------- painted decorations: every .dk element gets an art layer sized to it, cached by kind + size.
+// The picture is a PNG blob made off the page's thread; the element keeps its previous picture (or its CSS stand-in)
+// until the new one is ready, so a tap never waits for a brush.
+const DECO=new Map(),DECO_MAX=64,DECO_PEND=new Map();   // key → blob URL (least recently used dropped first); key → pending
 function kindOf(el){
   const c=el.classList;
   if(el.id==='mResume')return 'resume';
@@ -3026,119 +3553,112 @@ function kindOf(el){
   if(el.parentNode&&el.parentNode.classList.contains('actions'))return 'act';
   return 'slip';
 }
-function deco(el){
+// the active player card rings its stone: where the stone sits inside the card is part of the picture
+function decoExtra(kind,el){
+  if(kind!=='cardOn')return null;
+  const st=el.querySelector('.st');if(!st)return null;
+  const a=st.getBoundingClientRect(),b=el.getBoundingClientRect(),x=Math.round((a.left-b.left+a.width/2)*2)/2,y=Math.round((a.top-b.top+a.height/2)*2)/2;
+  return {e:{st:[x,y]},k:x+','+y};
+}
+const onScreen=el=>{if(el.closest('[hidden]'))return false;const sc=el.closest('.screen');return !(sc&&sc.style.visibility==='hidden');};
+function decoKey(el,kind){const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return null;const ex=decoExtra(kind,el);return {w,h,ex,key:kind+'|'+w+'x'+h+'|'+dprHi()+(ex?'|'+ex.k:'')};}
+function applyDeco(el,kind,key,url){
+  el._dk=key;el.style.setProperty('--deco',`url("${url}")`);el.style.setProperty('--pad',AP.PAINT[kind].pad+'px');
+  if(el.classList.contains('nodk')){el.classList.remove('nodk');el.classList.add('dkin');clearTimeout(el._dkT);el._dkT=setTimeout(()=>el.classList.remove('dkin'),400);}
+}
+// ask for the picture of (kind, size) — used for the element itself and to have its other states ready
+function decoWant(kind,w,h,ex,key,pri){
+  if(DECO.has(key))return null;
+  let pd=DECO_PEND.get(key);
+  if(pd){if(pri<pd.pri){pd.pri=pri;AQ.bump(pd.job,pri);}return pd;}
+  pd={els:new Set(),pri};DECO_PEND.set(key,pd);
+  pd.job=AQ.run('deco',{kind,w,h,s:dprHi(),e:ex&&ex.e},{lane:'ui',pri,out:'png'});   // the queue's own promise (AQ.bump finds the job by it)
+  pd.job.then(b=>{
+    DECO_PEND.delete(key);const url=URL.createObjectURL(b);DECO.set(key,url);decoEvict();
+    for(const el of pd.els)if(el._want===key&&el.isConnected)applyDeco(el,kind,key,url);
+  },()=>{DECO_PEND.delete(key);});
+  return pd;
+}
+function decoEvict(){
+  if(DECO.size<=DECO_MAX)return;
+  const used=new Set();document.querySelectorAll('.dk').forEach(e=>{if(e._dk)used.add(e._dk);});
+  for(const k of [...DECO.keys()]){if(DECO.size<=DECO_MAX)break;if(used.has(k))continue;URL.revokeObjectURL(DECO.get(k));DECO.delete(k);}
+}
+function deco(el,pri){
   if(!el||!el.isConnected)return;
+  const kind=kindOf(el),K=decoKey(el,kind);if(!K)return;
+  const {key}=K;if(el._dk===key){el._want=key;return;}
+  el._want=key;
+  const url=DECO.get(key);
+  if(url){DECO.delete(key);DECO.set(key,url);applyDeco(el,kind,key,url);return;}
+  if(!el._dk)el.classList.add('nodk');
+  const pd=decoWant(kind,K.w,K.h,K.ex,key,pri==null?(onScreen(el)?0:4):pri);
+  if(pd)pd.els.add(el);
+}
+// the other looks an element can switch to (a card becoming active, a skill armed or out of reach, a pick chosen)
+const DECO_ALT={card:['cardOn'],cardOn:['card'],skill:['skillSel','skillOff'],skillOff:['skill','skillSel'],skillSel:['skill','skillOff'],pick:['pickSel'],pickSel:['pick']};
+function decoAlts(el,pri){
+  const kind=kindOf(el),alts=DECO_ALT[kind];if(!alts)return;
   const w=el.offsetWidth,h=el.offsetHeight;if(!w||!h)return;
-  const kind=kindOf(el),P=PAINT[kind],s=dprHi(),key=kind+'|'+w+'x'+h+'|'+s;   // no PAINT kind draws text: fonts never matter
-  if(el._dk===key)return;
-  let url=DECO.get(key);
-  if(url){DECO.delete(key);DECO.set(key,url);}   // LRU: most recent last
-  else{const pad=P.pad,c=cnv((w+pad*2)*s,(h+pad*2)*s);try{P.paint(c.getContext('2d'),pad*s,pad*s,w*s,h*s,s,el);}catch(e){}url=c.toDataURL();c.width=c.height=0;DECO.set(key,url);
-    while(DECO.size>DECO_MAX)DECO.delete(DECO.keys().next().value);}
-  el._dk=key;el.style.setProperty('--deco',`url("${url}")`);el.style.setProperty('--pad',P.pad+'px');
+  for(const k of alts){if(k==='cardOn'){const ex=decoExtra('cardOn',el);if(!ex)continue;decoWant(k,w,h,ex,k+'|'+w+'x'+h+'|'+dprHi()+'|'+ex.k,pri);}else decoWant(k,w,h,null,k+'|'+w+'x'+h+'|'+dprHi(),pri);}
 }
 const decoRO=window.ResizeObserver?new ResizeObserver(es=>{if(!artReady)return;for(const e of es)deco(e.target);}):null;
-function decoWatch(root){(root||document).querySelectorAll('.dk').forEach(el=>{if(!el._ro){el._ro=1;decoRO&&decoRO.observe(el);}if(artReady)deco(el);});}
-let artReady=false,spritesReady=false;   // art: frames and screen art may paint (boot); sprites: fonts settled, sprites built
+function decoWatch(root,pri){(root||document).querySelectorAll('.dk').forEach(el=>{if(!el._ro){el._ro=1;decoRO&&decoRO.observe(el);}if(artReady){deco(el,pri);decoAlts(el,pri==null?6:Math.max(pri,5));}});}
+let artReady=false,spritesReady=false;   // art: frames and screen art may be asked for (boot); sprites: all sprites in
 
-// ---------- overlay sheets: a mounted paper scroll (silk border, 画心, rods with knobs, a 闲章 in the corner)
-function paintScroll(x,W,H,s,seal,dock){
-  const m=14*s,t=12*s,X=m,Y=t,w=W-2*m,h=H-2*t;
-  // soft lift shadow
-  { const k=6,b=16*s,sw=Math.ceil((w+b*2)/k),sh=Math.ceil((h+b*2)/k),Sh=cnv(sw,sh),sx=Sh.getContext('2d');sx.fillStyle='rgba(60,40,18,.34)';sx.fillRect(b/k,b/k,w/k,h/k);
-    x.save();x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(Sh,X-b,Y-b+5*s,sw*k,sh*k);x.restore(); }
-  // silk mount (绫): warm celadon-beige with a faint woven sheen
-  const silk=x.createLinearGradient(0,Y,0,Y+h);silk.addColorStop(0,'#d9cfb6');silk.addColorStop(.5,'#e1d8c1');silk.addColorStop(1,'#d5caaf');
-  x.fillStyle=silk;x.fillRect(X,Y,w,h);
-  { const r=I.rng(77);x.globalAlpha=.07;x.fillStyle='#fff';for(let yy=Y;yy<Y+h;yy+=2*s){if(r()<.5)x.fillRect(X,yy,w,.6*s);}x.globalAlpha=1; }
-  x.strokeStyle='rgba(120,98,66,.45)';x.lineWidth=1*s;x.strokeRect(X+.5*s,Y+.5*s,w-s,h-s);
-  // 画心 paper
-  const bx=X+6*s,by=Y+(dock?7:12)*s,bw=w-12*s,bh=h-(dock?14:24)*s;
-  x.save();const pat=x.createPattern(paperTile(),'repeat');x.fillStyle=pat;x.fillRect(bx,by,bw,bh);
-  const vg=x.createRadialGradient(bx+bw/2,by+bh*.45,Math.min(bw,bh)*.3,bx+bw/2,by+bh/2,Math.hypot(bw,bh)*.62);vg.addColorStop(0,'rgba(255,252,242,.18)');vg.addColorStop(1,'rgba(160,128,84,.12)');x.fillStyle=vg;x.fillRect(bx,by,bw,bh);x.restore();
-  x.strokeStyle='rgba(90,70,44,.38)';x.lineWidth=.8*s;x.strokeRect(bx,by,bw,bh);
-  I.frame(x,bx+5*s,by+5*s,bw-10*s,bh-10*s,.7*s,.26,201,{over:0,ink:[70,56,40]});
-  // rods (天杆 / 地轴) with knobs
-  const rod=(ry,hh,knob)=>{
-    const g=x.createLinearGradient(0,ry-hh/2,0,ry+hh/2);g.addColorStop(0,'#5c4330');g.addColorStop(.35,'#8a6a4c');g.addColorStop(.6,'#4a3424');g.addColorStop(1,'#2a1d14');
-    x.fillStyle=g;x.fillRect(X-2*s,ry-hh/2,w+4*s,hh);
-    if(knob)for(const ex of [X-2*s-knob,X+w+2*s]){const kg=x.createLinearGradient(0,ry-hh*.8,0,ry+hh*.8);kg.addColorStop(0,'#efe6d0');kg.addColorStop(.45,'#cdbf9e');kg.addColorStop(1,'#8e7e5c');
-      x.fillStyle=kg;x.beginPath();x.roundRect?x.roundRect(ex,ry-hh*.8,knob,hh*1.6,2*s):x.rect(ex,ry-hh*.8,knob,hh*1.6);x.fill();x.strokeStyle='rgba(60,44,28,.5)';x.lineWidth=.8*s;x.stroke();}
-  };
-  if(!dock){rod(Y+1*s,7*s,0);rod(Y+h-1*s,10*s,7*s);}
-  else{rod(Y+1*s,6*s,6*s);}
-  // 闲章 (seal) in the upper right of the 画心
-  if(seal){const n=[...seal].length,sz=(n>1?26:32)*s,sc=I.seal(sz,seal,{seed:seal.charCodeAt(0)%89,type:n===2?'zhu':'bai',h:n===2?1.62:1,border:.09,fs:n===1?.7:undefined});
-    I.stamp(x,sc,bx+bw-14*s-sc.width/2,by+16*s+sc.height/2,-.03,.92);}
+// ---------- overlay sheets: a mounted paper scroll (silk border, 画心, rods with knobs, a 闲章 in the corner).
+// The mount is painted once per size and kept (a few sizes); the 闲章 is its own small picture stamped on top.
+const SCROLL=new Map(),SCROLL_MAX=8,SCROLL_PEND=new Map(),SEALS=new Map();
+const sheetS=()=>dprArt();
+function scrollWant(w,h,dock,pri){
+  const s=sheetS(),key=w+'x'+h+'|'+s+'|'+dock;
+  if(SCROLL.has(key))return null;
+  let pd=SCROLL_PEND.get(key);if(pd){if(pri<pd.pri){pd.pri=pri;AQ.bump(pd.job,pri);}return pd;}
+  pd={pri,key};SCROLL_PEND.set(key,pd);
+  pd.job=AQ.run('scroll',{w,h,s,seal:null,dock},{lane:'ui',pri,out:'bmp'});
+  pd.job.then(bmp=>{
+    SCROLL_PEND.delete(key);SCROLL.set(key,bmp);
+    while(SCROLL.size>SCROLL_MAX){const k=SCROLL.keys().next().value;if(document.querySelector('.sheet>canvas.sdeco[data-k="'+k+'"]'))break;const b=SCROLL.get(k);SCROLL.delete(k);if(b&&b.close)b.close();}
+    document.querySelectorAll('.overlay:not([hidden])>.sheet').forEach(sh=>{if(sh._want===key)paintSheet(sh);});
+  },()=>SCROLL_PEND.delete(key));
+  return pd;
 }
-// one canvas per sheet, painted when it opens and freed when it closes (no second copy is kept)
+function sealWant(seal){
+  if(!seal||SEALS.has(seal))return SEALS.get(seal);
+  if(!fontsSettled&&!(AQ.mode==='worker'&&AQ.wFonts!==false))return null;   // painted here: only once the fonts settled
+  const s=sheetS(),p=AQ.run('scrollSeal',{seal,s},{lane:'ui',pri:1,out:'bmp',fonts:true}).then(r=>{SEALS.set(seal,r);document.querySelectorAll('.overlay:not([hidden])>.sheet').forEach(sh=>{if((sh.dataset.seal||'')===seal){const c=sh.querySelector(':scope>canvas.sdeco');if(c)c._k='';paintSheet(sh);}});return r;},()=>{SEALS.delete(seal);});
+  SEALS.set(seal,null);return null;
+}
 function paintSheet(sh){
   const w=sh.offsetWidth,h=sh.offsetHeight;if(!w||!h)return;
   let c=sh.querySelector(':scope>canvas.sdeco');if(!c){c=document.createElement('canvas');c.className='sdeco';c.setAttribute('aria-hidden','true');sh.prepend(c);}
-  const s=dprHi(),seal=sh.dataset.seal||'',dock=sh.classList.contains('result'),key=w+'x'+h+'|'+s+'|'+seal+'|'+dock+(artFontsOK?'':'~');
-  if(c._k===key)return;
-  const W=Math.round((w+28)*s),H=Math.round((h+24)*s);c.width=W;c.height=H;
-  paintScroll(c.getContext('2d'),W,H,s,seal,dock);c._k=key;
+  const s=sheetS(),seal=sh.dataset.seal||'',dock=sh.classList.contains('result'),key=w+'x'+h+'|'+s+'|'+dock,sk=SEALS.get(seal);
+  sh._want=key;
+  const full=key+'|'+seal+'|'+(sk?1:0);if(c._k===full)return;
+  const bmp=SCROLL.get(key);
+  if(!bmp){sh.classList.add('raw');scrollWant(w,h,dock,0);sealWant(seal);return;}
+  SCROLL.delete(key);SCROLL.set(key,bmp);
+  blitTo(c,bmp);c.dataset.k=key;c._k=full;sh.classList.remove('raw');
+  if(sk){const x=c.getContext('2d'),m=14*s,t=12*s,ww=c.width-2*m,bx=m+6*s,by=t+(dock?7:12)*s,bw=ww-12*s;x.save();x.globalCompositeOperation='multiply';x.globalAlpha=.92;x.drawImage(sk.c,bx+bw-14*s-sk.w/2-sk.c.width/2,by+16*s+sk.h/2-sk.c.height/2);x.restore();}
+  else sealWant(seal);
 }
 function freeSheet(ov){const c=ov.querySelector('.sheet>canvas.sdeco');if(c&&c._k){c.width=c.height=0;c._k='';}}
 // a sheet being resized (a window drag, a rotation) repaints once its size has been still for 150 ms
 const sheetRO=window.ResizeObserver?new ResizeObserver(es=>{if(!artReady)return;for(const e of es){const sh=e.target;clearTimeout(sh._rsT);if(performance.now()-(sh._openT||0)<500){paintSheet(sh);continue;}sh._rsT=setTimeout(()=>{if(!sh.closest('.overlay').hidden)paintSheet(sh);},150);}}):null;
 
 // ---------- full-screen paper (shared by every screen) and per-screen art
-const ART={paperKey:'',menuKey:'',titleKey:'',lobbyKey:'',gameKey:'',busy:0};   // busy: a screen's art is being painted (prewarm waits)
-async function buildPaper(){
-  const VW=innerWidth,VH=innerHeight,s=dprArt(),key=VW+'x'+VH+'@'+s;if(ART.paperKey===key)return;ART.paperKey=key;
-  const c=$('paperBg'),W=Math.round((VW+16)*s),H=Math.round((VH+16)*s);
-  const lo=I.paper(W/2,H/2,{s:s/2,seed:7,fibre:.5});if(ART.paperKey!==key)return;
-  c.width=W;c.height=H;const x=c.getContext('2d');x.imageSmoothingEnabled=true;x.drawImage(lo,0,0,W,H);
-  await idle();if(ART.paperKey!==key)return;
-  const hi=I.paper(W,H,{s,seed:7});if(ART.paperKey!==key)return;x.drawImage(hi,0,0);
+const ART={paperKey:'',menuKey:'',titleKey:'',lobbyKey:'',gameKey:'',busy:0,lobbyImg:null,menuJob:null,titleJob:null,lobbyJob:null};   // busy: a screen's art is being painted here (prewarm waits)
+// while the soft keyboard is up (a focused text field shrank only the height) the art keeps its size and is cropped
+const kbdUp=()=>{const a=document.activeElement;return !!(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')&&ART.vw===innerWidth&&innerHeight<ART.vh);};
+function busyWhile(p){if(AQ.mode!=='worker'){ART.busy++;p.then(()=>ART.busy--,()=>ART.busy--);}return p;}
+function buildPaper(){
+  const VW=innerWidth,VH=innerHeight,s=dprArt(),key=VW+'x'+VH+'@'+s;if(ART.paperKey===key)return;
+  if(ART.paperKey&&kbdUp())return;
+  ART.paperKey=key;ART.vw=VW;ART.vh=VH;
+  AQ.run('paper',{VW,VH,s},{lane:'scene',pri:0}).then(img=>{if(ART.paperKey!==key)return;const c=$('paperBg');blitTo(c,img,[VW+16,VH+16]);if(img.close)img.close();c.classList.add('in');},()=>{});
 }
 function showArt(c){requestAnimationFrame(()=>c.classList.add('in'));}
 
-// 墨梅 (menu), authored in css px at composition scale 1 (from the art direction mock-up)
-const PLUM={branches:[
-    {pts:[[-26,44,1],[2,56,1],[18,61,.96],[27,70,.92],[40,80,.9],[56,86,.84],[68,95,.78],[82,104,.7],[96,110,.6],[103,122,.5],[109,135,.36]],w:19,
-      o:{dry:.31,dryFrom:.04,dryRamp:.12,dryEdge:1.3,streakLen:16,streaky:.38,rag:.12,fibre:.85,mottle:.18,load:t=>.96-.22*t,lanes:12,edgeDry:.25}},
-    {pts:[[-10,47,.45],[10,55,.5],[22,62,.4],[34,73,.35],[50,80,.3]],w:11,a:.55,o:{dry:.7,dryFrom:0,dryRamp:.1,dryEdge:.5,streakLen:7,streaky:.5,rag:.2,fibre:1,bleed:0,load:t=>.8-.3*t,lanes:10}},
-    {pts:[[44,87,.3],[52,84,.8],[60,78,.76],[72,70,.68],[88,62,.6],[108,52,.52],[130,45,.44],[152,39,.34],[176,37,.24],[212,31,.07]],w:6.4,dry:.22,dryFrom:.25},
-    {pts:[[129,46,.8],[135,30,.55],[140,14,.38],[146,-12,.08]],w:3,o:{dry:.12,dryFrom:.6}},
-    {pts:[[80,103,.8],[72,85,.6],[65,66,.44],[55,38,.08]],w:2.9,o:{dry:.1,dryFrom:.6}},
-    {pts:[[103,120,.85],[101,146,.66],[97,168,.52],[95,200,.34],[91,238,.07]],w:3.8,o:{dry:.14,dryFrom:.5}},
-    {pts:[[103,121,.75],[122,127,.5],[137,132,.32],[152,131,.07]],w:2.7,o:{dry:0}}],
-  moss:[[20,62,1.5,5],[28,70,1.1,3],[47,83,1.3,4],[81,102,1.1,3],[100,115,1.2,4],[108,52,.9,3],[70,96,1,2]],
-  blossoms:[[138,44,12,'open',.5],[126,36,6,'bud',-2.2],[184,36,9.5,'side',-.35],[214,31,5.5,'bud',.1,1],[146,1,5,'bud',-1.3],[55,39,5,'bud',-1.9],
-    [68,94,9.5,'back',.9],[99,172,9.5,'side',1.75],[91,238,5,'bud',1.6],[150,131,11,'half',2.1],[24,60,8.5,'half',4.3]],paper:[242,236,222]};
-// widen a 390-px mountain plane to any width. The authored composition stays in the middle; beyond it the range is
-// grown, not copied: domes of varied width and height that overlap enough for every saddle to stay shallow (no
-// V-notches, no dark blots in deep saddles), lowering toward the paper's edges, each flank under its own mist band.
-function tilePlane(o,VW,X0,sx){
-  sx=sx||1;const per=390*sx,out=Object.assign({},o),r=I.rng((o.seed||1)*7+3),domes=[],mist=[],gaps=[],trees=[];
-  const f=Math.max(1,VW/per);for(const P of ['A','B','C'])if(o[P])out[P]=Object.assign({},o[P],{n:Math.round(o[P].n*f)});
-  for(const d of o.domes)domes.push(Object.assign({},d,{x:d.x*sx+X0,wl:(d.wl||d.w)*sx,wr:(d.wr||d.w)*sx,w:undefined}));
-  for(const m of (o.mist||[]))mist.push(Object.assign({},m,m.x0==null?{}:{x0:m.x0*sx+X0,x1:m.x1*sx+X0}));
-  for(const g of (o.gaps||[]))gaps.push(Object.assign({},g,{x:g.x*sx+X0}));
-  for(const tr of (o.trees||[]))trees.push(Object.assign({},tr,{x0:tr.x0*sx+X0,x1:tr.x1*sx+X0}));
-  const Hm=Math.max(...o.domes.map(d=>d.h)),wAv=o.domes.reduce((a,d)=>a+((d.wl||d.w)+(d.wr||d.w))/2,0)/o.domes.length*sx;
-  for(const dir of [-1,1]){
-    // start from the authored dome that reaches furthest out on this side
-    let prev=null;for(const d of domes){const e=dir>0?d.x+d.wr:d.x-d.wl;if(!prev||(dir>0?e>prev.e:e<prev.e))prev={d,e};}
-    let p=prev.d,n=0;
-    while(n<40&&(dir>0?p.x-p.wl<VW+40:p.x+p.wr>-40)){
-      const wl=wAv*(.75+r()*.6),wr=wAv*(.75+r()*.6),ps=dir>0?p.wr:p.wl,ns=dir>0?wl:wr;
-      const x=p.x+dir*(ps+ns)*(.5+r()*.1),dist=dir>0?x-(X0+per):X0-x;
-      const fall=1-.38*I.clamp(dist/Math.max(300,VW*.45),0,1),h=Hm*(.42+r()*.48)*fall;
-      const b=r()<.6?[[(r()-.5)*.9,.2+r()*.12,.05+r()*.06]]:[];
-      p={x,wl,wr,h,p:1,b};domes.push(p);n++;
-    }
-    // each flank gets its own band of mist, its height and softness varied, ramped in at the composition's edge
-    for(const m of (o.mist||[])){if(!o.vary||m.x0==null)continue;   // full-width bands already reach the flanks
-      const rp=70*sx,y=m.y+(r()-.5)*16,soft=(m.soft||1.5)*(1.3+r()*1.2),amt=Math.min(1,(m.amt==null?1:m.amt)*(.85+r()*.3));
-      mist.push(Object.assign({},m,dir>0?{x0:X0+per-rp,x1:X0+per+rp,x2:undefined,x3:undefined,y,soft,amt}:{x0:undefined,x1:undefined,x2:X0-rp,x3:X0+rp,y,soft,amt}));}
-  }
-  out.domes=domes;out.mist=mist;out.gaps=gaps;out.trees=trees;if(VW>per+40){out.hlWin=Math.round(wAv*.7);out.smax=.55;}   // rounded saddles where ridges meet
-  return out;
-}
 function menuGeom(){
   const VW=innerWidth,VH=innerHeight,nav=document.querySelector('.mbtns'),nr=nav.getBoundingClientRect(),res=$('mResume'),resOn=!res.hidden;
   if(mq(MENU_LAND_Q)){
@@ -3159,7 +3679,7 @@ function menuGeom(){
   const plumX=VW-CW>220?Math.min(0,X0-120):X0,pk=I.clamp(VW-CW>220?Math.max(k*1.3,1.3):k,.74,wide?1.6:1.06);
   return {VW,VH,btnTop,k,kx,S5,X5,colX:X5+.6*S5,Y5:128*k+14,CW,X0,plumX,pk,limit:btnTop-10,resOn};
 }
-const MENU={mist:null,loop:0};
+const MENU={mist:null,anim:[]};
 // the poem hangs beside the 五; where the paper is short it climbs up beside 技能 so it never meets the buttons
 function placeMenuSub(G0){
   const {VW,k,kx,X5,Y5}=G0,sub=$('menuSub'),ks=Math.min(kx,1.3);
@@ -3171,127 +3691,85 @@ function placeMenuSub(G0){
   sub.style.top=Math.max(Y5-82*k,Math.min(Y5+44*k,G0.limit-h))+'px';
   return sub;
 }
+const rectOf=el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};};
 // menu art without any text — the sheet's glow, three ranges of 米点 hills, the plum, the drifting mist. It needs no
-// fonts, so it starts at once; the title (技能五子棋 and its seals) is a separate layer painted once the fonts settle.
-async function buildMenu(){
+// fonts, so it is asked for at once; the title (技能五子棋 and its seals) is a separate layer painted once the fonts settle.
+function buildMenu(){
   const G0=menuGeom(),s=dprArt(),key=G0.VW+'x'+G0.VH+'@'+s+'|'+G0.resOn;
   const sub=placeMenuSub(G0);
   if(fontsSettled)buildMenuTitle(G0);
-  if(ART.menuKey===key)return;ART.menuKey=key;
-  const {VW,VH,k,kx,colX,Y5,X0,plumX,pk}=G0,live=()=>ART.menuKey===key;
-  const ac=$('menuArt'),W=Math.round(VW*s),H=Math.round(VH*s);ac.classList.remove('in');
-  const A=I.mk(W,H),x=A.x;
-  // a player who leaves the menu mid-way stops the painting (it resumes from scratch when the menu is shown again)
-  const step=async fn=>{await idle();if(live()&&$('scMenu').hidden)ART.menuKey='';if(!live())throw 0;fn();};
-  ART.busy++;
-  try{
-    // the sheet glows a little where the eye should rest
-    await step(()=>{const g=x.createRadialGradient((colX-40)*s,(Y5+90*k)*s,0,(colX-40)*s,(Y5+90*k)*s,260*s);g.addColorStop(0,'rgba(255,253,246,.34)');g.addColorStop(1,'rgba(255,253,246,0)');x.fillStyle=g;x.fillRect(0,0,W,H);});
-    // the hills hang from the buttons; where the sheet is too short for the title to shrink any further (k at its floor,
-    // or the resume slip lifting the buttons) they would rise into 五 and 子棋, so they keep below the title's foot
-    // instead (棋 a little above the first peaks, which stand 126*k below B, and the 手谈 seal on them, as in the full
-    // composition) and melt into mist above the buttons
-    const Bn=G0.btnTop-300*k-20,B=G0.land?Bn:Math.max(Bn,Y5+G0.S5-33*k),sunk=B-Bn,BH=300*k+10,my=v=>v*k,vary=VW>=600;
-    await step(()=>I.miShan3(x,W,tilePlane({s,seed:3,y0:B,h:BH,base:my(200),a:.1,ink:[104,114,124],fall:.5,rim:.35,rimW:4,crown:.45,fold:.1,lump:.05,
-      domes:[{x:214,wl:76,wr:80,h:my(40),p:1},{x:296,wl:86,wr:96,h:my(60),p:1,b:[[-.45,.25,.1]]},{x:384,wl:80,wr:100,h:my(46),p:1,b:[[-.4,.22,.1]]},{x:120,wl:70,wr:80,h:my(30),p:1}],
-      A:{n:90,a:.06,size:30,band:.8},B:{n:420,a:.17,size:7,band:.28},C:{n:40,a:.22,size:3.5},baseFade:.6,vary},VW,X0,kx)));
-    await step(()=>I.miShan3(x,W,tilePlane({s,seed:5,y0:B,h:BH,base:my(236),a:.2,ink:[62,66,70],fall:.5,rim:.5,rimW:4,crown:.55,fold:.14,lump:.05,
-      domes:[{x:116,wl:90,wr:88,h:my(80),p:1,b:[[.42,.22,.1]]},{x:218,wl:84,wr:100,h:my(102),p:1,b:[[.45,.2,.08]]},{x:304,wl:60,wr:90,h:my(52),p:1}],
-      A:{n:160,a:.07,size:34,band:.8},B:{n:900,a:.24,size:8.5,band:.26,fold:.06},C:{n:90,a:.3,size:3.8},baseFade:.5,occlude:.85,
-      mist:[{y:my(168),h:18,wav:3,soft:1.2,amt:.65,x0:150,x1:220}],gaps:[{x:262,w:8,top:my(150),amt:.8}],vary},VW,X0,kx)));
-    await step(()=>I.miShan3(x,W,tilePlane({s,seed:9,y0:B,h:BH,base:my(292),a:.36,ink:[26,26,28],fall:.45,rim:.65,rimW:5,crown:.7,fold:.16,lump:.05,
-      domes:[{x:-24,wl:100,wr:100,h:my(124),p:1,b:[[.45,.22,.08]]},{x:80,wl:104,wr:130,h:my(166),p:1,b:[[.5,.2,.07]]},{x:196,wl:70,wr:104,h:my(78),p:1,b:[[-.35,.25,.1]]}],
-      A:{n:240,a:.08,size:40,band:.85},B:{n:1500,a:.3,size:10,band:.26,fold:.06},C:{n:220,a:.45,size:4.2},baseFade:.5,occlude:.92,
-      mist:[{y:my(204),h:22,wav:4,soft:1.4,amt:.8,x0:96,x1:160},{y:my(250),h:40,wav:5,soft:2,amt:.7,x0:220,x1:270}],gaps:[{x:140,w:8,top:my(172),amt:.85}],
-      trees:[{x0:160,x1:206,y:my(266),h:24,n:6,a:.75}],vary},VW,X0,kx)));
-    if(sunk>8)await step(()=>{const y1=G0.btnTop-6,y0=y1-Math.min(70,sunk+30),g=x.createLinearGradient(0,y0*s,0,y1*s);
-      g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(.6,'rgba(0,0,0,.62)');g.addColorStop(1,'rgba(0,0,0,1)');
-      x.globalCompositeOperation='destination-out';x.fillStyle=g;x.fillRect(0,y0*s,W,H-y0*s);x.globalCompositeOperation='source-over';});
-    if(G0.land)await step(()=>{const g=x.createLinearGradient((G0.navL-70)*s,0,(G0.navL+6)*s,0);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.9)');
-      x.globalCompositeOperation='destination-out';x.fillStyle=g;x.fillRect(0,0,W,H);x.globalCompositeOperation='source-over';});
-    // 留白 behind the 题跋: where the inscription runs into the hills a drifting cloud thins them
-    await step(()=>{const sr=sub.getBoundingClientRect(),L0=sr.left-6,R0=sr.right+6,Bt=sr.bottom+6,nm=I.fbm2(44,3);
-      // and on a phone held sideways, where the hills run along the foot, 子 棋 and the 手谈 seal stand in them: a second
-      // wisp opens round the title's foot (the first peaks stand about 126*k below B)
-      const tT=Y5+G0.S5+4*k,tB=Y5+G0.S5+118*k,tx=colX-12*k,ty=(tT+tB)/2,RX=46*k,RY=(tB-tT)/2+10*k,ta=I.clamp((tB-(B+126*k)-22)/36,0,1);
-      if(Bt<B+40&&!ta)return;
-      x.globalCompositeOperation='destination-out';
-      if(ta)I.field(x,W,H,s,2,(cx,cy)=>{if(cy<tT-RY*.4||cy>tB+RY*.6)return null;const d=Math.hypot((cx-tx)/RX,(cy-ty)/(RY*1.15))+.5*(nm(cx/24+7,cy/20)-.5);return d>1.2?null:[0,0,0,.74*ta*I.smooth(1.15,.35,d)];});
-      if(Bt>=B+40)I.field(x,W,H,s,2,(cx,cy)=>{if(cy<sr.top||cy>Bt+70)return null;const dx=Math.max(0,L0-cx,cx-R0),dy=Math.max(0,cy-Bt);const d=Math.hypot(dx/16,dy/38)+.55*(nm(cx/26,cy/22)-.5);return d>1.2?null:[0,0,0,.8*I.smooth(1.1,.15,d)];});
-      x.globalCompositeOperation='source-over';});
-    await step(()=>I.plum2(x,s,plumX,6*k,pk,PLUM,11));
-    await step(()=>{ac.width=W;ac.height=H;ac.getContext('2d').drawImage(A.c,0,0);A.c.width=A.c.height=0;showArt(ac);});
-    // 云气: two paper-tone wisps drift through the mountains' middle band (the menu's only motion)
-    const W1=Math.round(VW*1.6);
-    MENU.mist=[{c:I.mistStrip(W1,46,s,17,{bands:[[.5,.22,.75]],color:[244,239,227]}),y:B+214*k,sp:5.5,a:.85,ph:0},
-               {c:I.mistStrip(W1,34,s,29,{bands:[[.5,.2,.6]],color:[244,239,227]}),y:B+252*k,sp:-3.8,a:.7,ph:170}];
-    const fx=$('menuFx');fx.width=W;fx.height=H;MENU.s=s;menuMistFrame(performance.now(),true);
-  }catch(e){if(e!==0)throw e;}
-  finally{ART.busy--;}
+  if(ART.menuKey===key)return;
+  if(ART.menuKey&&kbdUp())return;
+  ART.menuKey=key;
+  const ac=$('menuArt');ac.classList.remove('in');
+  const sr=rectOf(sub);
+  AQ.drop([ART.menuJob]);ART.menuJob=AQ.run('menu',{G0,sr,s},{lane:'scene',pri:1});
+  return busyWhile(ART.menuJob).then(r=>{
+    if(ART.menuKey!==key)return;
+    blitTo(ac,r.c,[G0.VW,G0.VH]);if(r.c.close)r.c.close();showArt(ac);
+    startMist(G0,r.B,key);
+  },e=>{if(ART.menuKey===key){ART.menuKey='';if(e==='dropped'&&!$('scMenu').hidden)buildMenu();}});   // dropped (the menu was left) or failed
 }
+// 云气: two paper-tone wisps drift through the hills' middle band (the menu's only motion). Each strip is one periodic
+// picture slid by the compositor (a CSS transform animation): nothing is repainted while the menu sits open
+function startMist(G0,B,key){
+  const {VW,k}=G0;
+  AQ.run('mist',{VW,s:1},{lane:'scene',pri:3}).then(strips=>{
+    if(ART.menuKey!==key)return;
+    for(const a of MENU.anim)try{a.cancel();}catch(e){}
+    MENU.anim=[];
+    const host=$('scMenu'),els=[$('menuFx'),$('menuFx2')||(()=>{const c=document.createElement('canvas');c.id='menuFx2';c.className='art in mist';c.setAttribute('aria-hidden','true');host.insertBefore(c,$('menuTitle'));return c;})()];
+    const spec=[{y:B+214*k,sp:5.5,a:.85,ph:0},{y:B+252*k,sp:-3.8,a:.7,ph:170}];
+    strips.forEach((st,i)=>{
+      const el=els[i],per=st.width/2,W3=per*3,H=st.height;   // the strip repeats every half its width; three periods slide by one
+      el.width=W3;el.height=H;const x=el.getContext('2d');x.drawImage(st,0,0);x.drawImage(st,per*2,0,per,H,per*2,0,per,H);if(st.close)st.close();
+      Object.assign(el.style,{top:spec[i].y+'px',height:H+'px',width:W3+'px',opacity:spec[i].a});el.classList.add('mist','in');
+      if(RM||!el.animate)return;
+      const dur=per/Math.abs(spec[i].sp)*1000,from=spec[i].sp>0?0:-per,to=spec[i].sp>0?-per:0;
+      MENU.anim.push(el.animate([{transform:`translate3d(${from}px,0,0)`},{transform:`translate3d(${to}px,0,0)`}],{duration:dur,iterations:Infinity,delay:-(spec[i].ph/Math.abs(spec[i].sp))*1000}));
+    });
+    MENU.mist=strips.length;
+  },()=>{});
+}
+function menuMistFrame(){}   // (kept for older callers: the mist now moves on the compositor)
 // the title column: 技 能 written down the paper, the hand-built 五 on its grey wash, 子 棋, the 手谈 and 坐隐 seals
-async function buildMenuTitle(G0){
-  G0=G0||menuGeom();const s=dprArt(),key=G0.VW+'x'+G0.VH+'@'+s+'|'+artFontsOK+'|'+G0.resOn;
+function buildMenuTitle(G0){
+  G0=G0||menuGeom();const s=dprArt(),fontsTag=AQ.mode==='worker'&&AQ.wFonts!==false?'w':String(artFontsOK),key=G0.VW+'x'+G0.VH+'@'+s+'|'+fontsTag+'|'+G0.resOn;
   if(ART.titleKey===key)return;ART.titleKey=key;
-  const {VW,VH,k,S5,X5,colX,Y5}=G0,live=()=>ART.titleKey===key,W=Math.round(VW*s),H=Math.round(VH*s),tc=$('menuTitle');
-  tc.classList.remove('in');
-  await idle();if(live()&&$('scMenu').hidden)ART.titleKey='';if(!live())return;
-  const A=I.mk(W,H),x=A.x,sub=$('menuSub');
-  const g=(ch,cy,sz,o)=>{const c=I.glyph(ch,sz*s,Object.assign({seed:ch.charCodeAt(0),ink:[30,27,24],a:.86,bleed:.16,mottle:.12},o));x.drawImage(c,colX*s-c.width/2,cy*s-c.height/2);};
-  const gs=38*k;
-  g('技',Y5-70*k,gs,{dry:.35});g('能',Y5-28*k,gs,{dry:.35});
-  { const nm=I.fbm2(12,4),cx0=X5+S5*.38,cy0=Y5+S5*.66,RX=S5*.62,RY=S5*.42,x0=Math.floor((cx0-RX*1.2)*s),y0=Math.floor((cy0-RY*1.2)*s),w=Math.ceil(RX*2.4*s),h=Math.ceil(RY*2.4*s);
-    const F=I.mk(w,h);
-    I.field(F.x,w,h,s,2,(cx,cy)=>{cx+=x0/s;cy+=y0/s;const dx=(cx-cx0)/RX,dy=(cy-cy0)/RY,d=Math.hypot(dx,dy)+.35*(nm(cx/40,cy/40)-.5);if(d>1.1)return null;return [70,70,72,.07*I.smooth(1.05,.55,d)*(.7+.6*nm(cx/14+9,cy/14))];});
-    x.drawImage(F.c,x0,y0); }
-  await idle();if(!live())return;
-  I.drawWu(x,X5*s,Y5*s,S5*s,{seed:1});
-  g('子',Y5+S5+26*k,gs,{dry:.35});g('棋',Y5+S5+68*k,gs,{dry:.45});
-  I.stamp(x,I.seal(24*s*k,'手谈',{seed:3,h:1.62}),(colX-34*k)*s,(Y5+S5+96*k)*s,.03,.95);
-  const sr=sub.getBoundingClientRect();
-  I.stamp(x,I.seal(16*s,'坐隐',{seed:9,type:'zhu',h:1.62,border:.1}),(sr.right-11)*s,(sr.top-22)*s,-.02,.9);
-  tc.width=W;tc.height=H;tc.getContext('2d').drawImage(A.c,0,0);A.c.width=A.c.height=0;showArt(tc);
+  const tc=$('menuTitle');tc.classList.remove('in');
+  const sr=rectOf($('menuSub'));
+  AQ.drop([ART.titleJob]);ART.titleJob=AQ.run('title',{G0,sr,s},{lane:'scene',pri:1,fonts:true});
+  return busyWhile(ART.titleJob).then(img=>{
+    if(ART.titleKey!==key)return;blitTo(tc,img,[G0.VW,G0.VH]);if(img.close)img.close();showArt(tc);
+  },e=>{if(ART.titleKey===key){ART.titleKey='';if(e==='dropped'&&fontsSettled&&!$('scMenu').hidden)buildMenuTitle();}});
 }
-function menuMistFrame(tm,force){
-  const fx=$('menuFx');if(!MENU.mist||$('scMenu').hidden)return;
-  if(!force&&(document.hidden||tm-(MENU.last||0)<33))return;MENU.last=tm;
-  const fc=fx.getContext('2d'),s=MENU.s,t=RM?0:tm/1000;fc.clearRect(0,0,fx.width,fx.height);
-  for(const st of MENU.mist){const per=st.c.width/2,off=(((t*st.sp+st.ph)*s)%per+per)%per;fc.globalAlpha=st.a;fc.drawImage(st.c,-off,st.y*s);fc.drawImage(st.c,per-off,st.y*s);}
-  fc.globalAlpha=1;
+// lobby: one quiet distant range along the bottom and a plum sprig — painted for the lobby that is actually shown
+function buildLobby(){
+  const VW=innerWidth,VH=innerHeight,s=dprArt(),key=VW+'x'+VH+'@'+s;
+  const target=[...document.querySelectorAll('canvas.lobbyArt')].find(c=>!c.closest('.screen').hidden);
+  const put=img=>{if(target&&target._k!==key){target.classList.remove('in');blitTo(target,img,[VW,VH]);target._k=key;showArt(target);}};
+  if(ART.lobbyKey===key){if(ART.lobbyImg)put(ART.lobbyImg);return;}
+  if(ART.lobbyKey&&kbdUp())return;
+  ART.lobbyKey=key;
+  if(ART.lobbyImg&&ART.lobbyImg.close)ART.lobbyImg.close();ART.lobbyImg=null;
+  AQ.drop([ART.lobbyJob]);ART.lobbyJob=AQ.run('lobby',{VW,VH,s},{lane:'scene',pri:1});
+  return busyWhile(ART.lobbyJob).then(img=>{
+    if(ART.lobbyKey!==key){if(img.close)img.close();return;}
+    ART.lobbyImg=img;
+    const t=[...document.querySelectorAll('canvas.lobbyArt')].find(c=>!c.closest('.screen').hidden);if(t&&t._k!==key){t.classList.remove('in');blitTo(t,img,[VW,VH]);t._k=key;showArt(t);}
+  },e=>{if(ART.lobbyKey===key){ART.lobbyKey='';if(e==='dropped'&&(!$('scPeer').hidden||!$('scLobby').hidden))buildLobby();}});
 }
-// lobby: one quiet distant range along the bottom and a plum sprig leaning in from the upper right
-async function buildLobby(){
-  const VW=innerWidth,VH=innerHeight,s=dprArt(),key=VW+'x'+VH+'@'+s;if(ART.lobbyKey===key)return;ART.lobbyKey=key;
-  const W=Math.round(VW*s),H=Math.round(VH*s),A=I.mk(W,H),x=A.x,live=()=>ART.lobbyKey===key;
-  await idle();if(!live())return;
-  const h=Math.min(190,VH*.26),y0=VH-h;
-  I.miShan3(x,W,tilePlane({s,seed:13,y0,h,base:h-4,a:.1,ink:[96,106,116],fall:.7,rim:.3,rimW:4,crown:.35,fold:0,lump:.05,
-    domes:[{x:40,wl:90,wr:120,h:h*.42,p:1},{x:196,wl:120,wr:100,h:h*.6,p:1,b:[[.42,.2,.1]]},{x:340,wl:100,wr:130,h:h*.46,p:1}],
-    A:{n:70,a:.05,size:24,band:.8},B:{n:300,a:.13,size:6,band:.28,fold:.01},C:{n:30,a:.17,size:3},baseFade:.7},VW,Math.max(0,(VW-390)/2)));
-  await idle();if(!live())return;
-  I.miShan3(x,W,tilePlane({s,seed:15,y0:y0+h*.3,h:h*.7,base:h*.7-2,a:.16,ink:[60,64,70],fall:.6,rim:.4,rimW:4,crown:.5,fold:.1,lump:.05,
-    domes:[{x:-10,wl:90,wr:110,h:h*.36,p:1,b:[[.4,.22,.1]]},{x:290,wl:110,wr:120,h:h*.3,p:1}],
-    A:{n:80,a:.06,size:28,band:.8},B:{n:420,a:.2,size:7,band:.26},C:{n:40,a:.3,size:3.4},baseFade:.6,occlude:.8},VW,Math.max(0,(VW-390)/2)));
-  await idle();if(!live())return;
-  // one slender sprig enters from the right edge below the top bar (the trunk and drooping twigs are left out)
-  {const sc=Math.min(.78,VW/480);x.save();x.translate(W,0);x.scale(-1,1);I.plum2(x,s,-44*sc-5,40,sc,{branches:[PLUM.branches[2],PLUM.branches[3]],moss:[],blossoms:PLUM.blossoms.filter(b=>b[0]>90&&b[1]<100),paper:PLUM.paper},23);x.restore();}
-  for(const c of document.querySelectorAll('canvas.lobbyArt')){c.classList.remove('in');c.width=W;c.height=H;c.getContext('2d').drawImage(A.c,0,0);showArt(c);}
-}
-// game: the space under the controls stays 留白 — one very quiet distant ridge along the bottom
-async function buildGameBg(){
+// game: the space under the controls stays 留白 — one very quiet distant ridge along the bottom; in landscape the foot of
+// the controls column carries a short 题款 and a 闲章
+function buildGameBg(){
   const VW=innerWidth,VH=innerHeight,s=dprArt(),rest=document.querySelector('#scGame .rest').getBoundingClientRect();
-  const h=Math.min(150,Math.max(rest.height+30,90)),side=rest.width<VW*.5&&rest.height>170,key=VW+'x'+VH+'@'+s+'|'+Math.round(h)+'|'+(side?Math.round(rest.left)+','+Math.round(rest.top):'')+artFontsOK;if(ART.gameKey===key)return;ART.gameKey=key;
-  const W=Math.round(VW*s),A=I.mk(W,Math.round(VH*s)),x=A.x;await idle();if(ART.gameKey!==key)return;
-  const y0=VH-h;
-  I.miShan3(x,W,tilePlane({s,seed:13,y0,h,base:h-4,a:.085,ink:[96,106,116],fall:.7,rim:.3,rimW:4,crown:.35,fold:0,lump:.05,
-    domes:[{x:40,wl:90,wr:120,h:h*.42,p:1},{x:196,wl:120,wr:100,h:h*.6,p:1,b:[[.42,.2,.1]]},{x:340,wl:100,wr:130,h:h*.46,p:1}],
-    A:{n:70,a:.045,size:24,band:.8},B:{n:300,a:.12,size:6,band:.28,fold:.01},C:{n:30,a:.16,size:3},baseFade:.7},VW,Math.max(0,(VW-390)/2)));
-  // landscape: the controls column ends early, so its foot carries a short 题款 and a 闲章 instead of empty paper
-  if(side){await idle();if(ART.gameKey!==key)return;
-    const gs=Math.min(34,rest.height/7),cx=rest.left+rest.width*.5,y=rest.top+Math.min(48,rest.height*.12);
-    [...'棋逢对手'].forEach((ch,i)=>{const c=I.glyph(ch,gs*s,{seed:ch.charCodeAt(0),ink:[30,27,24],a:.62,bleed:.14,mottle:.14,dry:.4});x.globalAlpha=.62;x.drawImage(c,cx*s-c.width/2,(y+gs*.5+i*gs*1.12)*s-c.height/2);});
-    x.globalAlpha=1;I.stamp(x,I.seal(18*s,'烂柯',{seed:5,type:'zhu',h:1.62,border:.1}),(cx+gs*.95)*s,(y+gs*.5+4*gs*1.12+4)*s,.04,.88);}
-  const c=$('gameArt');c.classList.remove('in');c.width=W;c.height=A.c.height;c.getContext('2d').drawImage(A.c,0,0);showArt(c);
+  const h=Math.min(150,Math.max(rest.height+30,90)),sideOn=rest.width<VW*.5&&rest.height>170,side=sideOn?{x:rest.left,y:rest.top,w:rest.width,h:rest.height}:null;
+  const key=VW+'x'+VH+'@'+s+'|'+Math.round(h)+'|'+(side?Math.round(rest.left)+','+Math.round(rest.top):'')+(AQ.mode==='worker'&&AQ.wFonts!==false?'w':artFontsOK);if(ART.gameKey===key)return;
+  if(ART.gameKey&&kbdUp())return;
+  ART.gameKey=key;
+  return AQ.run('gameBg',{VW,VH,s,h,side},{lane:'scene',pri:3,fonts:!!side}).then(img=>{
+    if(ART.gameKey!==key)return;const c=$('gameArt');c.classList.remove('in');blitTo(c,img,[VW,VH]);if(img.close)img.close();showArt(c);
+  },()=>{if(ART.gameKey===key)ART.gameKey='';});
 }
 // =====================================================================================================
 // app part 2 — board: geometry, the static 画心 sheet (paper, whisper landscape, springs, hand-ruled grid),
@@ -3331,12 +3809,17 @@ function layoutGame(){
   if(isLand()){const lg=$('log').getBoundingClientRect(),gb=g.getBoundingClientRect();if(lg.height&&lg.bottom>gb.bottom-2)g.classList.add('nolog');}
   // landscape: the game's scrolls hang over the board (as far as the viewport allows), not over the middle of the screen
   const root=document.documentElement.style,sc=$('scGame');
+  const ovR=$('ovResult');
   if(isLand()&&!sc.hidden&&sc.style.visibility!=='hidden'){const br=wrap.getBoundingClientRect(),dx=br.left+br.width/2-innerWidth/2,mx=Math.max(0,(innerWidth-540)/2);
-    root.setProperty('--ovdx',Math.round(Math.max(-mx,Math.min(mx,dx)))+'px');}
-  else root.removeProperty('--ovdx');
+    root.setProperty('--ovdx',Math.round(Math.max(-mx,Math.min(mx,dx)))+'px');
+    // the result scroll hangs over the controls column instead (as wide as fits between the board and the edge):
+    // the five and the 胜 stay in sight
+    const col=document.querySelector('#scGame .players').getBoundingClientRect(),bR=br.right+16,w=Math.min(innerWidth-bR-8,Math.max(col.width,330)),x=Math.max(bR,Math.min(col.left,innerWidth-8-w));
+    if(w>=250){root.setProperty('--rcx',Math.round(x)+'px');root.setProperty('--rcw',Math.floor(w)+'px');ovR.classList.add('side');}else ovR.classList.remove('side');}
+  else{root.removeProperty('--ovdx');ovR.classList.remove('side');}
   return BS;
 }
-let boardKey='',boardJob=0;
+let boardKey='',boardJob=0,boardWant='';
 function resize(){
   if($('scGame').hidden)return;
   const BS=layoutGame(),d=dprHi();
@@ -3353,7 +3836,9 @@ function resize(){
   placeBubbles();fitHint();
 }
 let _rsT=0;
-window.addEventListener('resize',()=>{clearTimeout(_rsT);_rsT=setTimeout(()=>{buildPaper();if(!$('scGame').hidden)resize();if(!$('scMenu').hidden)buildMenu();if(!$('scPeer').hidden||!$('scLobby').hidden)buildLobby();},140);});
+window.addEventListener('resize',()=>{clearTimeout(_rsT);_rsT=setTimeout(()=>{
+  if(kbdUp())return;   // the soft keyboard: the art keeps its size (cropped), nothing is repainted
+  buildPaper();if(!$('scGame').hidden)resize();if(!$('scMenu').hidden)buildMenu();if(!$('scPeer').hidden||!$('scLobby').hidden)buildLobby();},140);});
 function cellAt(ev){
   const rect=cv.getBoundingClientRect();
   const x=ev.clientX-rect.left,y=ev.clientY-rect.top;
@@ -3369,46 +3854,28 @@ function paintBoardQuick(){
   x.fillStyle='rgba(70,46,18,.12)';x.fillRect(O+2*d,O+4*d,PW,PW);x.fillStyle='#f6f1e4';x.fillRect(O,O,PW,PW);
   x.strokeStyle='rgba(52,44,36,.55)';x.lineWidth=Math.max(1,.9*d);
   for(let i=0;i<N;i++){const a=O+(G.m+i*G.cell)*d,b0=O+G.m*d,b1=O+(G.m+14*G.cell)*d;x.beginPath();x.moveTo(b0,a);x.lineTo(b1,a);x.moveTo(a,b0);x.lineTo(a,b1);x.stroke();}
+  boardKey='';
 }
+// the painted sheet comes from the art queue (an art worker where there is one) and replaces the stand-in in one blit
+const boardArgs=()=>({g:{size:G.size,cell:G.cell,m:G.m,pad:BPAD},s:G.dpr,K:{N,SPRINGS,STARS}});
 function scheduleBoardPaint(){
-  const job=++boardJob,key=G.size+'@'+G.dpr+(artFontsOK?'':'~');
-  if(boardKey===key)return;
-  (async()=>{await idle();if(job!==boardJob)return;const c=cnv(cvB.width,cvB.height);paintBoardStatic(c);if(job!==boardJob)return;
-    const x=cvB.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,cvB.width,cvB.height);x.drawImage(c,0,0);boardKey=key;})();
+  const job=++boardJob,key=G.size+'@'+G.dpr;
+  if(boardKey===key||boardWant===key)return;
+  boardWant=key;
+  AQ.run('board',boardArgs(),{lane:'fx',pri:1}).then(img=>{
+    if(job!==boardJob||G.size+'@'+G.dpr!==key){if(img.close)img.close();return;}
+    const x=cvB.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,cvB.width,cvB.height);x.drawImage(img,0,0,cvB.width,cvB.height);if(img.close)img.close();
+    boardKey=key;boardWant='';boardDirty=true;
+  },()=>{if(boardWant===key)boardWant='';});
 }
-function paintBoardStatic(cvx){
-  const s=G.dpr,BS=G.size,x=cvx.getContext('2d'),O=BPAD*s,PW=Math.round(BS*s),cell=G.cell;
-  const pt=(c,r)=>[(BPAD+G.m+c*cell)*s,(BPAD+G.m+r*cell)*s],ks=BS/378;
-  // 画心: a slightly whiter 熟宣 with one distant ridge across its lower part, cut clean by mist at its foot
-  const hua=I.paper(PW,PW,{s,seed:31,base:[247,243,232],edge:.06,drift:.6,fibre:.4,specks:.4});
-  { const hc=hua.getContext('2d'),ih=BS;
-    I.miShan3(hc,PW,{s,seed:41,y0:ih*.64,h:ih*.36,base:ih*.3,a:.12,ink:[86,98,108],fall:.6,rim:.4,rimW:4,crown:.45,fold:0,lump:.05,
-      domes:[{x:ih*.08,wl:80*ks,wr:96*ks,h:ih*.11,p:1},{x:ih*.4,wl:110*ks,wr:130*ks,h:ih*.19,p:1,b:[[.45,.2,.08]]},{x:ih*.8,wl:120*ks,wr:120*ks,h:ih*.14,p:1,b:[[-.4,.22,.1]]},{x:ih*1.04,w:80*ks,h:ih*.09,p:1}],
-      A:{n:Math.round(90*ks),a:.05,size:26*ks,band:.8},B:{n:Math.round(420*ks),a:.14,size:6.5*Math.sqrt(ks),band:.28,fold:.01},C:{n:Math.round(40*ks),a:.2,size:3},baseFade:.2,
-      mist:[{y:ih*.245,h:ih*.2,wav:2.5,soft:.9,foot:2}]}); }
-  I.slip(x,O,O,PW,PW,{s,tile:hua,tileAt:[O,O],seed:1,shadow:.26,sy:3,deckle:1.1});
-  I.frame(x,O+4.5*s,O+4.5*s,PW-9*s,PW-9*s,.8*s,.32,7,{over:0,ink:[70,56,40]});
-  for(const sp of SPRINGS){const [r,c]=rc(sp),[px,py]=pt(c,r);I.springPool(x,px,py,cell*.6*s,c*7+r,{a:.42});}
-  const [ax,ay]=pt(0,0),[bx,by]=pt(14,14),rr=I.rng(5);
-  for(let i=0;i<N;i++){
-    const [px,py]=pt(i,i),edge=i===0||i===14,wd=(edge?Math.max(1.6,2*Math.sqrt(ks)):Math.max(.8,.9*Math.sqrt(ks)))*s,a=edge?.9:.5+rr()*.06,ink=edge?[30,26,22]:[52,44,36];
-    I.ruled(x,ax-(edge?1:0)*s,py,bx+(edge?1:0)*s,py,wd,a,100+i,ink);
-    I.ruled(x,px,ay-(edge?1:0)*s,px,by+(edge?1:0)*s,wd,a,200+i,ink);
-  }
-  for(const st of STARS){const [r,c]=rc(st),[px,py]=pt(c,r);x.fillStyle=rgba([24,21,18],.9);x.beginPath();x.ellipse(px,py,cell*.11*s,cell*.1*s,.3,0,7);x.fill();}
-  for(const sp of SPRINGS){
-    const [r,c]=rc(sp),[px,py]=pt(c,r),ca=cornerAng(sp);
-    I.springRipples(x,px,py,cell*.56*s,ca,c+r,{lw:1.7*s*Math.sqrt(ks),a:.9});
-    x.font=`${Math.max(11,cell*.52)*s}px "Ma Shan Zheng",serif`;x.textAlign='center';x.textBaseline='middle';x.fillStyle=rgba(IP.qing,.8);
-    x.fillText('泉',px,(r<7?BPAD+G.m*.5+.5:BPAD+BS-G.m*.5+.5)*s);
-  }
-}
+function paintBoardStatic(cvx){const c=AP.board(boardArgs().g,G.dpr,{N,SPRINGS,STARS}),x=cvx.getContext('2d');x.setTransform(1,0,0,1,0,0);x.drawImage(c,0,0);}
 // ---- live sprites, rebuilt per board size
 const LS={key:''};
 function liveSprites(){
   const key=G.size+'@'+G.dpr;if(LS.key===key)return LS;
   const s=G.dpr,cell=G.cell,SR=cell*.44;
   LS.key=key;LS.dabs={};
+  LS.quan=AP.sprite('quan',s,Math.max(11,cell*.52));LS.quanF=artFontsOK;
   LS.mist=I.mistStrip(cell*4.4,cell*1.3,s,7);
   { const c=I.mk(cell*.9*s,cell*.75*s);I.cloudCurl2(c.x,cell*.54*s,cell*.37*s,cell*.8*s,{a:.8});LS.curl=c.c; }
   { const R=(SR+cell*.12)*s,c=I.mk(R*2+6*s,R*2+6*s);I.arcStroke(c.x,c.c.width/2,c.c.height/2,R,R,0,-2.2,3.5,Math.max(1.4,cell*.075)*s,IP.zhu,.9);LS.ring=c.c; }
@@ -3436,7 +3903,7 @@ function fogStone(x,cx,cy,p,t){stoneAt(x,cx,cy,p,FOG_A);fogVeilOn(x,cx,cy,p,t,1)
 function fogVeilOn(x,cx,cy,p,t,a){
   if(a<=0)return;const L=liveSprites(),cell=G.cell,s=G.dpr,SR=cell*.44;
   x.save();x.beginPath();x.arc(cx,cy,SR*1.25,0,7);x.clip();x.globalAlpha=.62*a;
-  const per=L.mist.width/2/s,off=((t*.2*cell)%per);x.drawImage(L.mist,cx-cell*1.6-off,cy-cell*.65,L.mist.width/s,L.mist.height/s);x.restore();
+  const per=L.mist.width/2/s,off=((t*.2*cell)%per+per)%per;x.drawImage(L.mist,cx-cell*1.6-off,cy-cell*.65,L.mist.width/s,L.mist.height/s);x.restore();
   x.save();x.globalAlpha=a;x.setLineDash([cell*.07,cell*.06]);x.lineDashOffset=-t*cell*.05;x.lineWidth=Math.max(1,cell*.045);x.strokeStyle=p===1?rgba([28,26,26],.78):rgba([150,140,124],.85);
   x.beginPath();x.arc(cx,cy,SR*1.08,0,7);x.stroke();x.setLineDash([]);
   x.drawImage(L.curl,cx+SR*.3,cy-SR*2.05,L.curl.width/s,L.curl.height/s);x.restore();
@@ -3458,7 +3925,7 @@ function drawBoard(now){
   const H=fxHidden(now);
   fxPass(x,now,'under');
   // persistent per-stone marks with an 'under' part (FX2's fogMark) for this viewer's own hidden stones
-  if(FXP.hidden&&!over)for(let i=0;i<NN;i++)if(S.board[i]===v&&S.hidden[i]!=null&&!H.cells.has(i)){const [px,py]=pos(i);fxMark(x,i,v,px,py,t,'under');}
+  if(FXP.hidden&&!over)for(let i=0;i<NN;i++)if(S.board[i]===v&&S.hidden[i]!=null&&!H.cells.has(i)){const [px,py]=pos(i);fxMark(x,i,v,px,py,fogT(i,now),'under');}
   // springs: an empty spring breathes (one broken ripple widening); three 氵 dabs show the owner's charge
   for(const sp of SPRINGS){
     const [px,py]=pos(sp),own=visAt(sp,v),tk=own?Math.min(3,S.tick[sp]||0):0;
@@ -3467,6 +3934,10 @@ function drawBoard(now){
       for(let j=0;j<3;j++){const st=a0+j*2.09;x.lineWidth=(1.35-j*.25)*(1-ph*.4)*Math.sqrt(G.size/378);x.beginPath();x.ellipse(px,py,rx,rx*.9,0,st,st+1.25-j*.2);x.stroke();}}
     if(!H.dabs.has(sp))blit(x,springDabs(sp,own,tk),px,py,own&&S.energy[own]>=3?.55:null);   // a full owner: the spring rests
   }
+  // 泉 labels in the margin beside each spring; a stone on the edge point next to one would cut it in half (a stray
+  // 白 or 水), so the label steps back while that point is taken (what counts is what this viewer can see)
+  if(L.quanF!==artFontsOK){L.quan=AP.sprite('quan',G.dpr,Math.max(11,G.cell*.52));L.quanF=artFontsOK;}
+  for(const sp of SPRINGS){const [r,c]=rc(sp),edge=ix(r<7?0:N-1,c);if((visAt(edge,v)&&!H.cells.has(edge))||H.ghost.get(edge))continue;const [px]=pos(sp);blit(x,L.quan,px,r<7?G.m*.5+.5:G.size-G.m*.5+.5);}
   // persistent marks: 封 seal on its point, the rewind ring on the point that must stay empty
   if(S.seal&&!H.marks.has('seal')){const [px,py]=pos(S.seal.i);FX1.sealMark(x,px,py,cell,TH,S.seal.i%89+1);}
   if(S.replace&&!H.marks.has('rewind')){const [px,py]=pos(S.replace.forbid);FX1.rewindMark(x,px,py,cell,TH,S.replace.forbid%89+1);}
@@ -3478,11 +3949,13 @@ function drawBoard(now){
     const p=S.board[i];if(!p||H.cells.has(i))continue;
     const hid=S.hidden[i]!=null&&!over;if(hid&&p!==v)continue;
     const [px,py]=pos(i);
-    if(hid){if(FXP.hidden)fxMark(x,i,p,px,py,t,'over');else fogStone(x,px,py,p,t);}
+    if(hid){if(FXP.hidden)fxMark(x,i,p,px,py,fogT(i,now),'over');else fogStone(x,px,py,p,fogT(i,now));}
     else if(i===shiftSel){const g=x.createRadialGradient(px+cell*.04,py+cell*.08,0,px+cell*.04,py+cell*.08,cell*.5);g.addColorStop(0,'rgba(40,30,18,.32)');g.addColorStop(1,'rgba(40,30,18,0)');
       x.fillStyle=g;x.beginPath();x.arc(px+cell*.04,py+cell*.08,cell*.5,0,7);x.fill();stoneAt(x,px,py-lift,p);}
     else stoneAt(x,px,py,p);
   }
+  for(const [i,p] of H.ghost)if(p){const [px,py]=pos(i);stoneAt(x,px,py,p);}   // points a waiting effect keeps as they were
+  for(let i=0;i<NN;i++){const p=S.board[i];SEEN[i]=H.ghost.has(i)?H.ghost.get(i):(p&&!(S.hidden[i]!=null&&!over&&p!==v)?p:0);}
   // the last move: a vermilion dot and a broken ring. While its stone is still being placed it is drawn over the
   // effect layer, fading in as the stone settles (no pop at the hand-over)
   const late=[];
@@ -3538,7 +4011,14 @@ function lastMark(x,i,k){
 //          draw:(c,k,e,pass)=>FX2.shock(c,k,Object.assign({},e.o,{layer:pass}))}
 //   cast:{dur:()=>FX2.dur.cast,draw:(c,k,e)=>FX2.cast(c,k,e.o)}   gain:{layer:'screen',dabs:e=>[e.i],..}
 //   FXP.hidden=(c,q)=>FX2.fogMark(c,q.t,Object.assign(fxO({i:q.i,p:q.p,seed:3}),{layer:q.pass}))
+//     (q.t: seconds since that stone's fog effect finished, so fog k=1 hands over to fogMark t=0 without a jump;
+//      a stone that arrived with an adopted state, no effect played, is long settled: page time)
 //   FXPROV.push({ready:()=>!!window.FX2,jobs:(c,o)=>FX2.prewarmJobs(c,o).map((fn,n)=>({name:'fx2:'+n,when:'game',fn}))})
+// An effect waiting for its lead (or its delay) shows its points as this viewer saw them before the move (fxStart
+// records it from the last frame): the stone 震荡 removed stays, 策反's stone keeps its old colour, 迷雾's new stone
+// is not there yet; the effect takes the point over when it starts (a 'place' fades its new stone in itself).
+// Prewarm jobs may carry off:{fn,a,fonts,put(result)}: where the art workers run, that job is built there instead
+// (part 0, AP.RUN[fn]) and put() installs the result; FX1's own textures go this way.
 // =====================================================================================================
 let effects=[];
 const fxL={c:null,x:null};                 // board-sized effect layer
@@ -3617,8 +4097,9 @@ function fxMark(x,i,p,px,py,t,pass){
 const FX1_KEEP=/^(roles|tile|bloom|oil|vortex|puff)\b/;
 function fxSizeChanged(){
   winHold.key='';if(winHold.c){winHold.c.width=winHold.c.height=0;winHold.c=null;}
-  edgeVeil.key='';edgeVeil.c=null;FXI.key='';FXI.puff=FXI.band=FXI.band2=FXI.splash=FXI.crack=null;
+  edgeVeil.key='';edgeVeil.c=null;FXI.key='';FXI.pend='';FXI.puff=FXI.band=FXI.band2=FXI.splash=FXI.crack=null;
   if(window.FX1&&FX1._cache)for(const k of [...FX1._cache.keys()])if(!FX1_KEEP.test(k))FX1._cache.delete(k);
+  AQ.fxReset(FX1_KEEP.source);
 }
 function fxStart(kind,e){
   const spec=FXR[kind];if(!spec||!G.size)return null;
@@ -3629,14 +4110,25 @@ function fxStart(kind,e){
   }
   e.dur=Math.max(1,spec.dur(e)*SPD);e.t0=performance.now()+e.delay*SPD;e.o=null;
   e.avoid=visibleStones([e.i,e.j].filter(q=>q!=null).concat(e.line||[]));
+  // what this viewer saw at the effect's own points just before the move (the state has already moved on): while a
+  // lead plays, the board keeps showing exactly that — a stone 震荡 removed is still there, 策反 has not flipped yet,
+  // a stone 迷雾 brings has not landed — and the effect takes the point over when it starts
+  if(e.delay>0&&spec.hide)e.before=new Map(spec.hide(e).map(q=>[q,SEEN[q]||0]));
   effects.push(e);return e;
 }
-function fxClear(){effects=[];winHold.key='';document.getElementById('app').style.transform='';fxVignette(null);fxScreenFree();}
+const SEEN=new Uint8Array(NN);   // the stone this viewer saw at each point in the last board frame (drawBoard keeps it)
+const fogEnd=new Map();   // point → when its fog effect finished (performance.now ms)
+function fogT(i,now){return RM?0:(fogEnd.has(i)?Math.max(0,now-fogEnd.get(i)):now)/1000;}
+function fxClear(){effects=[];fogEnd.clear();SEEN.fill(0);winHold.key='';document.getElementById('app').style.transform='';fxVignette(null);fxScreenFree();}
 function fxKOf(e,now){return I.clamp((now-e.t0)/e.dur,0,1);}
 function fxHidden(now){
-  const H={cells:new Set(),marks:new Set(),dabs:new Set(),fade:new Map(),lastFade(i){return H.fade.has(i)?H.fade.get(i):1;}};
+  const H={cells:new Set(),marks:new Set(),dabs:new Set(),fade:new Map(),ghost:new Map(),lastFade(i){return H.fade.has(i)?H.fade.get(i):1;}};
   for(const e of effects){
     const sp=e.spec;
+    if(now<e.t0&&e.kind!=='place'){   // not started yet (a lead is still playing): its points look as they did before
+      if(e.before)for(const [q,c] of e.before){H.cells.add(q);H.ghost.set(q,c);}
+      continue;
+    }
     if(sp.hide)for(const q of sp.hide(e))H.cells.add(q);
     if(sp.marks)for(const m of sp.marks)H.marks.add(m);
     if(sp.dabs)for(const q of sp.dabs(e))H.dabs.add(q);
@@ -3686,7 +4178,7 @@ function fxPass(x,now,pass){
     for(const e of onScreen)run(sxx,e);
   }else fxScreenFree();
   if(hold)drawWinHold(x);
-  if(done.length){effects=effects.filter(e=>!done.includes(e));for(const e of done){try{e.spec.end&&e.spec.end(e);}catch(err){console.error(err);}}}
+  if(done.length){effects=effects.filter(e=>!done.includes(e));for(const e of done){if(e.kind==='fog'&&e.i!=null&&e.t0>0)fogEnd.set(e.i,e.t0+e.dur);try{e.spec.end&&e.spec.end(e);}catch(err){console.error(err);}}}
   const app=document.getElementById('app'),tr=(sx||sy)?`translate(${sx.toFixed(2)}px,${sy.toFixed(2)}px)`:'';
   if(app.style.transform!==tr)app.style.transform=tr;
   fxVignette(vig);
@@ -3738,21 +4230,44 @@ function fxFromState(f){
 //   'game'  (seal, rewind, shift, interim effects)   while a game is open and nobody is touching the screen
 //   'late'  (win)                  after a few moves — nobody can win before the 9th stone
 // FX1 builds one effect per call, so a job is one effect; FX textures are capped at 2x, which keeps each job short.
+// o without functions or the theme (both are put back inside the worker)
+function fx1Plain(o){const p={};for(const k in o){const v=o[k];if(typeof v==='function'||k==='T')continue;p[k]=v;}return p;}
+// textures FX1 built in the fx worker: installed into FX1's own cache (a texture the page already has is kept).
+// The worker sends each texture once, so a result is never dropped unless the board has changed size since
+const fxSizeKey=()=>G.size+'@'+G.dpr;
+function fx1Put(sk,list){if(sk!==fxSizeKey()||!list||!window.FX1)return;for(const [k,v] of list){if(!FX1._cache.has(k))FX1._cache.set(k,v);}}
+const FX1_KS=[.02,.2,.3,.4,.5,.6,.7,.8,.9,1];
 const FXPROV=[
-  {ready:()=>!!window.FX1,jobs:(c,o)=>FX1.names.map(n=>({name:'fx1:'+n,when:n==='place'?'boot':n==='win'?'late':'game',fn:()=>FX1.prewarm(c,o,[n])}))},
-  {ready:()=>true,jobs:()=>[{name:'fxi',when:'game',fn:()=>FXI.prep()}]},
+  {ready:()=>!!window.FX1,jobs:(c,o)=>{
+    const out=[],plain=fx1Plain(o),sk=fxSizeKey();
+    for(const n of FX1.names){
+      const when=n==='place'?'boot':n==='win'?'late':'game';
+      // on the page: one frame per job (each builds what that moment of the effect needs), then the rest of the set
+      for(const k of FX1_KS)out.push({name:'fx1:'+n+':'+k,when,fn:()=>AP.RUN.fx1({names:[n],ks:[k],o:plain,sd:G.dpr}),grp:'fx1:'+n});
+      out.push({name:'fx1:'+n,when,fn:()=>FX1.prewarm(c,o,[n]),off:{fn:'fx1',a:{names:[n],full:true,o:plain,sd:G.dpr},fonts:n==='win'||n==='seal'||n==='rewind',pri:n==='place'?2:n==='win'?5:4,put:r=>fx1Put(sk,r)}});
+    }
+    return out;}},
+  {ready:()=>true,jobs:()=>[{name:'fxi',when:'game',fn:()=>FXI.prep(),off:{fn:'fxi',a:{g:{size:G.size,cell:G.cell},s:G.dpr},pri:4,put:r=>FXI.set(r,G.size+'@'+G.dpr)}}]},
 ];
-const PW={gen:0,queue:[],t:0,lastInput:0,busy:false};
+const PW={gen:0,queue:[],t:0,lastInput:0,busy:false,off:0};
 window.addEventListener('pointerdown',()=>{PW.lastInput=performance.now();},true);
 window.addEventListener('keydown',()=>{PW.lastInput=performance.now();},true);
 function fxPrewarm(){
   if(!G.size)return;
   PW.gen++;const o=fxO({p:1,seed:1});o.avoid=[];const c=fxL.x||ctx;
   PW.queue=[];for(const pr of FXPROV){try{if(pr.ready())PW.queue.push(...pr.jobs(c,o));}catch(e){console.error(e);}}
+  // where the art workers run, every job that can be built there goes at once (the page's thread is not touched)
+  if(AQ.mode==='worker'){
+    const offs=PW.queue.filter(j=>j.off),grps=new Set(offs.map(j=>j.name));
+    PW.queue=PW.queue.filter(j=>!j.off&&!grps.has(j.grp));
+    for(const j of offs){PW.off++;const f=j.off;AQ.run(f.fn,f.a,{lane:'fx',pri:f.pri==null?5:f.pri,fonts:!!f.fonts}).then(r=>{PW.off--;if(r!=null)f.put(r);},()=>{PW.off--;});}
+  }
   pwKick();
 }
+// main-thread jobs run in real idle time only: no effect playing, nobody touching the screen, no scroll open
 function pwWhen(j){
   if(!fontsSettled||ART.busy)return false;
+  if(document.querySelector('.overlay:not([hidden])'))return false;
   if(j.when==='boot')return true;
   if(!S||$('scGame').hidden)return false;
   if(j.when==='game')return true;
@@ -3771,32 +4286,11 @@ function pwTick(){
 }
 
 // ---------------- interim effects (ink library) ----------------
-const FXI={key:'',
+const FXI={key:'',pend:'',
+  set(r,key){if(!r||key!==G.size+'@'+G.dpr)return;FXI.puff=r.puff;FXI.band=r.band;FXI.band2=r.band2;FXI.splash=r.splash;FXI.crack=r.crack;FXI.key=key;},
   prep(){
-    const key=G.size+'@'+G.dpr;if(FXI.key===key)return;FXI.key=key;
-    const s=G.dpr,cell=G.cell;
-    // a round puff of paper-white mist with pale ink wisps
-    { const R=cell*2.3,c=I.mk(R*2*s,R*2*s),x=c.x,m1=I.mistStrip(R*2,R*2,s,41,{bands:[[.5,.36,1]],color:[246,242,232]}),m2=I.mistStrip(R*2,R*2,s,43,{bands:[[.42,.16,.7],[.62,.14,.6]],color:[150,150,152]});
-      x.drawImage(m1,0,0);x.globalAlpha=.35;x.drawImage(m2,0,0);x.globalAlpha=1;
-      const g=x.createRadialGradient(R*s,R*s,0,R*s,R*s,R*s);g.addColorStop(0,'rgba(0,0,0,1)');g.addColorStop(.55,'rgba(0,0,0,.8)');g.addColorStop(1,'rgba(0,0,0,0)');
-      x.globalCompositeOperation='destination-in';x.fillStyle=g;x.fillRect(0,0,c.c.width,c.c.height);FXI.puff=c.c; }
-    // a board-wide mist band for the opponent's view of 迷雾
-    FXI.band=I.mistStrip(G.size*1.6,G.size*.55,s,47,{bands:[[.5,.3,.95]],color:[246,242,232]});
-    FXI.band2=I.mistStrip(G.size*1.6,G.size*.4,s,49,{bands:[[.5,.26,.7]],color:[140,140,144]});
-    // 泼墨 burst for 震荡: radiating tapered strokes and a wet core
-    { const R=cell*1.9,c=I.mk(R*2*s,R*2*s),x=c.x,r=I.rng(91),cx=R*s,cy=R*s;
-      for(let k=0;k<7;k++){const a=k/7*6.283+(r()-.5)*.7,L=R*(.28+r()*.42)*s,w=cell*(.2+r()*.16)*s,pts=[],bend=(r()-.5)*.5;
-        for(let q=0;q<=6;q++){const t=q/6;pts.push([cx+Math.cos(a+bend*t*t)*L*t,cy+Math.sin(a+bend*t*t)*L*t,t<.12?.85:t>.8?(1-t)*3.4:1-t*.5]);}
-        I.brush(x,pts,{w,ink:[18,16,15],a:.9,seed:200+k,load:t=>.95-.45*t,dry:.42,dryFrom:.5,lanes:7,bleed:.16,bleedR:3,fibre:.7,rag:.16});}
-      const g=x.createRadialGradient(cx,cy,0,cx,cy,cell*.62*s);g.addColorStop(0,'rgba(16,15,14,.92)');g.addColorStop(.7,'rgba(24,22,20,.75)');g.addColorStop(1,'rgba(24,22,20,0)');x.fillStyle=g;x.beginPath();x.arc(cx,cy,cell*.62*s,0,7);x.fill();
-      for(let k=0;k<14;k++){const a=r()*6.283,d=R*(.55+r()*.42)*s,rr=cell*(.03+r()*.07)*s;x.fillStyle=rgba([20,18,16],.8);x.beginPath();x.ellipse(cx+Math.cos(a)*d,cy+Math.sin(a)*d,rr*1.4,rr,a,0,7);x.fill();}
-      FXI.splash=c.c; }
-    // cracks over the struck stone
-    { const R=cell*.44,c=I.mk(R*2.4*s,R*2.4*s),x=c.x,r=I.rng(17),cx=c.c.width/2,cy=c.c.height/2;x.lineCap='round';
-      for(let k=0;k<5;k++){let a=k/5*6.283+r()*.6,px=cx+Math.cos(a)*R*.08*s,py=cy+Math.sin(a)*R*.08*s;x.beginPath();x.moveTo(px,py);
-        for(let q=0;q<4;q++){a+=(r()-.5)*.7;const l=R*(.22+r()*.12)*s;px+=Math.cos(a)*l;py+=Math.sin(a)*l;x.lineTo(px,py);}
-        x.strokeStyle='rgba(250,246,236,.85)';x.lineWidth=Math.max(1,cell*.035*s);x.stroke();}
-      FXI.crack=c.c; }
+    const key=G.size+'@'+G.dpr;if(FXI.key===key)return;
+    FXI.set(AP.fxi({size:G.size,cell:G.cell},G.dpr),key);
   },
   // keep the ink off every stone the viewer can see (as FX1 does): clip to the board minus their discs
   avoid(x,o,rr){x.beginPath();x.rect(-4,-4,G.size+8,G.size+8);for(const [ax,ay] of (o.avoid||[])){x.moveTo(ax+rr,ay);x.arc(ax,ay,rr,0,6.2832);}x.clip('evenodd');},
@@ -3806,7 +4300,7 @@ const FXI={key:'',
     stoneAt(x,o.x,o.y,e.p,1-(1-FOG_A)*sst(.25,.75,k));
     FXI.puffAt(x,o.x,o.y,.55+.55*I.ease.out(k),.95*env,k*.6);
     FXI.puffAt(x,o.x-G.cell*.3,o.y+G.cell*.1,.4+.4*k,.7*env,-k*.8);
-    fogVeilOn(x,o.x,o.y,e.p,RM?0:performance.now()/1000,sst(.6,1,k));   // hands over to the board's own fog stone
+    fogVeilOn(x,o.x,o.y,e.p,RM?0:(k-1)*e.dur/1000,sst(.6,1,k));   // hands over to the board's own fog stone (its t=0 is this k=1)
   },
   fogVeil(x,k,e){   // the other side: mist rolls across the whole board — no position given away
     if(!FXI.band)return;const s=G.dpr,B=G.size,env=Math.sin(Math.PI*k);
@@ -3892,6 +4386,9 @@ function show(id){
   if(id!=='scGame')for(const o of ['ovPick','ovResult','ovReq','ovEmote'])$(o).hidden=true;   // game sheets never linger over a menu
   if(id==='scGame')resize();else document.documentElement.style.removeProperty('--ovdx');
   if(id==='scMenu'&&typeof refreshResume==='function')refreshResume();
+  // a screen's own art still waiting in the queue is dropped when that screen is left (it would hold up the next one's)
+  if(id!=='scMenu')AQ.drop([ART.menuJob,ART.titleJob]);
+  if(id!=='scPeer'&&id!=='scLobby')AQ.drop([ART.lobbyJob]);
   if(artReady){
     if(id==='scMenu')buildMenu();
     if(id==='scPeer'||id==='scLobby')buildLobby();
@@ -4052,22 +4549,34 @@ let emoteMuted=tryStore(()=>localStorage.getItem('gomoku-mute'))==='1',lastEmote
 $('muteEmote').checked=emoteMuted;
 $('muteEmote').onchange=()=>{emoteMuted=$('muteEmote').checked;tryStore(()=>localStorage.setItem('gomoku-mute',emoteMuted?'1':'0'));};
 $('emotes').innerHTML=EMOTES.map((t,i)=>`<button class="dk" data-i="${i}">${t}</button>`).join('');
+// the slip is pinned inside the speaker's card, at its right end, and never reaches the board: the text is set in
+// short columns (a ， ends a column — the brush face has no vertical comma) as many as the card's height allows
+const SLIP_PAD=19;
+// → columns, each [text, the ， that ended it (kept in the text, not shown)]
+function slipCols(text,maxc){
+  const out=[],segs=text.split('，');
+  segs.forEach((seg,si)=>{const a=[...seg];if(!a.length)return;const k=Math.ceil(a.length/maxc),per=Math.ceil(a.length/k);
+    for(let i=0;i<a.length;i+=per)out.push([a.slice(i,i+per).join(''),i+per>=a.length&&si<segs.length-1?'，':'']);});
+  return out;
+}
 function showBubble(p,text){
-  const el=$('bub'+p),n=[...text].length,two=n>7;
-  const sp=document.createElement('span');sp.textContent=text;el.replaceChildren(sp);
-  el.classList.toggle('two',two);el.style.setProperty('--tl',two?Math.ceil(n/2)*18+2+'px':'');
+  const el=$('bub'+p),card=$('p'+p),land=isLand(),ch=card.offsetHeight||90,sm=ch<96,pitch=sm?16:19;   // a short card: a smaller hand
+  const avail=ch-6+(land?34:6),maxc=Math.max(3,Math.min(7,Math.floor((avail-SLIP_PAD)/pitch)));
+  el.classList.toggle('sm',sm);
+  const sp=document.createElement('span');
+  slipCols(text,maxc).forEach(([t,cm],k)=>{if(k)sp.append(document.createElement('br'));sp.append(t);if(cm){const h=document.createElement('i');h.className='cm';h.textContent=cm;sp.append(h);}});
+  el.replaceChildren(sp);
   el.hidden=true;void el.offsetWidth;el.hidden=false;
-  placeBubbles();deco(el);
+  placeBubbles();deco(el,0);
   clearTimeout(showBubble['t'+p]);showBubble['t'+p]=setTimeout(()=>el.hidden=true,2800);
 }
 function placeBubbles(){
   const pl=document.querySelector('#scGame .players');if(!pl||$('scGame').hidden)return;
-  const R=pl.getBoundingClientRect(),land=isLand();
+  const R=pl.getBoundingClientRect();
   for(const p of [1,2]){
     const el=$('bub'+p);if(el.hidden)continue;
     const c=$('p'+p).getBoundingClientRect(),w=el.offsetWidth;
-    const x=land?c.left-R.left-w-14:(p===1?c.left-R.left-4:c.right-R.left-w+4),y=land?c.top-R.top+4:c.bottom-R.top+3;
-    el.style.left=x+'px';el.style.top=y+'px';el.style.setProperty('--rot',(p===1?-2.5:2.5)+'deg');
+    el.style.left=Math.round(c.right-R.left-w-5)+'px';el.style.top=Math.round(c.top-R.top+3)+'px';el.style.setProperty('--rot',(p===1?-2:2)+'deg');
   }
 }
 function onEmote(p,i){
@@ -4116,22 +4625,17 @@ function renderPick(){
   const p=needPick();
   const ov=$('ovPick');
   if(!p){ov.hidden=true;return;}
-  ov.hidden=false;
-  $('pickTitle').textContent=mode==='local'?`${PN(p)}选择两个技能`:'选择两个技能';
+  const title=mode==='local'?`${PN(p)}选择两个技能`:'选择两个技能';if($('pickTitle').textContent!==title)$('pickTitle').textContent=title;
   const other=S.loadout[3-p];
-  $('pickNote').textContent=(other?`对方带了：${other.map(k=>SK[k].n).join('、')}。`:'')+'技能双方公开。快速技能不占回合，主动技能会用掉这一回合。';
-  const html=ORDER.map(k=>{const sk=SK[k],on=pickBuf.includes(k);
-    return `<button class="pick dk${on?' sel':''}" data-k="${k}" aria-pressed="${on}"><span class="top"><i class="chip k-${k}${on?' zhu':''}" aria-hidden="true"></i><span class="tt"><b>${sk.n}</b><span class="tag">${sk.q?'快速技能':'主动技能'} · <span class="cost" aria-label="${sk.c} 点">${dabs(sk.c)}</span></span></span></span><p>${sk.d}</p></button>`;}).join('');
-  const box=$('picks');
-  if(box._h!==html){box.innerHTML=html;box._h=html;
-    for(const b of box.querySelectorAll('.pick'))b.onclick=()=>{
-      const k=b.dataset.k;
-      if(pickBuf.includes(k))pickBuf=pickBuf.filter(x=>x!==k);
-      else{pickBuf.push(k);if(pickBuf.length>2)pickBuf.shift();}
-      renderPick();
-    };
-    if(artReady)decoWatch(box);}
+  const note=(other?`对方带了：${other.map(k=>SK[k].n).join('、')}。`:'')+'技能双方公开。快速技能不占回合，主动技能会用掉这一回合。';if($('pickNote').textContent!==note)$('pickNote').textContent=note;
+  const box=$('picks');buildPickCards();
+  for(const b of box.querySelectorAll('.pick')){
+    const on=pickBuf.includes(b.dataset.k);if(b.classList.contains('sel')===on)continue;
+    b.classList.toggle('sel',on);b.setAttribute('aria-pressed',String(on));b.querySelector('.chip').classList.toggle('zhu',on);
+    if(artReady)deco(b,0);
+  }
   $('pickOk').disabled=pickBuf.length!==2;
+  ov.hidden=false;
 }
 $('pickOk').onclick=()=>{
   const p=needPick();if(!p||pickBuf.length!==2)return;
@@ -4711,42 +5215,79 @@ function openSheet(ov){
 const ovMO=new MutationObserver(ms=>{for(const m of ms){if(!m.target.hidden)openSheet(m.target);else freeSheet(m.target);}});
 document.querySelectorAll('.overlay').forEach(ov=>ovMO.observe(ov,{attributes:true,attributeFilter:['hidden']}));
 
-// ---------- start-up. Paper and the brushed frames at once (no text in them); the menu's hills and plum at once,
-// back to back; the title, the sprites and the scroll seals as soon as the fonts settle (loaded, or 3.2 s). Only then
-// the board, and the effect textures in real idle time (see the prewarm scheduler in part 3) ----------
+// ---------- start-up. Nothing is painted on this thread: the paper, the menu's hills and the frames of what is on screen
+// are asked for at once (the art workers paint them while the page is already usable); the title, the sprites and the
+// scroll seals as soon as the fonts settle (loaded, or 3.2 s); the board and the effect textures right after.
+// An invite link or a resume record goes first of all: the network does not wait for any picture ----------
 function decorateAll(){decoWatch(document);document.querySelectorAll('.overlay').forEach(openSheet);}
+// the scrolls the player is likely to open next are measured (laid out unseen) and their mounts painted ahead, so a
+// sheet opens straight onto its mount. The pick sheet is measured with its cards and both kinds of note.
+function buildPickCards(){
+  const box=$('picks');if(box._built)return;box._built=1;
+  box.innerHTML=ORDER.map(k=>{const sk=SK[k];
+    return `<button class="pick dk" data-k="${k}" aria-pressed="false"><span class="top"><i class="chip k-${k}" aria-hidden="true"></i><span class="tt"><b>${sk.n}</b><span class="tag">${sk.q?'快速技能':'主动技能'} · <span class="cost" aria-label="${sk.c} 点">${dabs(sk.c)}</span></span></span></span><p>${sk.d}</p></button>`;}).join('');
+  for(const b of box.querySelectorAll('.pick'))b.onclick=()=>{
+    const k=b.dataset.k;
+    if(pickBuf.includes(k))pickBuf=pickBuf.filter(x=>x!==k);
+    else{pickBuf.push(k);if(pickBuf.length>2)pickBuf.shift();}
+    renderPick();
+  };
+  if(artReady)decoWatch(box);
+}
+function presizeSheets(){
+  if(document.querySelector('.overlay:not([hidden])'))return;
+  buildPickCards();
+  const want=(id,prep)=>{const ov=$(id),sh=ov.querySelector('.sheet'),undo=prep?prep():null;
+    ov.style.visibility='hidden';ov.hidden=false;const w=sh.offsetWidth,h=sh.offsetHeight;
+    // the cards' and buttons' frames for this size too
+    if(w&&h){scrollWant(w,h,sh.classList.contains('result'),6);ov.querySelectorAll('.dk').forEach(el=>{deco(el,7);decoAlts(el,8);});}
+    ov.hidden=true;ov.style.visibility='';if(undo)undo();};
+  const text=(el,t)=>()=>{const o=el.textContent;el.textContent=t;return ()=>{el.textContent=o;};};
+  const note=$('pickNote'),base='技能双方公开。快速技能不占回合，主动技能会用掉这一回合。';
+  want('ovPick',text(note,'对方带了：封印、震荡。'+base));want('ovPick',text(note,base));
+  want('ovRules');
+  want('ovResult',()=>{const a=text($('resTitle'),'你赢了')(),b=text($('resNote'),'黑方连成五子，获胜')();return ()=>{a();b();};});
+  want('ovEmote');
+}
 function prepareBoard(){
   const g=$('scGame');
   if(!g.hidden){resize();return;}
   g.style.visibility='hidden';g.hidden=false;
   try{resize();}finally{g.hidden=true;g.style.visibility='';}
+  // the board's small live pictures (spring dabs, rings, the fog veil) in a later idle slot: the first frame is then
+  // only blits
+  later(()=>{if(!G.size)return;liveSprites();for(const sp of SPRINGS)springDabs(sp,0,0);},2000);
 }
-async function boot(){
+const later=(f,ms)=>window.requestIdleCallback?requestIdleCallback(f,{timeout:ms}):setTimeout(f,Math.min(ms,200));
+function boot(){
+  artReady=true;
   buildPaper();
-  artReady=true;decorateAll();
-  const fontsP=fontsReady.then(async ok=>{
+  if(!$('scMenu').hidden)buildMenu();else if(!$('scPeer').hidden||!$('scLobby').hidden)buildLobby();
+  decorateAll();
+  later(prepareBoard,1200);
+  fontsReady.then(ok=>{
     artFontsOK=!!ok;fontsSettled=true;
     if(!$('scMenu').hidden)buildMenuTitle();
-    await buildSpritesAsync();
-    spritesReady=true;
-    if(ok)decorateAll();                       // open scrolls repaint their 闲章 in the real face
-    if(S&&!$('scGame').hidden)render();
+    buildSprites().then(()=>{spritesReady=true;if(S&&!$('scGame').hidden)render();});
+    decorateAll();                             // open scrolls get their 闲章 (it waited for the fonts)
+    later(presizeSheets,1500);
+    if(!$('scGame').hidden)buildGameBg();
     if(!ok)fontLoad.then(late=>{if(late&&document.fonts.check('40px "Ma Shan Zheng"','五'))lateFonts();});
-    return ok;
   });
-  const art=!$('scMenu').hidden?buildMenu():(!$('scPeer').hidden||!$('scLobby').hidden)?buildLobby():null;
-  await Promise.all([fontsP,art]);
-  await idle();prepareBoard();
+  // a resume record: the online component is fetched while the menu is up, so 继续上一局 does not wait for it
+  if(standalone&&!$('mResume').hidden)later(()=>loadPeerLib().catch(()=>{}),3000);
 }
 function lateFonts(){       // the fonts arrived after the 3.2 s cut-off: redraw everything that drew text on canvas
   artFontsOK=true;
   for(const k of [...FX1._cache.keys()])if(/^(glyph|wgeom):/.test(k))FX1._cache.delete(k);
-  winHold.key='';
+  AQ.fxReset('^(?!(glyph|wgeom):)');
+  winHold.key='';LS.key='';SEALS.clear();
+  for(const c of document.querySelectorAll('.sheet>canvas.sdeco'))c._k='';
   try{buildSprites();}catch(e){}
   decorateAll();
   ART.titleKey='';if(!$('scMenu').hidden)buildMenuTitle();
   if(!$('scGame').hidden)buildGameBg();
-  if(!$('scGame').hidden||G.size){scheduleBoardPaint();fxPrewarm();}
+  if(!$('scGame').hidden||G.size){fxPrewarm();boardDirty=true;}
 }
 boot();
 </script>
