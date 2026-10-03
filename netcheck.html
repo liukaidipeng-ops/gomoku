@@ -52,10 +52,10 @@ const enc=new TextEncoder();
 function str(s){const b=enc.encode(s);return [b.length>>8,b.length&255,...b];}
 function rl(n){const o=[];do{let d=n%128;n=Math.floor(n/128);if(n>0)d|=128;o.push(d);}while(n>0);return o;}
 function pkt(h,body){return new Uint8Array([h,...rl(body.length),...body]);}
-function mqtt(host){
+function mqtt(url){
   return new Promise(res=>{
     const t=T0();let ws,stage='连接';
-    try{ws=new WebSocket('wss://'+host+':8084/mqtt',['mqtt']);}catch(e){return res({ok:false,note:'无法连接'});}
+    try{ws=new WebSocket(url,['mqtt']);}catch(e){return res({ok:false,note:'无法连接'});}
     ws.binaryType='arraybuffer';
     const topic='skgomoku/netcheck/'+rand(10),msg='ping'+rand(6);let tConn=0;
     ws.onopen=()=>{stage='握手';ws.send(pkt(0x10,[...str('MQTT'),4,2,0,60,...str('skgchk'+rand(10))]));};
@@ -93,8 +93,10 @@ function turn(url){
 }
 const tests=[
   ['PeerJS 公共中转（现在联机用的）',()=>peerjs(),12000],
-  ['EMQX 国内服务器',()=>mqtt('broker-cn.emqx.io'),12000],
-  ['EMQX 全球服务器',()=>mqtt('broker.emqx.io'),12000],
+  ['EMQX 国内服务器',()=>mqtt('wss://broker-cn.emqx.io:8084/mqtt'),12000],
+  ['EMQX 全球服务器',()=>mqtt('wss://broker.emqx.io:8084/mqtt'),12000],
+  ['HiveMQ 服务器',()=>mqtt('wss://broker.hivemq.com:8884/mqtt'),12000],
+  ['Mosquitto 服务器',()=>mqtt('wss://test.mosquitto.org:8081/mqtt'),12000],
   ['jsDelivr 脚本库',()=>cdn('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/package.json'),10000],
   ['unpkg 脚本库',()=>cdn('https://unpkg.com/peerjs@1.5.4/package.json'),10000],
   ['STUN 小米',()=>stun('stun:stun.miwifi.com:3478'),7000],
