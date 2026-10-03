@@ -2400,6 +2400,8 @@ function glyphBuild(ch, boxCSS, dpr, T, seed) {
     // stroke timing: proportional to path length^.8 with short lifts between strokes (a longer pause at the re-dip)
     let tot = 0; const gap = .035; strokes.forEach(st => { st.d = Math.pow(st.len / S, .8); tot += st.d + gap + (st.dip ? gap * 1.5 : 0); });
     let acc = 0; strokes.forEach(st => { if (st.dip) acc += gap * 1.5; st.t0 = acc / tot; acc += st.d; st.t1 = acc / tot; acc += gap; });
+    // the lane wobble is only needed while building: dropped so the finished glyph is plain data (an art worker can hand it over)
+    strokes.forEach(st => { delete st.wob; });
     return { S, strokes, pieces, core: core.c, er1, er2, ghost: ghost.c, bed: bed.c, occ, OG, ink: [ix0 / S, iy0 / S, ix1 / S, iy1 / S], start: strokes[0].P[0] };
   });
 }
