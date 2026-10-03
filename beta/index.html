@@ -6,6 +6,11 @@
 <meta name="description" content="带技能的五子棋：封印、迷雾、震荡、策反，四角能量泉。宣纸水墨画风，手机打开就能和朋友联机。">
 <meta name="theme-color" content="#f1eada">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23f1eada'/%3E%3Crect x='17' y='3' width='12' height='12' rx='1.5' fill='%23b0301f'/%3E%3Ccircle cx='12' cy='18' r='8' fill='%231c1915'/%3E%3Ccircle cx='21' cy='23' r='6.5' fill='%23fbf8ef' stroke='%23a89a80'/%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="技能五子棋">
 <title>技能五子棋</title>
 <style>
 /* ============ 技能五子棋 · 宣纸水墨 ============
@@ -7540,6 +7545,8 @@ let boardDirty=true;
 let db=null,userCap=null,uid=null,roomCode=null,roomData=null,mySeat=0,unsubRoom=null,unsubRooms=null,writing=false;
 let net=null;  // active online transport: claude db (inside claude.ai) or peer-to-peer (anywhere else)
 const standalone=!window.claude;
+// offline: sw.js keeps the page and its fonts, so 对战电脑 / 同机对战 open without a network once the site was opened once
+if(standalone&&'serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});
 (async()=>{
   try{
     if(window.claude&&window.claude.use){

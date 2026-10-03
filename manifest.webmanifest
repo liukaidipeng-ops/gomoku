@@ -1,0 +1,16 @@
+{
+  "name": "技能五子棋",
+  "short_name": "技能五子棋",
+  "description": "带技能的五子棋：封印、迷雾、震荡、策反，四角能量泉。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f1eada",
+  "theme_color": "#f1eada",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
