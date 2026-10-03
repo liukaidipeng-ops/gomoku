@@ -160,6 +160,9 @@ b,strong{font-weight:inherit}
 .pip{width:14px;height:14px;flex:none;background:var(--sp-pip0) center/100% 100% no-repeat}
 .pip.on{background-image:var(--sp-pip1)}
 .pip.new{animation:pipIn .9s cubic-bezier(.2,.9,.3,1.3)}
+/* a pip a spring pays: unlit until the drop of qi (FX2 gain) lands in it, then the same pop */
+.pip.on[data-g]{animation:pipWait var(--ga) linear,pipIn .7s cubic-bezier(.2,.9,.3,1.3) var(--ga)}
+@keyframes pipWait{from,to{background-image:var(--sp-pip0)}}
 @keyframes pipIn{0%{transform:scale(2.1);opacity:.2}55%{transform:scale(.9);opacity:1}100%{transform:scale(1)}}
 .energy em{font-style:normal;font-size:12.5px;color:var(--ink2);margin-left:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .springline{display:flex;align-items:center;gap:3px;margin-top:clamp(2px,.6vh,6px);margin-top:clamp(2px,.6dvh,6px);font-size:12.5px;color:var(--ink2);white-space:nowrap;height:16px;letter-spacing:-.1px;min-width:0}
@@ -1777,34 +1780,6 @@ AP.board = function (g, s, K) {
   return L.c;
 };
 
-/* ---------------- textures of the interim skill effects (迷雾 / 震荡 …) until FX2 lands. g: {size, cell}; s: dpr ---------------- */
-AP.fxi = function (g, s) {
-  const cell = g.cell, out = {};
-  // a round puff of paper-white mist with pale ink wisps
-  { const R = cell * 2.3, c = can(R * 2 * s, R * 2 * s), x = c.x, m1 = I.mistStrip(R * 2, R * 2, s, 41, { bands: [[.5, .36, 1]], color: [246, 242, 232] }), m2 = I.mistStrip(R * 2, R * 2, s, 43, { bands: [[.42, .16, .7], [.62, .14, .6]], color: [150, 150, 152] });
-    x.drawImage(m1, 0, 0); x.globalAlpha = .35; x.drawImage(m2, 0, 0); x.globalAlpha = 1;
-    const gr = x.createRadialGradient(R * s, R * s, 0, R * s, R * s, R * s); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(.55, 'rgba(0,0,0,.8)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-    x.globalCompositeOperation = 'destination-in'; x.fillStyle = gr; x.fillRect(0, 0, c.c.width, c.c.height); out.puff = c.c; }
-  // a board-wide mist band for the opponent's view of 迷雾
-  out.band = I.mistStrip(g.size * 1.6, g.size * .55, s, 47, { bands: [[.5, .3, .95]], color: [246, 242, 232] });
-  out.band2 = I.mistStrip(g.size * 1.6, g.size * .4, s, 49, { bands: [[.5, .26, .7]], color: [140, 140, 144] });
-  // 泼墨 burst for 震荡: radiating tapered strokes and a wet core
-  { const R = cell * 1.9, c = can(R * 2 * s, R * 2 * s), x = c.x, r = I.rng(91), cx = R * s, cy = R * s;
-    for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283 + (r() - .5) * .7, L = R * (.28 + r() * .42) * s, w = cell * (.2 + r() * .16) * s, pts = [], bend = (r() - .5) * .5;
-      for (let q = 0; q <= 6; q++) { const t = q / 6; pts.push([cx + Math.cos(a + bend * t * t) * L * t, cy + Math.sin(a + bend * t * t) * L * t, t < .12 ? .85 : t > .8 ? (1 - t) * 3.4 : 1 - t * .5]); }
-      I.brush(x, pts, { w, ink: [18, 16, 15], a: .9, seed: 200 + k, load: t => .95 - .45 * t, dry: .42, dryFrom: .5, lanes: 7, bleed: .16, bleedR: 3, fibre: .7, rag: .16 }); }
-    const gr = x.createRadialGradient(cx, cy, 0, cx, cy, cell * .62 * s); gr.addColorStop(0, 'rgba(16,15,14,.92)'); gr.addColorStop(.7, 'rgba(24,22,20,.75)'); gr.addColorStop(1, 'rgba(24,22,20,0)'); x.fillStyle = gr; x.beginPath(); x.arc(cx, cy, cell * .62 * s, 0, 7); x.fill();
-    for (let k = 0; k < 14; k++) { const a = r() * 6.283, d = R * (.55 + r() * .42) * s, rr = cell * (.03 + r() * .07) * s; x.fillStyle = rgba([20, 18, 16], .8); x.beginPath(); x.ellipse(cx + Math.cos(a) * d, cy + Math.sin(a) * d, rr * 1.4, rr, a, 0, 7); x.fill(); }
-    out.splash = c.c; }
-  // cracks over the struck stone
-  { const R = cell * .44, c = can(R * 2.4 * s, R * 2.4 * s), x = c.x, r = I.rng(17), cx = c.c.width / 2, cy = c.c.height / 2; x.lineCap = 'round';
-    for (let k = 0; k < 5; k++) { let a = k / 5 * 6.283 + r() * .6, px = cx + Math.cos(a) * R * .08 * s, py = cy + Math.sin(a) * R * .08 * s; x.beginPath(); x.moveTo(px, py);
-      for (let q = 0; q < 4; q++) { a += (r() - .5) * .7; const l = R * (.22 + r() * .12) * s; px += Math.cos(a) * l; py += Math.sin(a) * l; x.lineTo(px, py); }
-      x.strokeStyle = 'rgba(250,246,236,.85)'; x.lineWidth = Math.max(1, cell * .035 * s); x.stroke(); }
-    out.crack = c.c; }
-  return out;
-};
-
 /* ---------------- job table: the art queue (page or worker) calls these by name with plain-data arguments ---------------- */
 AP.RUN = {
   deco: a => AP.deco(a.kind, a.w, a.h, a.s, a.e),
@@ -1817,7 +1792,6 @@ AP.RUN = {
   lobby: a => AP.lobby(a.VW, a.VH, a.s),
   gameBg: a => AP.gameBg(a.VW, a.VH, a.s, a.h, a.side),
   board: a => AP.board(a.g, a.s, a.K),
-  fxi: a => AP.fxi(a.g, a.s),
   sprite: a => AP.sprite(a.name, a.s, a.arg),
   // FX1 textures for one effect: a few frames of it (each builds what it needs), or the whole prewarm of it. o comes
   // without functions: the stone painter is put back here
@@ -1828,6 +1802,15 @@ AP.RUN = {
     const B = o.board || [0, 0, o.W, o.H], c = o.cell, cx = B[0] + B[2] / 2, cy = B[1] + B[3] / 2;
     const base = Object.assign({ x: cx, y: cy, tx: cx + c, ty: cy, line: [0, 1, 2, 3, 4].map(i => [cx + (i - 2) * c, cy + (i - 2) * c]), avoid: [] }, o);
     for (const n of a.names) for (const k of a.ks) FX1[n](sc.x, k, base);
+    return null;
+  },
+  // FX2 textures: job a.j of FX2.prewarmJobs for one effect (a.name) with the variant's options (seed, stone colour,
+  // the skill name a cast writes). The worker then hands the new cache entries to the page.
+  fx2: a => {
+    const FX1 = self.FX1, FX2 = self.FX2, o = Object.assign({}, a.o, { T: AP.TH, drawStone: (c, x, y, r, p, al) => FX1.stone(c, x, y, r, p, AP.TH, { dpr: a.sd, a: al }) });
+    const sc = I.mk(2, 2); sc.x.setTransform(o.dpr, 0, 0, o.dpr, 0, 0);
+    const jobs = FX2.prewarmJobs(sc.x, o, [a.name]);
+    if (a.j == null) jobs.forEach(f => f()); else if (jobs[a.j]) jobs[a.j]();
     return null;
   },
 };
@@ -3327,6 +3310,1231 @@ window.FX1 = FX;
 })();
 </script>
 
+<script id="jsFx2">
+/* FX2 · 水墨技能特效 第二组 —— 迷雾 fog · 震荡 shock · 策反 turn · 泉眼 gain · 技能名 cast
+ *
+ *   const r = FX2.shock(ctx, k, o)   // draws ONE frame. k ∈ [0,1] linear progress. Pure function of (k, o): seeded, no state.
+ *   FX2.dur.shock                    // suggested duration in ms
+ *   r → null | { shake:[dx,dy], vignette:{ a, x, y, col } }
+ *
+ * SIGNATURE MARK PER EFFECT (no shared ring vocabulary):
+ *   shock 泼墨 + 金缮 kintsugi cracks · fog 祥云 cloud-scroll curls · turn 太极 · gain 石青 water ripples · cast 书法 + 印
+ *
+ * TWO-PASS DRAWING (the fast path — use it)
+ *   Paper-level ink (splash, stains, washes, ripples, the grid veil) must sit UNDER the stones. Call each effect twice:
+ *       board → FX2.x(ctx, k, {...o, layer:'under'}) → seals / stones / last-move dot → FX2.x(ctx, k, {...o, layer:'over'})
+ *   No masking, no scratch layers. With o.layer omitted the effect draws both passes, compositing the paper level through
+ *   a scratch layer with the neighbour stones (o.avoid) cut out — correct, but 2-3x slower.
+ *
+ * o = { x, y, cell, T, p, seed, W, H, ...extra }   (lengths in the ctx's user units = CSS px)
+ *   x,y   effect point          cell  grid spacing         T  an Ink.themes palette (light A / dark B / C)
+ *   p     1 black / 2 white — fog: the stone placed in the mist · shock: the stone that shatters · turn: colour BEFORE
+ *         the flip · gain: owner of the spring
+ *   seed  integer (look)        W,H  surface size
+ *   extra: r       stone radius (default .44*cell)
+ *          avoid   [[x,y],..] neighbour stones (only needed when o.layer is omitted, and by turn to keep drops off them)
+ *          dpr     texture resolution (default: the ctx transform scale)
+ *          gain:   tx,ty = centre of the energy pip that lights up, pipR (4.5) · clip = [x,y,w,h] board paper rect
+ *                  (ripples stay inside the board) · prog0 (2) charge before the payout, prog (0) charge after it
+ *          cast:   text '震荡', glyph '震' (seal; default FX2.skills[text]), cx, cy (centre: put it in the upper third of
+ *                  the board, away from the action), size (default min(W*.36,150))
+ *
+ * WHAT THE CALLER HIDES during an effect: shock → the target stone · turn → the target stone · gain → the spring's three
+ *   charge arcs (the effect draws them: prog0 → full → drains to prog) · fog → nothing (the effect draws the veiled stone).
+ *   After fog, draw FX2.fogMark(ctx, tSeconds, o) every frame (both layers) for the caster: fog k=1 ≡ fogMark t=0.
+ *   fogMark is 5 small blits (≈0.1 ms); while only fogMarks animate, the caller may redraw at 10-15 fps.
+ *
+ * SHAKE: apply r.shake (or FX2.shakeOf(name,k,o)) to the WHOLE game root — background included, with 8 px of overscan —
+ *   never to the board panel alone. Shock is one downward thud (≤5 px), cast a 2 px stamp.
+ * VIGNETTE: shock returns r.vignette = {a, x, y, col}; show it with a DOM overlay (CSS radial-gradient, opacity a), so the
+ *   compositor does the full-screen work. It is never drawn on the canvas.
+ *
+ * SEQUENCING: cast (1150 ms) then the skill effect, started at cast's dissolve (k=.74 → 850 ms): ≈2.4 s per skill use.
+ * FONTS + PREWARM: await document.fonts.load for '"Zhi Mang Xing"' and '"Ma Shan Zheng"' with all skill characters BEFORE
+ *   FX2.prewarm(ctx, o) (or run FX2.prewarmJobs(ctx, o) one job per idle slot; the longest job is one glyph analysis). Cast textures are only cached once the
+ *   fonts report loaded (document.fonts.check), so an early call can never freeze fallback glyphs.
+ *
+ * GAME COPY (技能五子棋): this file is art/fx2/fx.js with these changes, all marked "game copy" below:
+ *  - FX.stone draws the game's own stones when o.drawStone(ctx,x,y,r,p,alpha) is given (no pop at the hand-over);
+ *  - the font check also works inside the art worker (self.fonts), where this file builds its textures too;
+ *  - 震荡 no longer shatters (the rule changed: the stone is 失效 for two turns and stays): the strike is kept (gather,
+ *    泼墨 splash, thud, vignette, cracks), then the cracked stone pales into the board's stunned stone. From k≈.38
+ *    the stone is drawn by o.stunStone(ctx,x,y,look) — the board's own painter — so its last frame IS the board.
+ *    FX.crackDraw draws the effect's cracks on their own (the board's stunned stone and 恢复 use it);
+ *  - new, from the same textures: FX.fogVeil (the fog caster's opponent: a board-wide veil, no position in it),
+ *    FX.reveal (the mist that hid a stone is torn open), FX.recover (a stunned stone comes back: cracks close);
+ *  - FX._cache is exposed so textures built in the art worker can be installed here;
+ *  - cast: the last ink flecks fade out by k = 1 (they were cut off mid-flight when the effect ended).
+ */
+(function () {
+'use strict';
+const FX = {};
+const TAU = Math.PI * 2, PI = Math.PI;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const seg = (k, a, b) => clamp((k - a) / (b - a), 0, 1);
+const sst = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const E = {
+  inQ: t => t * t, inC: t => t * t * t, outQ: t => 1 - (1 - t) * (1 - t), outC: t => 1 - Math.pow(1 - t, 3),
+  outQ4: t => 1 - Math.pow(1 - t, 4), outQ5: t => 1 - Math.pow(1 - t, 5), outExpo: t => t >= 1 ? 1 : 1 - Math.pow(2, -10 * t),
+  inOutC: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, inOutS: t => t * t * (3 - 2 * t),
+  inOutQ: t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2,
+  outBack: (t, s) => { s = s == null ? 1.7 : s; return 1 + (s + 1) * Math.pow(t - 1, 3) + s * Math.pow(t - 1, 2); },
+};
+FX.ease = E;
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a < 0 ? 0 : a > 1 ? 1 : +a.toFixed(4)})`;
+const mix = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+function hex(h) { if (Array.isArray(h)) return h; h = String(h).replace('#', ''); if (h.length === 3) h = h.replace(/./g, '$&$&'); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; }
+function rng(seed) { let a = (seed >>> 0) || 1; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function noise1(seed) { const r = rng(seed), g = new Float32Array(512); for (let i = 0; i < 512; i++) g[i] = r() * 2 - 1; return x => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f), a = g[i & 511], b = g[(i + 1) & 511]; return a + (b - a) * u; }; }
+function noise2(seed) { const r = rng(seed), P = 256, g = new Float32Array(P * P); for (let i = 0; i < g.length; i++) g[i] = r(); return (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf); const i0 = xi & 255, j0 = yi & 255, i1 = (i0 + 1) & 255, j1 = (j0 + 1) & 255; const a = g[j0 * P + i0], b = g[j0 * P + i1], c = g[j1 * P + i0], d = g[j1 * P + i1]; return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }; }
+function fbm2(seed, oct) { const ns = []; for (let k = 0; k < oct; k++) ns.push(noise2(seed + k * 977)); return (x, y) => { let s = 0, a = 1, f = 1, n = 0; for (const fn of ns) { s += fn(x * f, y * f) * a; n += a; a *= .5; f *= 2.03; } return s / n; }; }
+FX.rng = rng;
+
+// ---------------------------------------------------------------- caches & canvases
+const CACHE = new Map();
+const cached = (key, make) => { let v = CACHE.get(key); if (v === undefined) { v = make(); CACHE.set(key, v); } return v; };
+function cvs(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
+const TMP = {};
+function tmp(name, w, h) { // reusable scratch canvas (grown, never shrunk), cleared on request
+  let t = TMP[name]; w = Math.ceil(w); h = Math.ceil(h);
+  if (!t || t.c.width < w || t.c.height < h) { const c = cvs(Math.max(w, t ? t.c.width : 0), Math.max(h, t ? t.c.height : 0)); t = TMP[name] = { c, x: c.getContext('2d') }; }
+  t.x.setTransform(1, 0, 0, 1, 0, 0); t.x.globalAlpha = 1; t.x.globalCompositeOperation = 'source-over'; t.x.clearRect(0, 0, w, h);
+  return t;
+}
+// per-pixel texture: fn(i,j,out) sets out=[r,g,b,a(0..1)]
+function pix(w, h, fn) {
+  const c = cvs(w, h), x = c.getContext('2d'), id = x.createImageData(c.width, c.height), d = id.data, o = [0, 0, 0, 0];
+  for (let j = 0; j < c.height; j++) for (let i = 0; i < c.width; i++) {
+    o[3] = 0; fn(i, j, o); if (!(o[3] > 0.002)) continue;
+    const p = (j * c.width + i) * 4; d[p] = o[0]; d[p + 1] = o[1]; d[p + 2] = o[2]; d[p + 3] = (o[3] > 1 ? 1 : o[3]) * 255;
+  }
+  x.putImageData(id, 0, 0); return c;
+}
+// soft copy: down-sample by f then up-sample (cache-time blur, no ctx.filter)
+function soften(src, f, passes) {
+  let cur = src; passes = passes || 1;
+  for (let p = 0; p < passes; p++) {
+    const s = cvs(src.width / f, src.height / f), sx = s.getContext('2d'); sx.imageSmoothingEnabled = true; sx.imageSmoothingQuality = 'high';
+    sx.drawImage(cur, 0, 0, s.width, s.height);
+    const b = cvs(src.width, src.height), bx = b.getContext('2d'); bx.imageSmoothingEnabled = true; bx.imageSmoothingQuality = 'high'; bx.drawImage(s, 0, 0, b.width, b.height);
+    cur = b;
+  }
+  return cur;
+}
+function tint(src, col, a) { const c = cvs(src.width, src.height), x = c.getContext('2d'); x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = rgba(col, a == null ? 1 : a); x.fillRect(0, 0, c.width, c.height); return c; }
+function dprOf(ctx, o) { if (o && o.dpr) return o.dpr; const m = ctx.getTransform ? ctx.getTransform() : null; const s = m ? Math.hypot(m.a, m.b) : 1; return clamp(Math.round(s * 4) / 4 || 1, 1, 3); }
+function drawTex(ctx, tex, x, y, dpr, sc, rot, alpha) {
+  if (alpha != null) { if (alpha <= .004) return; ctx.globalAlpha = alpha > 1 ? 1 : alpha; }
+  const w = tex.width / dpr * sc, h = tex.height / dpr * sc;
+  if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.drawImage(tex, -w / 2, -h / 2, w, h); ctx.restore(); }
+  else ctx.drawImage(tex, x - w / 2, y - h / 2, w, h);
+  ctx.globalAlpha = 1;
+}
+// radial reveal (cache time): src masked to a soft disc of radius q·half-size
+function radialMask(src, q) { const S = src.width, c = cvs(S, src.height), x = c.getContext('2d'); x.drawImage(src, 0, 0); const R = S / 2 * q, g = x.createRadialGradient(S / 2, src.height / 2, R * .72, S / 2, src.height / 2, R); g.addColorStop(0, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.globalCompositeOperation = 'destination-in'; x.fillStyle = g; x.fillRect(0, 0, S, src.height); return c; }
+// stamp neighbour stones out of a paper-level scratch layer (compat path only)
+function cutStones(lx, o, x, y, ext, R, strength, ld) {
+  if (!o.avoid || !o.avoid.length) return;
+  ld = ld || 2; const Rp = R * ld;
+  const tex = cached(`cut|${Rp.toFixed(2)}|${strength}`, () => { const S = Math.ceil(Rp * 2.3) + 2, C = S / 2; return pix(S, S, (i, j, out) => { out[3] = strength * clamp((1.12 - Math.hypot(i + .5 - C, j + .5 - C) / Rp) / .2, 0, 1); }); });
+  const h = tex.width / 2 / ld;
+  lx.globalCompositeOperation = 'destination-out';
+  for (const a of o.avoid) { if (Math.abs(a[0] - x) > ext + R || Math.abs(a[1] - y) > ext + R) continue; lx.drawImage(tex, a[0] - h, a[1] - h, h * 2, h * 2); }
+  lx.globalCompositeOperation = 'source-over';
+}
+const SLOT = {};
+function slot(name, key, make) { const s = SLOT[name]; if (s && s.key === key) return s.v; const v = make(); SLOT[name] = { key, v }; return v; }
+function layerBegin(name, x, y, ext, dpr) {
+  const S = Math.ceil(ext * 2 * dpr), L = tmp(name, S, S); L.x.setTransform(dpr, 0, 0, dpr, -(x - ext) * dpr, -(y - ext) * dpr); L.S = S; L.ox = x - ext; L.oy = y - ext; return L;
+}
+function layerEnd(ctx, L, dpr, alpha) {
+  if (alpha != null) ctx.globalAlpha = alpha;
+  ctx.drawImage(L.c, 0, 0, L.S, L.S, L.ox, L.oy, L.S / dpr, L.S / dpr); ctx.globalAlpha = 1;
+}
+// the paper level of an effect: direct in the 'under' pass, through a cut-out scratch layer when o.layer is omitted
+function paper(ctx, o, x, y, ext, R, dpr, fn) {
+  if (o.layer === 'over') return;
+  if (o.layer === 'under') { fn(ctx); return; }
+  const L = layerBegin('paperL', x, y, ext, dpr); fn(L.x); cutStones(L.x, o, x, y, ext, R, 1, dpr); layerEnd(ctx, L, dpr);
+}
+const overOn = o => o.layer !== 'under';
+
+// ---------------------------------------------------------------- palette
+function pal(T) {
+  return cached('pal|' + T.name, () => {
+    const dark = !!T.dark, paper = hex(T.boardPaper || T.paper), gold = T.gold || [176, 138, 64];
+    return {
+      dark, paper, gold, ink: T.ink,
+      goldHi: [255, 236, 186],
+      black: dark ? [6, 6, 8] : T.ink,                  // real black ink on both themes (gold-edged on B)
+      white: dark ? [238, 232, 216] : [250, 246, 236],  // 蛤粉 shell white
+      red: T.accent,
+      qi: dark ? gold : [47, 93, 116],                  // 石青 #2f5d74 on A, gold on B
+      qiHi: dark ? [255, 236, 186] : [126, 172, 190],
+      fogInk: dark ? [138, 132, 120] : [74, 70, 63],    // warm ink / warm silver, never blue
+      veil: paper,                                      // grid veil = the board's own paper (or lacquer)
+      mist: dark ? mix(paper, [150, 144, 132], .32) : paper,   // mist body: the paper itself / moonlit silver haze on lacquer
+      light: dark ? [214, 176, 98] : [255, 253, 246],   // pressure-wave light
+      castInk: dark ? mix(gold, [255, 236, 186], .2) : [26, 24, 22],
+      castRim: dark ? [160, 116, 46] : [6, 6, 8],
+      castHalo: dark ? [10, 8, 6] : paper,
+    };
+  });
+}
+
+// ---------------------------------------------------------------- stones (jade / shell)
+function stoneTex(R, p, T, dpr) {
+  return cached(`st|${R.toFixed(2)}|${p}|${T.name}|${dpr}`, () => {
+    const pad = R * .55, S = (R + pad) * 2, c = cvs(S * dpr, S * dpr), x = c.getContext('2d'); x.scale(dpr, dpr);
+    const cx = S / 2, cy = S / 2;
+    let g = x.createRadialGradient(cx + R * .16, cy + R * .26, R * .5, cx + R * .16, cy + R * .26, R * 1.28);
+    g.addColorStop(0, `rgba(0,0,0,${T.dark ? .62 : .34})`); g.addColorStop(.6, `rgba(0,0,0,${T.dark ? .28 : .12})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(cx + R * .16, cy + R * .26, R * 1.28, 0, TAU); x.fill();
+    if (p === 1) {
+      g = x.createRadialGradient(cx - R * .36, cy - R * .42, R * .04, cx, cy, R * 1.02);
+      if (T.dark) { g.addColorStop(0, '#6a7178'); g.addColorStop(.3, '#2a2f34'); g.addColorStop(.72, '#111316'); g.addColorStop(1, '#050506'); }
+      else { g.addColorStop(0, '#565d63'); g.addColorStop(.28, '#202428'); g.addColorStop(.7, '#0b0d0f'); g.addColorStop(1, '#020203'); }
+    } else {
+      g = x.createRadialGradient(cx - R * .3, cy - R * .36, R * .04, cx, cy, R * 1.02);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(.42, '#f7f3ea'); g.addColorStop(.82, '#e4ddcc'); g.addColorStop(1, '#c6baa0');
+    }
+    x.fillStyle = g; x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.fill();
+    x.save(); x.beginPath(); x.arc(cx, cy, R, 0, TAU); x.clip();
+    if (p === 1) {
+      g = x.createRadialGradient(cx + R * .32, cy + R * .4, R * .05, cx + R * .2, cy + R * .25, R * .95);
+      g.addColorStop(0, 'rgba(70,120,110,.30)'); g.addColorStop(1, 'rgba(70,120,110,0)'); x.fillStyle = g; x.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    } else {
+      x.strokeStyle = 'rgba(150,128,96,.10)'; x.lineWidth = Math.max(.35, R * .035);
+      for (let i = -5; i <= 5; i++) { x.beginPath(); x.ellipse(cx + R * .2, cy + R * 2.2 + i * R * .19, R * 2.4, R * 2.2, 0, PI * 1.2, PI * 1.8); x.stroke(); }
+      g = x.createRadialGradient(cx + R * .3, cy + R * .4, R * .1, cx, cy, R); g.addColorStop(0, 'rgba(255,238,206,.35)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(cx - R, cy - R, 2 * R, 2 * R);
+    }
+    x.restore();
+    g = x.createRadialGradient(cx - R * .38, cy - R * .44, 0, cx - R * .38, cy - R * .44, R * .5);
+    g.addColorStop(0, p === 1 ? 'rgba(255,255,255,.46)' : 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(cx - R * .36, cy - R * .42, R * .44, R * .3, -.7, 0, TAU); x.fill();
+    x.strokeStyle = p === 1 ? (T.dark ? rgba(T.gold, .55) : 'rgba(170,196,206,.22)') : (T.dark ? rgba(T.gold, .4) : 'rgba(140,116,80,.3)');
+    x.lineWidth = Math.max(.8, R * .07); x.beginPath(); x.arc(cx, cy, R * .95, .1, 1.95); x.stroke();
+    if (T.dark && p === 1) { x.strokeStyle = 'rgba(214,176,98,.22)'; x.lineWidth = Math.max(.6, R * .05); x.beginPath(); x.arc(cx, cy, R * 1.04, 0, TAU); x.stroke(); }
+    return { c, half: S / 2 };
+  });
+}
+FX.stoneTex = stoneTex;
+FX.stone = function (ctx, x, y, R, p, T, alpha, sc, o) {
+  if (o && o.drawStone) { if (alpha != null && alpha <= 0) return; o.drawStone(ctx, x, y, R * (sc || 1), p, alpha == null ? 1 : alpha); ctx.globalAlpha = 1; return; }   // game copy
+  const d = dprOf(ctx, o), s = stoneTex(R, p, T, d); sc = sc || 1;
+  if (alpha != null && alpha < 1) { if (alpha <= 0) return; ctx.globalAlpha = alpha; }
+  ctx.drawImage(s.c, x - s.half * sc, y - s.half * sc, s.half * 2 * sc, s.half * 2 * sc);
+  ctx.globalAlpha = 1;
+};
+
+// ---------------------------------------------------------------- shared textures
+function dab(col, Rpx, hard) {
+  return cached(`dab|${col}|${Rpx}|${hard}`, () => {
+    const S = Rpx * 2, c = cvs(S, S), x = c.getContext('2d'), g = x.createRadialGradient(Rpx, Rpx, 0, Rpx, Rpx, Rpx);
+    g.addColorStop(0, rgba(col, 1)); g.addColorStop(hard || .25, rgba(col, .6)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(0, 0, S, S); return c;
+  });
+}
+// wet ink droplet stain: body, dried rim (墨晕, or gold on the lacquer theme), fibre fringe; tail + satellites along +x
+function stainTex(seed, Rpx, col, elong, rim) {
+  return cached(`stain|${seed}|${Rpx}|${col}|${elong}|${rim || ''}`, () => {
+    const r = rng(seed), f = noise1(seed), nz = noise2(seed + 3), S = Math.ceil(Rpx * (2.6 + elong * 2)) * 2 + 4, C = S / 2;
+    const tail = .5 + r() * .8, sats = []; for (let i = 0; i < 1 + (r() * 3 | 0); i++) sats.push([Rpx * (1.5 + elong * 1.2 + r() * 1.3), (r() - .5) * Rpx * .8, Rpx * (.1 + r() * .2)]);
+    return pix(S, S, (i, j, out) => {
+      const dx = i + .5 - C, dy = j + .5 - C;
+      const ex = dx / (1 + elong * (dx > 0 ? .45 : .2)), a = Math.atan2(dy, ex), rr = Math.hypot(ex, dy);
+      const R = Rpx * (1 + .2 * f(a * 2.2 + 7) + .09 * f(a * 6 + 3));
+      let d = rr / R, tl = 1e9;
+      if (dx > 0) { const tx = dx / (Rpx * (1.2 + tail * 2)); if (tx < 1) tl = Math.abs(dy - Math.sin(tx * 3) * Rpx * .08) / (Rpx * .3 * (1 - tx) + .35); }
+      d = Math.min(d, tl); for (const s of sats) d = Math.min(d, Math.hypot(dx - s[0], dy - s[1]) / s[2]);
+      const lim = rim ? 1.5 : 1.35; if (d > lim) return;
+      const body = 1 - sst(.88, 1.0, d), rimT = Math.exp(-Math.pow((d - .88) / .11, 2)), fr = (1 - body) * sst(1.35, 1, d) * sst(.45, .8, nz(dx * .6, dy * .6)) * .28;
+      const dens = (.6 + .18 * nz(dx * .15, dy * .15)) + .36 * rimT;
+      if (rim) {   // gold edge just outside the black body
+        const g = Math.exp(-Math.pow((d - 1.04) / .14, 2)) * .8, bA = Math.min(1, body * (dens + .2));
+        const A = bA + g * (1 - bA); if (A <= .003) return; const w = g * (1 - bA) / A;
+        out[0] = lerp(col[0], rim[0], w); out[1] = lerp(col[1], rim[1], w); out[2] = lerp(col[2], rim[2], w); out[3] = A; return;
+      }
+      out[0] = col[0]; out[1] = col[1]; out[2] = col[2]; out[3] = Math.max(body * dens, fr);
+    });
+  });
+}
+// ---- painted stroke along a centre line (cached).  pts in texture px; t=0 is where the brush lands.
+// o: W,H, width(t)→half width px, body, edge, seed, dry, dryStart, bristle, along, wet, rough, tail, alpha,
+//    halo:[rgb,alpha,soft], rim:[rgb, amount, from] (outermost bristles take a second colour, e.g. gold-edged black ink)
+function strokeTex(key, pts, o) {
+  return cached('stk|' + key, () => {
+    const W = Math.ceil(o.W), H = Math.ceil(o.H), N = pts.length, cum = [0];
+    for (let i = 1; i < N; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const L = cum[N - 1] || 1, BV = new Float32Array(W * H).fill(9), BT = new Float32Array(W * H);
+    for (let i = 0; i < N - 1; i++) {
+      const a = pts[i], b = pts[i + 1], t0 = cum[i] / L, t1 = cum[i + 1] / L, hw = Math.max(o.width(t0), o.width(t1)) * 1.4 + 2;
+      const x0 = Math.max(0, Math.floor(Math.min(a[0], b[0]) - hw)), x1 = Math.min(W - 1, Math.ceil(Math.max(a[0], b[0]) + hw));
+      const y0 = Math.max(0, Math.floor(Math.min(a[1], b[1]) - hw)), y1 = Math.min(H - 1, Math.ceil(Math.max(a[1], b[1]) + hw));
+      const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1e-6;
+      for (let j = y0; j <= y1; j++) for (let ii = x0; ii <= x1; ii++) {
+        const px = ii + .5, py = j + .5, tc = clamp(((px - a[0]) * vx + (py - a[1]) * vy) / l2, 0, 1), qx = a[0] + vx * tc, qy = a[1] + vy * tc;
+        const tt = t0 + (t1 - t0) * tc, w = o.width(tt); if (w <= .05) continue;
+        const nv = Math.hypot(px - qx, py - qy) / w, p = j * W + ii;
+        if (nv < Math.abs(BV[p])) { BV[p] = (vx * (py - a[1]) - vy * (px - a[0])) >= 0 ? nv : -nv; BT[p] = tt; }
+      }
+    }
+    const sd = o.seed || 1, n1 = noise2(sd), n2 = noise2(sd + 5), n3 = noise2(sd + 9), body = o.body, edge = o.edge || o.body;
+    const dry = o.dry == null ? .5 : o.dry, dS = o.dryStart == null ? .35 : o.dryStart, bri = o.bristle || 4, al = o.along || .035, wet = o.wet == null ? .2 : o.wet, rough = o.rough == null ? .22 : o.rough, tail = o.tail == null ? .72 : o.tail, A = o.alpha == null ? 1 : o.alpha;
+    const rim = o.rim;
+    const c = pix(W, H, (i, j, out) => {
+      const p = j * W + i, v = BV[p], av = Math.abs(v); if (av > 1.3) return;
+      const t = BT[p], s = t * L, e = av + (n1(s * .1, v > 0 ? 3.3 : 7.7) - .5) * rough * (.5 + t);
+      let a = 1 - sst(.8, 1, e); if (a <= 0) return;
+      const D = dry * sst(dS, 1, t) + dry * .6 * sst(.5, 1, av) * (.15 + t), b = n2(v * bri + 17, s * al);
+      a *= sst(D - .08, D + .08, b);
+      const dens = lerp(1, tail, t) * (.84 + .28 * n3(v * 9, s * .05)) + wet * Math.exp(-Math.pow((av - .86) / .1, 2));
+      a *= Math.min(1, dens) * A; if (a <= 0) return;
+      const m = clamp(sst(.45, 1, av) * .85 + (1 - b) * .25, 0, 1);
+      let col = mix(body, edge, m);
+      if (rim) col = mix(col, rim[0], rim[1] * sst(rim[2] || .62, .96, e) * (.65 + .5 * b));
+      out[0] = col[0]; out[1] = col[1]; out[2] = col[2]; out[3] = a;
+    });
+    const res = { c, W, H, L };
+    if (o.halo) res.halo = tint(soften(c, o.halo[2] || 6, 2), o.halo[0], o.halo[1]);
+    return res;
+  });
+}
+// an open painted circle (円相): only the 泉眼 water ripples use it (gain's signature)
+function ensoTex(seed, Rpx, hw, col, o) {
+  o = o || {};
+  const key = `enso|${seed}|${Rpx}|${hw}|${col}|${o.span}|${o.dry}|${o.wet}|${o.edge}|${o.a0}|${o.bristle}|${o.spiral}|${o.alpha}`;
+  const S = Math.ceil((Rpx * 1.08 + hw * 1.5 + 4) * 2), C = S / 2, f = noise1(seed + 3), span = o.span || TAU * .94, a0 = o.a0 == null ? -PI * .6 : o.a0, pts = [];
+  const n = Math.max(24, Math.round(span * Rpx / 3));
+  for (let i = 0; i <= n; i++) { const t = i / n, a = a0 + span * t, rr = Rpx * (1 + .035 * f(t * 5) + (o.spiral || 0) * t); pts.push([C + Math.cos(a) * rr, C + Math.sin(a) * rr]); }
+  const prof = o.prof || (t => t < .06 ? .75 + .25 * t / .06 : 1 - .55 * Math.pow((t - .06) / .94, 1.6));
+  return strokeTex(key, pts, { W: S, H: S, width: t => hw * prof(t), body: col, edge: o.edge || col, seed, dry: o.dry == null ? .55 : o.dry, dryStart: .25, bristle: o.bristle || 3.2, along: .02, wet: o.wet == null ? .25 : o.wet, alpha: o.alpha });
+}
+// soft ink bloom with a tide line (rim colour optional)
+function washTex(seed, Rpx, col, amt, rim, soft) {
+  return cached(`wash|${seed}|${Rpx}|${col}|${amt}|${rim || ''}|${soft || 0}`, () => {
+    const f = noise1(seed), n = fbm2(seed + 1, 3), n2 = noise2(seed + 9), S = Math.ceil(Rpx * 2.6), C = S / 2;
+    return pix(S, S, (i, j, out) => {
+      const dx = (i - C) / Rpx, dy = (j - C) / Rpx, a = Math.atan2(dy, dx), R = 1 + .16 * f(a * 2.5) + .08 * f(a * 7 + 4), d = Math.hypot(dx, dy) / R + (n(dx * 2, dy * 2) - .5) * .25;
+      if (d > 1.12) return;
+      const body = 1 - sst(soft ? .35 : .9, 1, d), rimT = Math.exp(-Math.pow((d - .92) / .07, 2)) * (soft ? .45 : 1), fr = (soft ? .4 : 1) * sst(1.12, 1, d) * (1 - body) * sst(.45, .8, n2(i * .3 + j * .17, j * .3 - i * .17)) * .4;
+      const dens = (.55 + .45 * n(dx * 1.3 + 5, dy * 1.3)) * .5 + .5 * rimT;
+      const col2 = rim ? mix(col, rim, clamp(rimT * 1.3, 0, 1)) : col;
+      out[0] = col2[0]; out[1] = col2[1]; out[2] = col2[2]; out[3] = Math.max(body * dens, fr) * (amt || .5) * (rim ? 1 + .6 * rimT : 1);
+    });
+  });
+}
+// a painted hairline ring (filled ribbon, broken like a dry brush) — the lacquer theme's shock ring
+const HAIR = {};
+function hairRing(ctx, x, y, r, w, col, a, seed, rot) {
+  if (a <= .004) return;
+  let g = HAIR[seed]; if (!g) { const f = noise1(seed), n = 160, span = TAU * .86, pts = []; for (let i = 0; i <= n; i++) { const t = i / n, ang = span * t, ww = (.35 + .65 * (f(t * 9) * .5 + .5)) * Math.min(1, t / .04) * Math.pow(1 - t, .6); pts.push([Math.cos(ang), Math.sin(ang), ww, f(t * 23 + 5)]); } g = HAIR[seed] = pts; }
+  ctx.fillStyle = rgba(col, a); ctx.beginPath();
+  let open = false; const L = [], Rr = [];
+  const flush = () => { if (L.length > 1) { ctx.moveTo(L[0][0], L[0][1]); for (let i = 1; i < L.length; i++) ctx.lineTo(L[i][0], L[i][1]); for (let i = Rr.length - 1; i >= 0; i--) ctx.lineTo(Rr[i][0], Rr[i][1]); ctx.closePath(); } L.length = 0; Rr.length = 0; };
+  const cr = Math.cos(rot || 0), sr = Math.sin(rot || 0);
+  for (const [c, s, ww, br] of g) {
+    if (br < -.55) { flush(); continue; }  // dry-brush breaks
+    const cc = c * cr - s * sr, ss = c * sr + s * cr, hw = w * ww * .5;
+    L.push([x + cc * (r - hw), y + ss * (r - hw)]); Rr.push([x + cc * (r + hw), y + ss * (r + hw)]); open = true;
+  }
+  if (open) flush(); ctx.fill();
+}
+
+// ================================================================= 震荡 SHOCK — 泼墨 + 金缮
+// directional splash: an elongated core, 5-7 jets inside ±55° of dir (one dominant, power-law lengths), 1-2 stubby
+// counter-jets, a pale speckled drag wedge, forward spray; 破墨 pockets, dried rim, 墨晕 bleed; gold-edged on lacquer.
+function splashTex(seed, Rpx, col, dir, P, dpr) {
+  return cached(`splash3|${seed}|${Rpx}|${col}|${dir.toFixed(3)}|${P.dark}`, () => {
+    const r = rng(seed), EXT = 4.4, S = Math.ceil(Rpx * EXT * 2), C = S / 2, F = new Float32Array(S * S);
+    const ca = Math.cos(dir), sa = Math.sin(dir);
+    const acc = (x0, x1, y0, y1, fn) => { x0 = Math.max(0, x0 | 0); y0 = Math.max(0, y0 | 0); x1 = Math.min(S - 1, Math.ceil(x1)); y1 = Math.min(S - 1, Math.ceil(y1)); for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) { const d2 = fn(i, j); if (d2 < 1) { const g = 1 - d2; F[j * S + i] += g * g; } } };
+    const P2 = (al, ac) => [C + (al * ca - ac * sa) * Rpx, C + (al * sa + ac * ca) * Rpx];   // local (along, across) → px
+    const blob = (al, ac, rad) => { const [px, py] = P2(al, ac), pr = rad * Rpx, ir = 1 / (pr * pr); acc(px - pr, px + pr, py - pr, py + pr, (i, j) => ((i - px) * (i - px) + (j - py) * (j - py)) * ir); };
+    const caps = (l0, c0, l1, c1, r0, r1) => { const [ax, ay] = P2(l0, c0), [bx, by] = P2(l1, c1); r0 *= Rpx; r1 *= Rpx; const m = Math.max(r0, r1), vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy || 1;
+      acc(Math.min(ax, bx) - m, Math.max(ax, bx) + m, Math.min(ay, by) - m, Math.max(ay, by) + m, (i, j) => { const t = clamp(((i - ax) * vx + (j - ay) * vy) / L2, 0, 1), qx = ax + vx * t - i, qy = ay + vy * t - j, rad = r0 + (r1 - r0) * t; return (qx * qx + qy * qy) / (rad * rad); }); };
+    const ell = (al, ac, a, b, ang) => { const [px, py] = P2(al, ac), A = a * Rpx, B = b * Rpx, m = Math.max(A, B), c = Math.cos(dir + ang), s = Math.sin(dir + ang);
+      acc(px - m, px + m, py - m, py + m, (i, j) => { const dx = i - px, dy = j - py, u = (dx * c + dy * s) / A, v = (-dx * s + dy * c) / B; return u * u + v * v; }); };
+    const jet = (a, st, L, r0, r1, bend) => {
+      const ax = Math.cos(a) * st, ay = Math.sin(a) * st, mx = Math.cos(a + bend) * L * .55, my = Math.sin(a + bend) * L * .55, tx = Math.cos(a + bend * .3) * L, ty = Math.sin(a + bend * .3) * L;
+      caps(ax, ay, mx, my, r0, (r0 + r1) * .55); caps(mx, my, tx, ty, (r0 + r1) * .55, r1); return [tx, ty];
+    };
+    // core: an ellipse stretched along dir (1.5 : 1), pushed a little forward, with lobes on the forward side
+    ell(.12, 0, 1.85, 1.22, 0);
+    for (let i = 0; i < 6; i++) { const a = (r() - .5) * 3.4, d = .35 + r() * .5; blob(Math.cos(a) * d + .12, Math.sin(a) * d * .85, .32 + r() * .38); }
+    // jets inside ±55°, power-law lengths: one dominant 2.6-3.2 radii, the rest .8-1.6
+    const nj = 5 + (r() * 3 | 0), dom = (nj >> 1) - (r() < .5 ? 0 : 1);
+    for (let j = 0; j < nj; j++) {
+      const a = (j / (nj - 1) - .5) * 1.92 + (r() - .5) * .2, isD = j === dom;
+      const L = isD ? 2.6 + r() * .6 : .85 + Math.pow(r(), 1.6) * .75;
+      const r0 = isD ? .34 : .14 + r() * .1, r1 = isD ? .1 : .03 + r() * .025, bend = (r() - .5) * (isD ? .18 : .4);
+      const [tx, ty] = jet(a, .55, L, r0, r1, bend);
+      if (isD || r() < .7) blob(tx * 1.02, ty * 1.02, r1 * 2.3 + r() * .04);
+      const nd = isD ? 3 : (r() < .55 ? 1 + (r() * 2 | 0) : 0), aa = Math.atan2(ty, tx);
+      for (let d = 1; d <= nd; d++) { const dd = L * (1.1 + d * .12 + r() * .06), s = (isD ? .1 : .075) * (1 - d * .17) * (.75 + r() * .5); ell(Math.cos(aa) * dd, Math.sin(aa) * dd, s * 2.1, s, aa); }
+    }
+    // 1-2 stubby counter-jets (≤ .6 radii past the core)
+    for (let j = 0, nc = 1 + (r() < .5 ? 1 : 0); j < nc; j++) jet(PI + (r() - .5) * 1.0, .5, 1.45 + r() * .3, .2, .07, (r() - .5) * .3);
+    // forward spray (mostly inside the cone), a few all around
+    for (let i = 0; i < 70; i++) {
+      const fwd = r() < .8, a = fwd ? (r() + r() + r() - 1.5) * .85 : r() * TAU, d = (1.4 + Math.pow(r(), .9) * 2.5) * (fwd ? 1 : .55), s = .016 + Math.pow(r(), 2.3) * .09;
+      if (d > EXT - .25) continue; ell(Math.cos(a) * d, Math.sin(a) * d, s * (1.3 + r() * 1.3), s, a);
+    }
+    const n1 = noise2(seed + 3), n2 = noise2(seed + 7), n3 = noise2(seed + 11), n4 = noise2(seed + 13), n5 = noise2(seed + 17), Th = .25;
+    const solid = P.dark ? new Uint8Array(S * S) : null;
+    const c = pix(S, S, (i, j, out) => {
+      const u = (i + .5 - C) / Rpx, v = (j + .5 - C) / Rpx;
+      let f = F[j * S + i];
+      const al = u * ca + v * sa, ac = -u * sa + v * ca, dist = Math.hypot(al, ac);
+      let wg = 0; if (al > 0 && dist > .9 && dist < 2.8) { const q = 1 - Math.pow(Math.atan2(ac, al) / 1.0, 2); if (q > 0) wg = q * sst(.9, 1.4, dist) * (1 - sst(1.6, 2.7, dist)); }   // drag wedge
+      if (f < .02 && wg <= 0) return;
+      f += (n1(u * 3.2 + 9, v * 3.2) - .5) * .16 + (n2(u * 10, v * 10) - .5) * .07;
+      const body = sst(Th - .012, Th + .012, f), depth = sst(Th, Th + 1.1, f);
+      let dens = .58 + .42 * Math.pow(depth, .55);
+      dens *= 1 - .48 * sst(.55, .78, n3(u * 1.4 + 3, v * 1.4)) * sst(.05, .5, depth);           // 破墨 pale pockets
+      dens *= .9 + .16 * n4(u * 24, v * 24);
+      dens = Math.min(1, dens + .3 * Math.exp(-Math.pow((f - Th) / .05, 2)));                    // dried rim
+      const bleed = Math.max(0, sst(Th - .1, Th, f) * (1 - body) * .22 * (.5 + 1.1 * (n5(u * 5.1 + v * 3.3 + 7, v * 5.1 - u * 3.3) - .35)));  // 墨晕
+      const fr = sst(Th - .17, Th, f) * (1 - body) * .3 * sst(.38, .78, n4(u * 30 + 50, v * 30 - 20));
+      const spray = wg * (.3 * sst(.52, .72, n2(u * 17 + 40, v * 17)) + .06 * sst(.3, .7, n5(u * 3, v * 3)));
+      if (solid && body > .5) solid[j * S + i] = 1;
+      out[0] = col[0]; out[1] = col[1]; out[2] = col[2]; out[3] = Math.max(body * dens, bleed, fr, spray);
+    });
+    if (!P.dark) return c;
+    // lacquer theme: black ink with a gold edge (dilated body − body) and gold-leaf flecks among the droplets
+    const m = cvs(S, S), mx = m.getContext('2d'), id = mx.createImageData(S, S); for (let p = 0; p < S * S; p++) if (solid[p]) id.data[p * 4 + 3] = 255; mx.putImageData(id, 0, 0);
+    const out = cvs(S, S), ox = out.getContext('2d');
+    ox.drawImage(tint(soften(m, 7, 2), P.gold, .22), 0, 0);
+    const line = tint(soften(m, 2, 1), P.gold, 1); ox.drawImage(line, 0, 0); ox.drawImage(line, 0, 0);
+    ox.globalCompositeOperation = 'destination-out'; ox.drawImage(m, 0, 0); ox.globalCompositeOperation = 'source-over';
+    ox.drawImage(c, 0, 0);
+    for (let i = 0; i < 22; i++) {   // gold leaf: irregular quads 2-4 css px
+      const a = dir + (r() + r() - 1) * 1.2, d = (1.1 + r() * 2.4) * Rpx, px = C + Math.cos(a) * d, py = C + Math.sin(a) * d, s = (1 + r() * 1.1) * dpr, rot = r() * TAU;
+      ox.fillStyle = rgba(mix(P.gold, P.goldHi, r() * .7), .75 + r() * .25); ox.beginPath();
+      for (let q = 0; q < 4; q++) { const aa = rot + q * PI / 2 + (r() - .5) * .7, rr = s * (.6 + r() * .7); q ? ox.lineTo(px + Math.cos(aa) * rr, py + Math.sin(aa) * rr) : ox.moveTo(px + Math.cos(aa) * rr, py + Math.sin(aa) * rr); }
+      ox.closePath(); ox.fill();
+    }
+    return out;
+  });
+}
+// three ink tendrils spiralling inward (聚墨), one texture rotated + shrunk per frame
+function vortexTex(seed, Rpx, hw, col, gold) {
+  return cached(`vtx|${seed}|${Rpx}|${hw}|${col}|${gold || ''}`, () => {
+    const S = Math.ceil(Rpx * 2.2), C = S / 2, c = cvs(S, S), x = c.getContext('2d'), r = rng(seed);
+    for (let i = 0; i < 3; i++) {
+      const a0 = i * TAU / 3 + (r() - .5) * .6, span = 1.3 + r() * .4, pts = [];
+      for (let q = 0; q <= 70; q++) { const t = q / 70, a = a0 + span * t, rr = Rpx * (.3 + .7 * Math.pow(t, .85)); pts.push([C + Math.cos(a) * rr, C + Math.sin(a) * rr]); }
+      const tx = strokeTex(`vtx|${seed}|${i}|${S}|${col}|${gold || ''}`, pts, { W: S, H: S, width: t => hw * (t < .3 ? .45 + .55 * Math.sin(t / .3 * PI / 2) : Math.pow(1 - (t - .3) / .7, .9) * .92 + .08) * (i === 1 ? .8 : 1), body: col, edge: col, seed: seed + i * 7, dry: .55, dryStart: .35, bristle: 3, along: .03, wet: .3, tail: .6, rim: gold ? [gold, .95, .55] : null });
+      x.drawImage(tx.c, 0, 0);
+    }
+    return c;
+  });
+}
+// crack network from an impact point offset toward dir: 4 primary cracks (+ forks) and 3 hairlines, angles clustered.
+// The 7 lines also cut the stone into 7 shards.  Painted with strokeTex at 2x, 金缮 gold on lacquer.
+function crackSet(seed, R, dpr, dir, P, p) {
+  return cached(`crk|${seed}|${R.toFixed(2)}|${dpr}|${P.dark}|${p}|${dir.toFixed(3)}`, () => {
+    const r = rng(seed * 3 + 17), ix = Math.cos(dir) * .35, iy = Math.sin(dir) * .35;
+    const base = dir + PI + (r() - .5) * .5, groups = [[base, 3], [base + 2.0 + r() * .35, 2], [base - 2.0 - r() * .35, 2]], lines = [];
+    groups.forEach(([g, n], gi) => { for (let q = 0; q < n; q++) lines.push({ a0: g + (q - (n - 1) / 2) * (.36 + r() * .14) + (r() - .5) * .06, primary: gi === 0 ? q < 2 : q === 0 }); });
+    for (const L of lines) {
+      const pts = [[ix, iy]]; let x = ix, y = iy, a = L.a0, g = 0;
+      while (Math.hypot(x, y) < 1.05 && g++ < 60) { a += (L.a0 - a) * .35 + (r() - .5) * .55; const st = .055 + r() * .055; x += Math.cos(a) * st; y += Math.sin(a) * st; pts.push([x, y]); }
+      L.pts = pts; L.end = Math.atan2(y, x);
+    }
+    const nrmA = a => ((a % TAU) + TAU) % TAU;
+    lines.sort((A, B) => nrmA(A.a0 - dir) - nrmA(B.a0 - dir));
+    const branches = [];
+    lines.forEach(L => { if (!L.primary) return; for (let b = 0, nb = 1 + (r() < .5 ? 1 : 0); b < nb; b++) {
+      const k0 = 1 + ((r() * (L.pts.length - 3)) | 0), p0 = L.pts[k0]; let x = p0[0], y = p0[1], a = L.a0 + (r() < .5 ? -1 : 1) * (.55 + r() * .45); const pts = [[x, y]];
+      for (let s = 0, ns = 2 + (r() * 3 | 0); s < ns && Math.hypot(x, y) < 1; s++) { a += (r() - .5) * .5; x += Math.cos(a) * .065; y += Math.sin(a) * .065; pts.push([x, y]); }
+      if (pts.length > 2) branches.push({ pts });
+    } });
+    const shards = [], n = lines.length;
+    for (let i = 0; i < n; i++) {
+      const A = lines[i], B = lines[(i + 1) % n]; let e0 = A.end, e1 = B.end; while (e1 <= e0) e1 += TAU; if (e1 - e0 > PI * 1.6) e1 = e0 + .05;
+      const poly = A.pts.slice(), na = Math.max(2, Math.ceil((e1 - e0) / .25));
+      for (let s = 1; s < na; s++) { const a = e0 + (e1 - e0) * s / na; poly.push([Math.cos(a) * 1.14, Math.sin(a) * 1.14]); }
+      for (let q = B.pts.length - 1; q >= 1; q--) poly.push(B.pts[q]);
+      let cx = 0, cy = 0; for (const pp of poly) { cx += pp[0]; cy += pp[1]; } cx /= poly.length; cy /= poly.length;
+      const away = Math.atan2(cy - iy, cx - ix), da = Math.atan2(Math.sin(dir - away), Math.cos(dir - away));
+      shards.push({ poly, cx, cy, ang: away + da * .3 + (r() - .5) * .3, dist: 1.5 + r() * 1.0, spin: (r() < .5 ? -1 : 1) * (2 + r() * 3), lift: .25 + r() * .4, sz: Math.sqrt(clamp((e1 - e0) / TAU, .04, .5)), seed: (r() * 1e6) | 0 });
+    }
+    // painted textures (2x supersampled)
+    const SS = 2, Rt = R * dpr * SS, S = Math.ceil(Rt * 2.4), C = S / 2;
+    const colB = P.dark ? P.goldHi : (p === 2 ? [12, 12, 14] : [240, 236, 226]), colE = P.dark ? P.gold : (p === 2 ? [40, 38, 36] : [176, 188, 186]);
+    const paint = (x2, list, tag, hwA, hwB) => list.forEach((L, li) => {
+      const pts = L.pts.map(q => [C + q[0] * Rt, C + q[1] * Rt]);
+      const tx = strokeTex(`crk|${seed}|${tag}|${li}|${S}|${P.dark}|${p}|${dir.toFixed(3)}`, pts, { W: S, H: S, width: t => lerp(hwA, hwB, Math.pow(t, .6)) * Rt, body: colB, edge: colE, seed: seed + li * 5 + (tag === 's' ? 50 : 1), dry: .1, dryStart: .55, bristle: 1.6, along: .05, rough: .4, wet: .3, tail: .85 });
+      x2.drawImage(tx.c, 0, 0);
+    });
+    const prim = cvs(S, S), px = prim.getContext('2d'), sec = cvs(S, S);
+    paint(px, lines.filter(L => L.primary), 'p', .085, .02); paint(px, branches, 'b', .045, .014); paint(sec.getContext('2d'), lines.filter(L => !L.primary), 's', .035, .012);
+    const halo = tint(soften(prim, 4, 2), P.dark ? P.gold : (p === 2 ? [10, 10, 12] : [236, 242, 238]), P.dark ? .75 : .42);
+    return { ix, iy, lines, shards, prim, sec, halo, S, SS, Rt };
+  });
+}
+const SHK = { I: 400, SH: 650, SETTLE: 1120 };   // impact · the cracks are complete (hand-over to the stunned stone) · paper settled
+function shockShake(k, o) {
+  const t = k * FX.dur.shock, sd = (o.seed || 1) * 13, nx = noise1(sd), ny = noise1(sd + 7), I = SHK.I;
+  let dx = 0, dy = 0;
+  if (t < I) { const a = 1.3 * sst(80, I - 30, t); dx += nx(t * .11) * a; dy += ny(t * .11) * a; }      // tremor while the ink gathers
+  const ti = t - I;
+  if (ti >= 0) { dy += 5 * Math.exp(-ti / 45) * Math.cos(ti / 18); if (ti < 120) dx += clamp(2.2 * nx(ti * .09 + 30), -1.5, 1.5) * (1 - ti / 120); }  // one downward thud
+  return [dx, dy];   // game copy: no second knock (nothing shatters)
+}
+function shockSet(o, P, dpr) {
+  const cell = o.cell, seed = o.seed || 1, R = o.r || cell * .44;
+  return cached(`shk|${cell.toFixed(2)}|${R.toFixed(2)}|${dpr}|${seed}|${o.T.name}|${o.p}`, () => {
+    const dir = rng(seed * 7 + 1)() * TAU, ink = P.black, gold = P.dark ? P.gold : null;
+    const sp = splashTex(seed, Math.round(cell * .74 * dpr), ink, dir, P, dpr);
+    const steps = [.3, .47, .64, .82, 1].map(q => q >= 1 ? sp : radialMask(sp, q));
+    return {
+      dir, ink, gold, steps, S0: sp.width,
+      wash: washTex(seed + 2, Math.round(cell * 2.5 * dpr), ink, P.dark ? .5 : .4),
+      vortex: vortexTex(seed + 9, Math.round(cell * 2.2 * dpr), Math.round(cell * .15 * dpr), ink, gold),
+      crack: crackSet(seed, R, dpr, dir, P, o.p),
+      shadow: dab([0, 0, 0], 32, .35),
+    };
+  });
+}
+// game copy: the cracks on their own. kc reveals them from the impact point (0 → 1), k2 the hairlines, glow doubles the
+// halo along them, sc scales the stone. kc=1, k2=1, glow=0 is the stunned stone's settled look (one cached picture).
+function crackLayer(C, kc, glow, k2) {
+  const S = C.S, Rt = C.Rt, L = tmp('crk', S, S), lx = L.x, icx = S / 2 + C.ix * Rt, icy = S / 2 + C.iy * Rt;
+  lx.globalAlpha = Math.min(1, kc * 2); lx.drawImage(C.halo, 0, 0); if (glow > 0) { lx.globalAlpha = Math.min(1, glow); lx.drawImage(C.halo, 0, 0); } lx.globalAlpha = 1; lx.drawImage(C.prim, 0, 0);
+  if (k2 > 0) { lx.globalAlpha = Math.min(1, k2); lx.drawImage(C.sec, 0, 0); lx.globalAlpha = 1; }
+  const rad = Rt * 2.3 * E.outC(kc) + 1, g = lx.createRadialGradient(icx, icy, rad * .7, icx, icy, rad); g.addColorStop(0, '#000'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  lx.globalCompositeOperation = 'destination-in'; lx.fillStyle = g; lx.beginPath(); lx.arc(S / 2, S / 2, Rt, 0, TAU); lx.fill(); lx.globalCompositeOperation = 'source-over';
+  return L.c;
+}
+FX.crackDraw = function (ctx, x, y, o, q) {
+  q = q || {};
+  const P = pal(o.T), dpr = dprOf(ctx, o), R = o.r || o.cell * .44, seed = o.seed || 1, C = crackSet(seed, R, dpr, rng(seed * 7 + 1)() * TAU, P, o.p);
+  const kc = q.kc == null ? 1 : q.kc, glow = q.glow || 0, k2 = q.k2 == null ? 1 : q.k2, sc = q.sc || 1, a = q.a == null ? 1 : q.a;
+  if (a <= .004 || kc <= 0) return;
+  const S = C.S, k3 = sc / (dpr * C.SS);
+  const src = kc >= 1 && glow <= 0 && k2 >= 1 ? cached(`crkPic|${seed}|${R.toFixed(2)}|${dpr}|${o.T.name}|${o.p}`, () => { const c = cvs(S, S); c.getContext('2d').drawImage(crackLayer(C, 1, 0, 1), 0, 0, S, S, 0, 0, S, S); return c; }) : crackLayer(C, kc, glow, k2);
+  ctx.globalAlpha = a; ctx.drawImage(src, 0, 0, S, S, x - S / 2 * k3, y - S / 2 * k3, S * k3, S * k3); ctx.globalAlpha = 1;
+  if (P.dark && glow > 0) { ctx.globalCompositeOperation = 'lighter'; drawTex(ctx, dab(P.gold, 32, .2), x + C.ix * R * .5, y + C.iy * R * .5, 1, R * 1.5 / 32, 0, .45 * glow * glow * a); ctx.globalCompositeOperation = 'source-over'; }
+};
+FX.shock = function (ctx, k, o) {
+  const P = pal(o.T), dpr = dprOf(ctx, o), cell = o.cell, R = o.r || cell * .44, x = o.x, y = o.y, seed = o.seed || 1;
+  const D = FX.dur.shock, t = k * D, { I, SH, SETTLE } = SHK, set = shockSet(o, P, dpr), ink = set.ink, gold = set.gold, dir = set.dir;
+  const fadeAll = 1 - E.inOutS(seg(t, 1100, D)), ext = cell * 4.6;
+  const drops = cached(`sdrops|${seed}|${dir.toFixed(3)}`, () => { const r = rng(seed * 31), a = []; for (let i = 0; i < 18; i++) { const fwd = r() < .72, ang = fwd ? dir + (r() + r() - 1) * .95 : r() * TAU, L = fwd ? 1.7 + Math.pow(r(), .8) * 2.5 : 1.1 + r() * 1.3; a.push({ ang, L, s: .05 + Math.pow(r(), 2) * .13, t0: I + r() * 40, fl: 90 + L * 32 + r() * 30, v: (r() * 8) | 0, h: .15 + r() * .3, el: .15 + r() * .55 }); } return a; });
+  // ===== paper level: tendrils, pool, wash, splash, pressure ripple, stains  (settled by SETTLE → baked once, then faded)
+  const underInk = (lx, t, fa) => {
+    if (t < I + 60) {
+      const g = seg(t, 0, I), a = sst(0, .3, g) * (1 - seg(t, I - 50, I + 60));
+      if (a > 0) drawTex(lx, set.vortex, x, y, dpr, lerp(1.15, .4, E.inQ(g)), .5 * g + 1.9 * E.inC(g) + seed, a * .9);
+      const pa = E.inQ(g) * (1 - seg(t, I, I + 80));
+      if (pa > 0) { const rr = cell * (1.05 - .35 * g), gr = lx.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, rgba(ink, .55 * pa)); gr.addColorStop(.55, rgba(ink, .22 * pa)); gr.addColorStop(1, rgba(ink, 0)); lx.fillStyle = gr; lx.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+    }
+    const kw = seg(t, I, I + 600); if (kw > 0) drawTex(lx, set.wash, x + Math.cos(dir) * cell * .4, y + Math.sin(dir) * cell * .4, dpr, .5 + .62 * E.outC(kw), 0, sst(0, .1, kw) * fa);
+    const q = E.outC(seg(t, I, I + 170));
+    if (q > 0) {
+      const sc = .86 + .14 * q + .04 * E.outC(seg(t, I + 170, SETTLE)), S0 = set.S0, w = S0 / dpr * sc, al = fa * (1 - .22 * seg(t, 560, SETTLE));
+      const qs = q * 5, i = Math.min(4, Math.floor(qs)), f = qs - i;
+      const put = (c, a) => { if (a <= .004) return; lx.globalAlpha = a; lx.drawImage(c, x - w / 2, y - w / 2, w, w); };
+      if (q >= 1) put(set.steps[4], al);
+      else if (i === 0) put(set.steps[0], al * f);
+      else { put(set.steps[i - 1], al); put(set.steps[i], al * f); }
+      lx.globalAlpha = 1;
+    }
+    // pressure wave: a band of lighter paper rolling outward (no ink outline); a gold hairline on lacquer
+    const kp = seg(t, I, I + 470);
+    if (kp > 0 && kp < 1) {
+      const Rr = lerp(R * 1.3, cell * 4.4, E.outQ4(kp)), a = 1 - E.inQ(kp);
+      lx.strokeStyle = rgba(P.light, (P.dark ? .03 : .13) * a);
+      if (!P.dark || kp < .5) for (const [w2, dr] of [[1, .5], [.6, .32], [.28, .18]]) { lx.lineWidth = cell * w2; lx.beginPath(); lx.arc(x, y, Math.max(.5, Rr - cell * dr), 0, TAU); lx.stroke(); }
+      if (gold) hairRing(lx, x, y, Rr, 1.6, gold, .6 * a * sst(0, .08, kp), seed + 77, dir + 1);
+    }
+    for (const d of drops) {
+      const tt = (t - d.t0) / d.fl; if (tt < 1) continue;
+      const st = stainTex(500 + d.v, Math.max(3, Math.round(d.s * cell * dpr)), ink, Math.round(d.el * 4) / 4, gold), age = seg(t, d.t0 + d.fl, d.t0 + d.fl + 110);
+      drawTex(lx, st, x + Math.cos(d.ang) * d.L * cell, y + Math.sin(d.ang) * d.L * cell, dpr, .75 + .25 * E.outC(age), d.ang, (.6 + .4 * age) * fa);
+    }
+  };
+  if (o.layer !== 'over') {
+    if (t >= SETTLE) {
+      const cut = o.layer !== 'under', key = `${seed}|${cell.toFixed(2)}|${dpr}|${o.T.name}|${x.toFixed(1)},${y.toFixed(1)}|${cut ? (o.avoid || []).map(a => (a[0] | 0) + ',' + (a[1] | 0)).join(';') : ''}`;
+      const st = slot('shockPaper', key, () => { const c = cvs(Math.ceil(ext * 2 * dpr), Math.ceil(ext * 2 * dpr)), lx = c.getContext('2d'); lx.setTransform(dpr, 0, 0, dpr, -(x - ext) * dpr, -(y - ext) * dpr); underInk(lx, SETTLE, 1); if (cut) cutStones(lx, o, x, y, ext, R, 1, dpr); return c; });
+      ctx.globalAlpha = fadeAll; ctx.drawImage(st, x - ext, y - ext, st.width / dpr, st.height / dpr); ctx.globalAlpha = 1;
+    } else paper(ctx, o, x, y, ext, R, dpr, lx => underInk(lx, t, fadeAll));
+  }
+  const res = { shake: shockShake(k, o) };
+  const vp = seg(t, I, I + 340); if (vp > 0 && vp < 1) res.vignette = { a: (P.dark ? .5 : .36) * Math.pow(1 - vp, 1.6), x, y, col: P.dark ? [0, 0, 0] : ink };
+  if (!overOn(o)) return res;
+  // ===== the stone: lift (聚墨/抬子), hang, slam, crack
+  if (t < SH) {
+    const lift = t < 360 ? E.outBack(seg(t, 0, 320), 1.4) : 1 - E.inQ(seg(t, 360, I));
+    const tr = t < I ? 1.3 * sst(80, 340, t) : 0, jx = tr * Math.sin(t * .95), jy = tr * Math.cos(t * 1.17);
+    const sc = 1 + .14 * Math.max(0, lift) - (t >= I ? .06 * Math.sin(seg(t, I, I + 110) * PI) : 0);
+    const cx = x + jx, cy = y + jy - R * .45 * lift;
+    if (lift > 0) drawTex(ctx, set.shadow, x + R * .3 * lift, y + R * .5 * lift, 1, R * (1.05 + .35 * lift) * 2 / 64, 0, (P.dark ? .55 : .3) * (1 - .45 * lift) * Math.min(1, lift * 4));
+    FX.stone(ctx, cx, cy, R, o.p, o.T, 1, sc, o);
+    const kc = seg(t, I + 5, I + 175);   // cracks grow from the impact point
+    if (kc > 0) FX.crackDraw(ctx, cx, cy, o, { kc, glow: sst(I + 120, SH, t), k2: seg(t, I + 110, I + 230), sc });
+  } else {
+    // game copy: nothing shatters — the cracked stone stays on its point and pales into the stunned stone; the arcs of
+    // its owner's two turns draw in. The board's own painter draws it (o.stunStone), so the last frame is the board.
+    const q = { f: E.inOutS(seg(t, SH, 1080)), glow: 1 - E.inOutS(seg(t, SH, 1200)), grow: E.outC(seg(t, 860, 1320)), ring: 1 };
+    if (o.stunStone) o.stunStone(ctx, x, y, q);
+    else { FX.stone(ctx, x, y, R, o.p, o.T, 1 - .38 * q.f, 1, o); FX.crackDraw(ctx, x, y, o, { glow: q.glow }); }
+  }
+  // ===== droplets in flight: motion-stretched ink
+  const av = o.avoid || [], lim2 = R * R * 1.1;
+  for (const d of drops) {
+    const tt = (t - d.t0) / d.fl; if (tt <= 0 || tt >= 1) continue;
+    const e = E.outC(tt), dd = d.L * cell * e, px = x + Math.cos(d.ang) * dd, py = y + Math.sin(d.ang) * dd - cell * d.h * Math.sin(tt * PI);
+    if (tt > .25 && av.some(s => (s[0] - px) * (s[0] - px) + (s[1] - py) * (s[1] - py) < lim2)) continue;   // never sits on a neighbour stone
+    const st = stainTex(900 + d.v % 3, Math.max(3, Math.round(d.s * cell * .8 * dpr)), ink, 0, gold);
+    ctx.save(); ctx.translate(px, py); ctx.rotate(d.ang); ctx.scale(1 + 1.5 * (1 - tt), .85); ctx.globalAlpha = .95; ctx.drawImage(st, -st.width / 2 / dpr, -st.height / 2 / dpr, st.width / dpr, st.height / dpr); ctx.restore(); ctx.globalAlpha = 1;
+  }
+  return res;
+};
+// ================================================================= 恢复 RECOVER (game copy) — the stunned stone comes back
+// its ink is drawn back in (a wash contracting under it, a few drops running home), the cracks close back to the impact
+// point with a last glint along them, the stone fills, and the last 石青 arc lets go. The stone is the board's painter.
+FX.recover = function (ctx, k, o) {
+  const P = pal(o.T), dpr = dprOf(ctx, o), cell = o.cell, R = o.r || cell * .44, x = o.x, y = o.y, seed = o.seed || 1, t = k * FX.dur.recover;
+  const col = o.p === 1 ? P.black : (P.dark ? P.white : [150, 140, 124]);
+  const set = cached(`rcv|${cell.toFixed(2)}|${dpr}|${seed}|${o.T.name}|${o.p}`, () => ({ wash: washTex(seed + 31, Math.round(cell * 1.3 * dpr), col, o.p === 1 ? .42 : .3, null, 1) }));
+  paper(ctx, o, x, y, cell * 2, R, dpr, lx => {
+    const q = seg(t, 0, 620), a = sst(0, .18, q) * (1 - sst(.55, 1, q));
+    if (a > 0) drawTex(lx, set.wash, x, y, dpr, lerp(1.45, .55, E.inOutS(q)), seed, a);
+  });
+  if (!overOn(o)) return null;
+  const look = { f: 1 - E.inOutS(seg(t, 140, 640)), kc: 1 - E.inOutS(seg(t, 120, 560)), k2: 1 - seg(t, 60, 300), glow: sst(0, 120, t) * (1 - sst(260, 560, t)), ring: 1 - E.inOutS(seg(t, 60, 420)), grow: 1 };
+  if (o.stunStone) o.stunStone(ctx, x, y, look);
+  else { FX.stone(ctx, x, y, R, o.p, o.T, 1 - .38 * look.f, 1, o); FX.crackDraw(ctx, x, y, o, { kc: look.kc, glow: look.glow, k2: look.k2 }); }
+  // a few drops of the stone's ink run back into it
+  const av = o.avoid || [], lim2 = R * R * 1.1, r = rng(seed * 13 + o.p);
+  for (let i = 0; i < 7; i++) {
+    const ang = i / 7 * TAU + r() * .7, L = 1.1 + r() * .8, t0 = r() * 120, fl = 300 + r() * 140, tt = (t - t0) / fl, sz = .06 + r() * .05;
+    if (tt <= 0 || tt >= 1) continue;
+    const dd = R * .7 + (L * cell - R * .7) * (1 - E.inQ(tt)), px = x + Math.cos(ang) * dd, py = y + Math.sin(ang) * dd;
+    if (av.some(s => (s[0] - px) * (s[0] - px) + (s[1] - py) * (s[1] - py) < lim2)) continue;
+    const st = stainTex(900 + i % 3, Math.max(3, Math.round(sz * cell * dpr)), col, 0, P.dark && o.p === 1 ? P.gold : null);
+    ctx.save(); ctx.translate(px, py); ctx.rotate(ang + PI); ctx.scale(1 + 1.2 * Math.sin(tt * PI), .85); ctx.globalAlpha = .9 * sst(0, .15, tt) * (1 - sst(.75, 1, tt));
+    ctx.drawImage(st, -st.width / 2 / dpr, -st.height / 2 / dpr, st.width / dpr, st.height / dpr); ctx.restore(); ctx.globalAlpha = 1;
+  }
+  return null;
+};
+
+// ================================================================= 策反 TURN — 太极
+// two painted fish (black / white) chase each other round the stone, interlock into an S-shaped 太极, collapse onto the
+// stone and flip it like a coin; the new colour blooms on the paper beneath.
+function turnSet(P, cell, dpr, seed, T) {
+  return cached(`turn3|${cell.toFixed(2)}|${dpr}|${seed}|${T.name}`, () => {
+    const R0 = cell * 1.1 * dpr, S = Math.ceil(R0 * 2.4), C = S / 2, NV = 9;
+    const inks = {
+      1: { body: P.black, edge: P.dark ? [44, 38, 28] : [38, 38, 42], rim: P.dark ? [P.gold, 1, .5] : null, drop: null, wet: .22 },
+      2: { body: P.white, edge: P.dark ? [196, 188, 168] : [196, 186, 166], rim: null, drop: P.dark ? null : [120, 98, 66], wet: .5 },
+    };
+    const fishV = (pc, s0) => Array.from({ length: NV }, (_, i) => {
+      const m = i / (NV - 1), ink = inks[pc];
+      const span = lerp(.8, 2.9, m), r0 = lerp(.95, .5, m), r1 = lerp(.95, .9, m), hw = lerp(.16, .45, Math.pow(m, 1.2)) * R0, pts = [];
+      for (let q = 0; q <= 72; q++) { const t = q / 72, a = -span * t, rr = R0 * lerp(r0, r1, Math.pow(t, .7)); pts.push([C + Math.cos(a) * rr, C + Math.sin(a) * rr]); }
+      const prof = t => t < .1 ? .8 + .2 * Math.sin(t / .1 * PI / 2) : Math.pow(1 - (t - .1) / .9, lerp(.9, 1.2, m)) * .94 + .06;
+      const tx = strokeTex(`fish3|${S}|${pc}|${i}|${seed + s0}|${T.name}`, pts, { W: S, H: S, width: t => hw * prof(t), body: ink.body, edge: ink.edge, seed: seed + s0 + i * 3, dry: lerp(.62, .48, m), dryStart: .3, bristle: 3.4, along: .03, wet: ink.wet, tail: .74, rough: .22, rim: ink.rim });
+      if (ink.drop && !tx.drop) tx.drop = tint(soften(tx.c, 3, 1), ink.drop, .32);
+      return tx;
+    });
+    const eye = (col, s) => { const rp = cell * .11 * dpr, S2 = Math.ceil(rp * 4), C2 = S2 / 2; return strokeTex(`teye|${S2}|${col}|${seed + s}`, [[C2 - rp * .35, C2 + rp * .1], [C2, C2 - rp * .05], [C2 + rp * .35, C2 + rp * .08]], { W: S2, H: S2, width: t => rp * (.82 + .18 * Math.sin(t * PI)), body: col, edge: col, seed: seed + s, dry: .28, dryStart: 0, bristle: 2.2, along: .2, wet: .3, rough: .45, tail: .9 }).c; };
+    const bloom = {
+      1: washTex(seed + 90, Math.round(cell * .9 * dpr), P.dark ? mix(P.gold, P.black, .6) : P.black, P.dark ? .7 : .42, P.dark ? P.gold : null, 1),
+      2: washTex(seed + 91, Math.round(cell * .9 * dpr), P.dark ? P.white : [255, 253, 248], P.dark ? .35 : .85, P.dark ? null : [168, 156, 132], 1),
+    };
+    return { R0, S, NV, B: fishV(1, 10), W: fishV(2, 40), eyeW: eye(P.white, 5), eyeB: eye(P.black, 6), bloom };
+  });
+}
+FX.turn = function (ctx, k, o) {
+  const P = pal(o.T), dpr = dprOf(ctx, o), cell = o.cell, R = o.r || cell * .44, x = o.x, y = o.y, seed = o.seed || 1;
+  const D = FX.dur.turn, t = k * D, from = o.p, to = 3 - o.p, set = turnSet(P, cell, dpr, seed, o.T);
+  // timeline: 0-450 commas painted in, orbiting · 450-700 interlock into 太极 (eyes) · 700-900 spin + collapse onto the
+  // stone · 760-940 coin flip (mid 850) · 840-1060 the new colour blooms under it + pop · stains dry out by 1400
+  const u = seg(t, 0, 900), ang = -1.1 + TAU * (.3 * u + 1.4 * Math.pow(u, 4)), spd = clamp((.3 + 5.6 * u * u * u) / 5.9, 0, 1);
+  const m = .32 * E.outC(seg(t, 0, 450)) + .68 * E.inOutS(seg(t, 450, 700));
+  const col = E.inOutC(seg(t, 700, 900)), fa = 1 - sst(820, 930, t), R0c = set.R0 / dpr, sc = lerp(1, R * 1.05 / R0c, col);
+  const drops = cached(`tdrops|${seed}`, () => { const r = rng(seed * 11), a = []; for (let i = 0; i < 10; i++) a.push({ tr: 760 + r() * 140, a0: r() * TAU, w: i % 2 === 0, sz: .05 + r() * .06, dist: 1.1 + r() * .9, v: i }); return a; });
+  const dropPos = d => {
+    const q = (t - d.tr) / 300, cs = lerp(1, R * 1.05 / R0c, E.inOutC(seg(d.tr, 700, 900))), orr = R0c * .95 * cs;
+    const tx = -Math.sin(d.a0), ty = Math.cos(d.a0), dd = cell * d.dist * E.outC(Math.min(1, q)), vx = tx * .85 + Math.cos(d.a0) * .5, vy = ty * .85 + Math.sin(d.a0) * .5;
+    return [x + Math.cos(d.a0) * orr + vx * dd, y + Math.sin(d.a0) * orr + vy * dd, Math.atan2(vy, vx), q];
+  };
+  const dropTex = (d, flying) => stainTex(300 + d.v, Math.max(2, Math.round(cell * d.sz * dpr)), d.w ? (P.dark ? P.white : [150, 146, 136]) : P.black, flying ? 0 : .8, !d.w && P.dark ? P.gold : null);
+  // ---- paper level: the new colour blooms under the stone; landed drops dry out
+  paper(ctx, o, x, y, cell * 2.8, R, dpr, lx => {
+    const kb = seg(t, 840, 1080), bf = 1 - sst(980, 1400, t);
+    if (kb > 0) drawTex(lx, set.bloom[to], x, y, dpr, .5 + .45 * E.outC(kb), seed, sst(0, .3, kb) * bf);
+    for (const d of drops) { const [px, py, a, q] = dropPos(d); if (q < 1) continue; drawTex(lx, dropTex(d, false), px, py, dpr, 1, a, .85 * (1 - sst(1100, 1400, t))); }
+  });
+  if (!overOn(o)) return null;
+  // ---- the stone, flipping like a coin under the collapsing 太极
+  const fl = seg(t, 760, 940), sx = Math.abs(Math.cos(fl * PI)), cur = fl < .5 ? from : to, lift = Math.sin(fl * PI);
+  const pop = 1 + .12 * E.outC(seg(t, 845, 885)) * (1 - E.inOutS(seg(t, 885, 1060)));
+  if (lift > 0) { ctx.fillStyle = rgba([0, 0, 0], (P.dark ? .3 : .16) * lift); ctx.beginPath(); ctx.ellipse(x + R * .3 * lift, y + R * .45 * lift, R * Math.max(.3, sx), R * .9, 0, 0, TAU); ctx.fill(); }
+  ctx.save(); ctx.translate(x, y - R * .3 * lift); ctx.scale(Math.max(.04, sx) * pop * (1 + .1 * lift), pop * (1 + .1 * lift)); FX.stone(ctx, 0, 0, R, cur, o.T, 1, 1, o); ctx.restore();
+  if (fl > 0 && fl < 1) { ctx.fillStyle = rgba(cur === 1 ? [70, 76, 80] : [200, 192, 172], .9 * (1 - sx)); ctx.beginPath(); ctx.ellipse(x, y - R * .3 * lift, Math.max(.6, R * .16 * (1 - sx)), R * (1 + .1 * lift), 0, 0, TAU); ctx.fill(); }
+  // ---- the two fish
+  if (fa > 0) {
+    const NV = set.NV, vi = m * (NV - 1), i0 = Math.min(NV - 2, Math.floor(vi)), fr = vi - i0, ia = sst(0, 120, t) * fa;
+    const fish = (V, rot, al) => {
+      const vm = V[fr < .5 ? i0 : i0 + 1];
+      for (let s = 2; s >= 1; s--) { const aa = al * .3 / s * spd * (1 - col * .5); if (aa > .02) drawTex(ctx, vm.c, x, y, dpr, sc, rot - s * .32 * spd, aa); }  // after-images at speed
+      for (const [idx, w] of [[i0, Math.min(1, 2 * (1 - fr))], [i0 + 1, Math.min(1, 2 * fr)]]) {
+        if (w <= .01) continue; const v = V[idx];
+        if (v.drop) drawTex(ctx, v.drop, x + .8, y + 1.2, dpr, sc, rot, al * w);
+        drawTex(ctx, v.c, x, y, dpr, sc, rot, al * w);
+      }
+    };
+    fish(set.W, ang + PI, ia); fish(set.B, ang, ia);
+    const ea = sst(.72, .95, m) * fa * (1 - col);   // the eyes: a dry dot of the other ink in each head
+    if (ea > 0) { const hr = R0c * lerp(.95, .5, m) * sc; drawTex(ctx, set.eyeW, x + Math.cos(ang) * hr, y + Math.sin(ang) * hr, dpr, sc, ang * .3, ea); drawTex(ctx, set.eyeB, x - Math.cos(ang) * hr, y - Math.sin(ang) * hr, dpr, sc, ang * .3 + 2, ea); }
+  }
+  // ---- drops flung off during the collapse (never drawn over a neighbour stone)
+  const av = o.avoid || [], lim = (R * 1.1) * (R * 1.1);
+  for (const d of drops) {
+    const [px, py, a, q] = dropPos(d); if (q <= 0 || q >= 1) continue;
+    let near = false; for (const s of av) { const dx = s[0] - px, dy = s[1] - py; if (dx * dx + dy * dy < lim) { near = true; break; } } if (near) continue;
+    drawTex(ctx, dropTex(d, true), px, py, dpr, 1, a, .85);
+  }
+  return null;
+};
+
+// ================================================================= 迷雾 FOG — 祥云
+// two painted cloud-scroll curls roll in from both sides trailing soft paper-coloured mist with a faint warm tide line;
+// they swallow ~3x3 cells, inhale, seal, and contract to the caster's mark: the stone at .58 with its foot in a small
+// cloud and a tiny 云纹 curl breathing at its shoulder.
+function cloudTex(seed, Rpx, body, ink, o) {
+  return cached(`cloud|${seed}|${Rpx}|${body}|${ink}|${o.core}|${o.tide}|${o.mott}|${o.sq || 1}`, () => {
+    const f = noise1(seed), n = fbm2(seed + 1, 2), n2 = noise2(seed + 5), sq = o.sq || 1, S = Math.ceil(Rpx * 2.4), C = S / 2;
+    return pix(S, S, (i, j, out) => {
+      const dx = (i + .5 - C) / Rpx, dy = (j + .5 - C) / Rpx / sq, a = Math.atan2(dy, dx);
+      const Rb = 1 + .13 * f(a * 1.6 + 2) + .05 * f(a * 3.4 + 5), d = Math.hypot(dx, dy) / Rb + (n(dx * 1.2 + 3, dy * 1.2) - .5) * .2;
+      if (d > 1.05) return;
+      const bA = o.core * (1 - sst(.42, 1, d)), under = sst(-.5, .8, Math.sin(a));   // shaded underside, the top melts into paper
+      const tide = Math.max(0, o.tide * Math.exp(-Math.pow((d - .84) / .12, 2)) * (.25 + .75 * under) * (.75 + .5 * (n2(dx * 1.6 + dy, dy * 1.6 - dx) - .4)));
+      const mott = o.mott * sst(.35, .85, n(dx * 1.5 + 9, dy * 1.5 - 4)) * (1 - sst(.55, .95, d)) + o.tide * .25 * under * sst(.35, .8, d) * (1 - sst(.8, .95, d));
+      const ai = clamp(tide + mott, 0, 1), A = ai + bA * (1 - ai); if (A < .003) return;
+      const w = ai / A; out[0] = lerp(body[0], ink[0], w); out[1] = lerp(body[1], ink[1], w); out[2] = lerp(body[2], ink[2], w); out[3] = A;
+    });
+  });
+}
+// 祥云 如意 head: one stroke from the eye of the left curl, out round its shoulder, along a sagging lower arc and wound
+// into the eye of the right curl, plus a long tail trailing from the outer shoulder.  mir=-1 mirrors it.  r: curl radius px
+function ruyiTex(seed, r, hw, col, tailL, mir, alpha) {
+  return cached(`ruyi|${seed}|${r}|${hw.toFixed(2)}|${col}|${tailL}|${mir}|${alpha}`, () => {
+    const W = Math.ceil(r * (4.6 + tailL * 2) + hw * 4), H = Math.ceil(r * 4.4 + hw * 4), C = [W / 2, H / 2], f = noise1(seed), pts = [], turns = .9;
+    for (let i = 0; i <= 60; i++) { const t = i / 60, ph = PI / 2 + TAU * turns * (1 - t), rr = r * (.2 + .8 * Math.pow(t, .85)) * (1 + .03 * f(t * 5)); pts.push([-r + Math.cos(ph) * rr, Math.sin(ph) * rr]); }
+    for (let i = 1; i <= 20; i++) { const t = i / 20; pts.push([-r + 2 * r * t, r + r * .16 * Math.sin(t * PI)]); }
+    for (let i = 1; i <= 60; i++) { const t = i / 60, ph = PI / 2 - TAU * turns * t, rr = r * (1 - .8 * Math.pow(t, 1.1)) * (1 + .03 * f(t * 5 + 9)); pts.push([r + Math.cos(ph) * rr, Math.sin(ph) * rr]); }
+    const tp = []; let px = -r * 2, py = 0, ta = PI / 2 + .25;   // tail: leaves the left curl's outer side and sweeps away
+    tp.push([px, py]); for (let i = 1; i <= 40; i++) { const t = i / 40; ta += (i < 14 ? .085 : -.03); px += Math.cos(ta) * r * tailL / 40 * 1.0; py += Math.sin(ta) * r * tailL / 40 * .55; tp.push([px, py]); }
+    const map = q => [C[0] + q[0] * mir, C[1] + q[1]];
+    const head = strokeTex(`ruyiH|${seed}|${r}|${hw.toFixed(2)}|${col}|${mir}|${alpha}`, pts.map(map), { W, H, width: t => hw * (.45 + .55 * Math.sin(Math.min(1, t * 1.1) * PI)), body: col, edge: col, seed, dry: .3, dryStart: .6, bristle: 3, along: .03, wet: .4, tail: .85, rough: .2, alpha });
+    const tail = strokeTex(`ruyiT|${seed}|${r}|${hw.toFixed(2)}|${col}|${tailL}|${mir}|${alpha}`, tp.map(map), { W, H, width: t => hw * .95 * (t < .08 ? .6 + .4 * t / .08 : Math.pow(1 - (t - .08) / .92, 1.1)) + .3, body: col, edge: col, seed: seed + 7, dry: .45, dryStart: .3, bristle: 3, along: .03, wet: .35, tail: .7, rough: .2, alpha });
+    const c = cvs(W, H), x = c.getContext('2d'); x.drawImage(tail.c, 0, 0); x.drawImage(head.c, 0, 0); return c;
+  });
+}
+function streakTex(seed, Wpx, Hpx, col) {
+  return cached(`streak|${seed}|${Wpx}|${Hpx}|${col}`, () => {
+    const n = fbm2(seed, 3), f = noise1(seed + 3);
+    return pix(Wpx, Hpx, (i, j, out) => {
+      const u = i / Wpx, v = j / Hpx * 2 - 1, c = .25 * f(u * 4), w = .35 + .25 * f(u * 3 + 9), d = Math.abs(v - c) / w, a = Math.exp(-d * d * 2.2) * sst(0, .3, u) * sst(1, .6, u) * (.6 + .6 * (n(u * 5, v * 1.2) - .3));
+      if (a <= 0) return; out[0] = col[0]; out[1] = col[1]; out[2] = col[2]; out[3] = a;
+    });
+  });
+}
+function fogSet(o, P, dpr) {
+  const cell = o.cell, seed = o.seed || 1;
+  return cached(`fog4|${cell.toFixed(2)}|${dpr}|${seed}|${o.T.name}`, () => {
+    const B = P.mist, I = P.fogInk, B2 = P.dark ? B : mix(B, [206, 204, 198], .45);   // game copy: the bank a shade greyer than the paper, so it reads on an empty board
+    const blobs = [0, 1, 2, 3].map(i => cloudTex(seed + i * 13, Math.round(cell * (1.0 + .12 * (i % 2)) * dpr), B2, I, { core: .86, tide: P.dark ? .3 : .4, mott: P.dark ? .06 : .08, sq: .8 }));
+    // game copy: soft banks for the opponent's board-wide veil (no hard tide line: scaled up, it would read as contours)
+    const veil = [0, 1, 2, 3].map(i => cloudTex(seed + 200 + i * 17, Math.round(cell * 1.3 * dpr), B2, I, { core: .74, tide: P.dark ? .12 : .1, mott: P.dark ? .06 : .07, sq: .7 }));
+    const curls = [1, -1].map((mir, i) => ruyiTex(seed + 40 + i, Math.round(cell * .42 * dpr), cell * .1 * dpr, P.dark ? [170, 162, 146] : [70, 66, 59], 3.2, mir, .92));
+    const mark = ruyiTex(seed + 60, Math.round(cell * .13 * dpr), Math.max(1.5, cell * .045 * dpr), P.dark ? [190, 182, 164] : [62, 58, 52], 2.2, 1, 1);
+    const lowV = [0, 1].map(i => cloudTex(seed + 80 + i, Math.round(cell * .52 * dpr), B, I, { core: .8, tide: P.dark ? .3 : .2, mott: 0, sq: .5 }));
+    const V = P.veil, under = cached(`fogU|${cell.toFixed(2)}|${dpr}|${V}`, () => { const Rp = cell * .95 * dpr, S = Math.ceil(Rp * 2), c = cvs(S, S), x = c.getContext('2d'), g = x.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, Rp); g.addColorStop(0, rgba(V, 1)); g.addColorStop(.55, rgba(V, .85)); g.addColorStop(1, rgba(V, 0)); x.fillStyle = g; x.fillRect(0, 0, S, S); return c; });
+    const streaks = [0, 1].map(i => streakTex(seed + 50 + i, Math.round(cell * 3 * dpr), Math.round(cell * .36 * dpr), I));
+    return { blobs, curls, mark, lowV, under, streaks, veil };
+  });
+}
+const FOG_SA = [.6, .7];   // alpha of the veiled stone (light / lacquer theme)
+function fogScene(ctx, o, te, tsec) {
+  const P = pal(o.T), dpr = dprOf(ctx, o), cell = o.cell, R = o.r || cell * .44, x = o.x, y = o.y, seed = o.seed || 1, set = fogSet(o, P, dpr);
+  const t = te + tsec * 1000, settle = E.inOutS(seg(te, 950, 1450));
+  // ---- paper level: the grid fades out at the point
+  paper(ctx, o, x, y, cell * 1.2, R, dpr, lx => { const a = sst(700, 1250, te); if (a > 0) drawTex(lx, set.under, x, y, dpr, 1, 0, a * .9); });
+  if (!overOn(o)) return;
+  // ---- the stone dropped into the mist: swallowed at first, then veiled
+  const sa = E.outC(seg(te, 620, 880));
+  if (sa > 0) FX.stone(ctx, x, y - (1 - sa) * cell * .4, R, o.p, o.T, Math.min(1, sa * 1.4) * lerp(1, FOG_SA[P.dark ? 1 : 0], settle), 1 + .1 * (1 - sa), o);
+  // ---- the swallowing cloud: swell 250-700, inhale 1 → 1.08 → .9 as it seals, then contract
+  const swell = E.outC(seg(te, 250, 700)), pulse = 1 + .08 * sst(700, 800, te) - .18 * sst(800, 950, te), gone = 1 - settle;
+  if (gone > 0) {
+    [[-1, -.42, -.26, 0], [1, .44, -.16, 60], [-1, -.18, .4, 120], [1, .3, .36, 170]].forEach(([sd, fx, fy, dl], i) => {
+      const pq = E.outC(seg(te, dl, dl + 640)); if (pq <= 0) return;
+      const dx = lerp(sd * 3, fx, pq) * lerp(1, .4, settle) + .08 * Math.sin(t / 2300 + i * 1.7), dy = lerp(fy + .25 * sd, fy, pq) * lerp(1, .4, settle) + .05 * Math.sin(t / 1900 + i);
+      drawTex(ctx, set.blobs[i], x + dx * cell, y + dy * cell, dpr, lerp(.55, 1.62, swell) * pulse * lerp(1, .3, settle), i * 1.3 + (i % 2 ? 1 : -1) * t / 9000, sst(0, .3, pq) * lerp(.85, 1, swell) * gone);
+    });
+    set.curls.forEach((c, i) => {   // the 祥云 scrolls roll in like wheels, then shrink toward the mark
+      const sd = i ? 1 : -1, pq = E.outC(seg(te, 30 + i * 70, 690 + i * 50)); if (pq <= 0) return;
+      const fx = sd * .72, fy = i ? .5 : -.52, mx = x + R * 1.0, my = y - R * 1.0;
+      const cx = lerp(x + lerp(sd * 3.3, fx, pq) * cell, mx, settle * .8), cy = lerp(y + lerp(fy + .3 * sd, fy, pq) * cell, my, settle * .8);
+      drawTex(ctx, c, cx, cy, dpr, lerp(.8, 1, pq) * pulse * lerp(1, .35, settle), sd * (1 - pq) * .6 + .07 * Math.sin(t / 1500 + i * 2), sst(0, .25, pq) * gone * .95);
+    });
+  }
+  // ---- wisps crossing slowly in front (gone before the hand-off to fogMark)
+  const wq = sst(450, 850, te) * (1 - sst(1250, 1600, te));
+  if (wq > 0) for (let i = 0; i < 2; i++) {
+    const ph = ((t / 1000 / (6 + i * 2.5)) + i * .5 + .2) % 1, dx = lerp(-1.2, 1.2, ph) * cell * (i ? -1 : 1), dy = (i ? .55 : -.65) * cell + Math.sin(t / 1700 + i) * cell * .06;
+    drawTex(ctx, set.streaks[i], x + dx, y + dy, dpr, 1, 0, (P.dark ? .55 : .45) * wq * Math.sin(ph * PI));
+  }
+  // ---- the settled mark (= fogMark): a small cloud over the stone's foot + the 云纹 curl at its shoulder
+  if (settle > 0) {
+    const ph = .5 + .5 * Math.sin(t / 1700), br = .5 + .5 * Math.sin(t / 900);
+    drawTex(ctx, set.lowV[0], x + 1.5 * Math.sin(t / 2100), y + R * .5, dpr, 1, 0, settle * (.55 + .45 * ph));
+    drawTex(ctx, set.lowV[1], x - 1.5 * Math.sin(t / 2600 + 1), y + R * .58, dpr, 1, 0, settle * (.55 + .45 * (1 - ph)));
+    drawTex(ctx, set.mark, x + R * 1.15, y - R * 1.05, dpr, lerp(1.4, 1, settle), -.12 + .08 * Math.sin(t / 1300), settle * (.5 + .2 * br));
+  }
+}
+FX.fog = function (ctx, k, o) { fogScene(ctx, o, k * FX.dur.fog, 0); return null; };
+FX.fogMark = function (ctx, tsec, o) { fogScene(ctx, o, FX.dur.fog, tsec); };
+// ================================================================= 迷雾 seen by the other side (game copy)
+// the caster's opponent learns only THAT fog was cast: the whole sheet mists over, cloud banks and two 如意 heads drift
+// across it and thin away. Every place, size and drift comes from the board size and fixed seeds — never from the point.
+FX.fogVeil = function (ctx, k, o) {
+  if (!overOn(o)) return null;
+  const P = pal(o.T), dpr = dprOf(ctx, o), W = o.W, H = o.H, set = fogSet(Object.assign({}, o, { seed: 3 }), P, dpr), cell = o.cell;
+  const env = sst(0, .3, k) * (1 - sst(.6, 1, k));
+  if (env <= 0) return null;
+  ctx.fillStyle = rgba(P.mist, .34 * env); ctx.fillRect(0, 0, W, H);   // the paper itself mists over, evenly
+  const sc0 = Math.max(1.6, W / cell / 6.2);
+  [[.1, .14, 1], [.46, .08, -1], [.84, .2, 1], [.24, .44, -1], [.64, .38, 1], [.94, .56, -1], [.08, .72, 1], [.44, .7, -1], [.76, .9, 1], [.2, .96, -1]].forEach(([u, v, sd], i) => {
+    const dx = sd * (k - .45) * W * .2, dy = Math.sin(k * 2.2 + i) * cell * .2;
+    drawTex(ctx, set.veil[i % 4], u * W + dx, v * H + dy, dpr, sc0 / 1.3 * (.9 + .2 * (i % 3) / 2 + .15 * k), i * 1.3 + sd * k * .35, .85 * env);
+  });
+  set.curls.forEach((c, i) => {   // two 祥云 heads roll through, one each way
+    const q = E.inOutS(k), u = i ? lerp(1.1, .3, q) : lerp(-.1, .7, q), v = i ? .66 : .3;
+    drawTex(ctx, c, u * W, v * H, dpr, sc0 * .62, (i ? 1 : -1) * (1 - q) * .9, sst(0, .25, k) * (1 - sst(.55, .95, k)) * .85);
+  });
+  for (let i = 0; i < 2; i++) drawTex(ctx, set.streaks[i], W * (i ? lerp(.8, .3, k) : lerp(.2, .7, k)), H * (i ? .5 : .22), dpr, sc0 * .7, 0, (P.dark ? .3 : .2) * env);
+  return null;
+};
+// ================================================================= 撞上 REVEAL (game copy) — the mist that hid a stone is torn open
+// o.from: the stone's alpha before (the caster saw it veiled; the other side saw nothing); o.mark: the caster's fogMark
+// was there (its low cloud, curl and grid veil dissolve first).
+FX.reveal = function (ctx, k, o) {
+  const P = pal(o.T), dpr = dprOf(ctx, o), cell = o.cell, R = o.r || cell * .44, x = o.x, y = o.y, t = k * FX.dur.reveal, set = fogSet(Object.assign({}, o, { seed: 3 }), P, dpr);
+  const from = o.from || 0, mk = o.mark ? 1 : 0;
+  paper(ctx, o, x, y, cell * 1.2, R, dpr, lx => { const a = mk * .9 * (1 - sst(80, 520, t)); if (a > 0) drawTex(lx, set.under, x, y, dpr, 1, 0, a); });
+  if (!overOn(o)) return null;
+  const sa = lerp(from, 1, E.inOutS(seg(t, 140, 600))), pop = 1 + .08 * Math.sin(seg(t, 260, 680) * PI) * (1 - from * .6);
+  FX.stone(ctx, x, y, R, o.p, o.T, sa, pop, o);
+  if (mk) {   // the caster's mark lets go first
+    const ma = 1 - sst(0, 260, t);
+    if (ma > 0) { drawTex(ctx, set.lowV[0], x, y + R * .5, dpr, 1, 0, ma * .8); drawTex(ctx, set.lowV[1], x, y + R * .58, dpr, 1, 0, ma * .8); drawTex(ctx, set.mark, x + R * 1.15, y - R * 1.05, dpr, 1, -.12, ma * .6); }
+  }
+  // the mist bursts: four puffs torn outward and thinning, two 如意 curls flung away to both sides
+  const burst = E.outC(seg(t, 0, 820)), ba = sst(0, 90, t) * (1 - E.inQ(seg(t, 160, 940)));
+  [[-1, -.6], [1, -.45], [-.85, .7], [.95, .6]].forEach(([dx, dy], i) => drawTex(ctx, set.blobs[i], x + dx * cell * (.15 + 1.3 * burst), y + dy * cell * (.15 + 1.1 * burst), dpr, lerp(.5, 1.2, burst), i * 1.3 + dx * burst * .6, ba * .9));
+  set.curls.forEach((c, i) => { const sd = i ? 1 : -1, q = E.outC(seg(t, 40, 820)); drawTex(ctx, c, x + sd * cell * (.45 + 1.9 * q), y + (i ? .4 : -.45) * cell - q * cell * .35, dpr, lerp(.75, 1, q), sd * q * 1.5, sst(0, .06, q) * (1 - sst(.3, 1, q)) * .9); });
+  return null;
+};
+
+// ================================================================= 泉眼 GAIN
+// the spring's charge completes and drains, 石青 ink blooms and ripples in its water (clipped to the board), a painted
+// drop of qi lifts out and flies on a dry-brush trail into the owner's next energy pip; +1 in brush script.
+function dropTex(seed, hwPx, col, edge, dark) {
+  return cached(`qdrop|${seed}|${hwPx}|${col}|${dark}`, () => {
+    const L = hwPx / .3, S = Math.ceil(L + hwPx * 4), C = S / 2, pts = [];
+    for (let i = 0; i <= 30; i++) { const t = i / 30; pts.push([C + L / 2 - t * L, C + Math.sin(t * PI) * hwPx * .08]); }
+    return strokeTex(`qdrop|${seed}|${S}|${col}`, pts, { W: S, H: S, width: t => t < .3 ? hwPx * Math.sqrt(Math.max(0, 1 - Math.pow((.3 - t) / .3, 2))) + .3 : hwPx * Math.pow(1 - (t - .3) / .7, 1.3) + .2, body: col, edge, seed, dry: .18, dryStart: .5, bristle: 2.5, along: .05, wet: .55, tail: .8, rough: .15, rim: dark ? [[255, 240, 200], .7, .7] : null }).c;
+  });
+}
+// "+1" painted as three brush strokes (a font's "1" reads as "(" in brush script) + a dilated paper halo that knocks out
+// whatever card text lies beneath. Hpx = glyph height in device px.
+function plusTex(seed, Hpx, col, edge, haloCol) {
+  return cached(`plus1|${seed}|${Hpx}|${col}|${haloCol}`, () => {
+    const pad = Math.round(Hpx * .32), W = Math.round(Hpx * 1.1) + pad * 2, H = Hpx + pad * 2, c = cvs(W, H), x = c.getContext('2d');
+    const u = Hpx, ox = pad, oy = pad, line = (a, b, n, bend) => { const P = []; for (let i = 0; i <= n; i++) { const t = i / n; P.push([lerp(a[0], b[0], t) + Math.sin(t * PI) * bend[0], lerp(a[1], b[1], t) + Math.sin(t * PI) * bend[1]]); } return P; };
+    const press = (w0, w1, k0) => t => (t < k0 ? w0 * (.55 + .45 * Math.sin(t / k0 * PI / 2)) : lerp(w0, w1, Math.pow((t - k0) / (1 - k0), 1.4))) + .3;
+    const br = { body: col, edge, dry: .22, dryStart: .62, bristle: 3, along: .06, wet: .5, tail: .8, rough: .16 };
+    const strokes = [
+      [line([ox + u * .04, oy + u * .56], [ox + u * .5, oy + u * .5], 16, [0, -u * .03]), press(u * .085, u * .045, .2)],     // 一 of +
+      [line([ox + u * .26, oy + u * .3], [ox + u * .28, oy + u * .78], 16, [-u * .02, 0]), press(u * .08, u * .03, .2)],      // 丨 of +
+      [line([ox + u * .66, oy + u * .3], [ox + u * .86, oy + u * .05], 10, [0, u * .02]), t => u * (.035 + .045 * t) + .3],  // flag of 1
+      [line([ox + u * .86, oy + u * .05], [ox + u * .84, oy + u * .97], 20, [u * .025, 0]), press(u * .11, u * .045, .16)],   // stem of 1
+    ];
+    strokes.forEach((st, i) => x.drawImage(strokeTex(`p1|${seed}|${Hpx}|${col}|${i}`, st[0], Object.assign({ W, H, width: st[1], seed: seed + i * 3 }, br)).c, 0, 0));
+    const d = cvs(W, H), dx = d.getContext('2d'), r = Hpx * .16;
+    for (let i = 0; i < 20; i++) { const a = i / 20 * TAU; for (const f of [1, .66, .33]) dx.drawImage(c, Math.cos(a) * r * f, Math.sin(a) * r * f * (Math.sin(a) < 0 ? 1.7 : 1)); }
+    const sd = soften(d, Math.max(2, Math.round(Hpx * .07)), 2), sa = sd.getContext('2d').getImageData(0, 0, W, H).data;
+    const h = pix(W, H, (i, j, out) => { const a = sa[(j * W + i) * 4 + 3] / 255; out[0] = haloCol[0]; out[1] = haloCol[1]; out[2] = haloCol[2]; out[3] = sst(.04, .5, a); });
+    return { g: c, h };
+  });
+}
+// dry-brush trail: 5 bristle ribbons, solid at the head, separating into 飞白 toward the tail (pattern fixed on the path)
+function dryTrail(ctx, pts, sArr, col, w0, alpha, nz, pathLen) {
+  const N = pts.length; if (N < 2) return;
+  const nrm = pts.map((p, i) => { const a = pts[Math.max(0, i - 1)], b = pts[Math.min(N - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; return [-dy / l, dx / l]; });
+  ctx.fillStyle = rgba(col, alpha); ctx.beginPath();
+  for (let b = 0; b < 5; b++) {
+    const ob = (b / 4 - .5) * 2, L = [], Rr = [];
+    const flush = () => { if (L.length > 1) { ctx.moveTo(L[0][0], L[0][1]); for (let i = 1; i < L.length; i++) ctx.lineTo(L[i][0], L[i][1]); for (let i = Rr.length - 1; i >= 0; i--) ctx.lineTo(Rr[i][0], Rr[i][1]); ctx.closePath(); } L.length = 0; Rr.length = 0; };
+    for (let i = 0; i < N; i++) {
+      const u = i / (N - 1), hw = Math.max(1.3, w0 * Math.pow(1 - u, .55));
+      if (nz(sArr[i] * pathLen * .08 + b * 17.3) < lerp(-1.2, .45, Math.pow(u, 1.2))) { flush(); continue; }
+      const off = ob * hw * .62 * (1 + .9 * u), bw = hw * (.5 - .2 * u) * (b === 2 ? 1.2 : 1) * (1 - .5 * Math.pow(u, 3));
+      const [p0, p1] = pts[i], [nx, ny] = nrm[i];
+      L.push([p0 + nx * (off - bw), p1 + ny * (off - bw)]); Rr.push([p0 + nx * (off + bw), p1 + ny * (off + bw)]);
+    }
+    flush();
+  }
+  ctx.fill();
+}
+const GN = { fill: 180, flash: 480, d0: 520, d1: 900, rise: 260, f0: 470, f1: 1170, lag: 160 };
+FX.gainArrive = GN.f1;   // game copy: when the drop lands in the pip (ms of FX.dur.gain) — the page lights its pip then
+FX.gain = function (ctx, k, o) {
+  const P = pal(o.T), dpr = dprOf(ctx, o), cell = o.cell, x = o.x, y = o.y, seed = o.seed || 1, D = FX.dur.gain, t = k * D, R = o.r || cell * .44;
+  const qc = P.qi, pipR = o.pipR || 4.5, prog0 = o.prog0 == null ? 2 : o.prog0, prog1 = o.prog == null ? 0 : o.prog;
+  const set = cached(`gain3|${cell.toFixed(2)}|${dpr}|${seed}|${o.T.name}`, () => ({
+    rip: [0, 1, 2].map(i => ensoTex(seed + 60 + i, Math.round(cell * dpr), Math.round(cell * (.1 - i * .02) * dpr), qc, { dry: .3, wet: .5, span: TAU * (.97 - i * .07), bristle: 2.6 })),
+    bloom: washTex(seed + 80, Math.round(cell * 1.1 * dpr), qc, P.dark ? .5 : .55, P.dark ? P.goldHi : mix(qc, [16, 34, 46], .55)),
+    drop: dropTex(seed + 3, Math.round(cell * .175 * dpr), qc, P.dark ? [150, 112, 44] : [26, 58, 76], P.dark),
+    plus: plusTex(seed + 7, Math.round(21 * dpr), P.dark ? P.goldHi : P.red, P.dark ? P.gold : mix(P.red, [40, 8, 6], .35), P.dark ? [14, 11, 8] : P.paper),
+  }));
+  const clip = o.clip; let bx = x, by = y; if (clip) { bx = clip[0] + clip[2] / 2; by = clip[1] + clip[3] / 2; }
+  const bl = Math.hypot(bx - x, by - y) || 1, ox = (bx - x) / bl * cell * .4, oy = (by - y) / bl * cell * .4;
+  // ---- paper level (the water of the board): charge arcs, bloom, ripples — clipped to the board paper
+  paper(ctx, o, x, y, cell * 2.4, R, dpr, lx => {
+    lx.save(); if (clip) { lx.beginPath(); lx.rect(clip[0], clip[1], clip[2], clip[3]); lx.clip(); }
+    const kb = seg(t, 80, 1300); if (kb > 0 && kb < 1) drawTex(lx, set.bloom, x + ox, y + oy, dpr, .5 + .86 * E.outC(kb), 1.3, sst(0, .1, kb) * (1 - E.inQ(kb)) * .9);
+    for (let i = 0; i < 3; i++) {
+      const q = seg(t, 100 + i * 160, 100 + i * 160 + 900); if (q <= 0 || q >= 1) continue;
+      const rr = lerp(cell * .55, cell * (1.45 + i * .18), E.outC(q)), al = Math.pow(1 - q, 1.4) * (1 - i * .2);
+      drawTex(lx, set.rip[i].c, x + ox * q * .5, y + oy * q * .5, dpr, rr / cell, i * 2.2 + q * .5, al);
+    }
+    // charge arcs: prog0 → full (0-180) · flash (180-480) · drain to prog (520-900)
+    lx.lineCap = 'round';
+    const fill = E.outC(seg(t, 0, GN.fill)), flash = sst(GN.fill, GN.fill + 60, t) * (1 - sst(GN.fill + 120, GN.flash, t)), dq = E.inOutS(seg(t, GN.d0, GN.d1));
+    for (let i = 0; i < 3; i++) {
+      const a0 = -PI / 2 + i * 2.094 + .14, full = 2.094 - .28;
+      let len = t < GN.d0 ? (i < prog0 ? 1 : i === prog0 ? fill : (prog0 >= 3 ? 1 : 0)) : clamp(lerp(3, prog1, dq) - i, 0, 1);
+      if (t < GN.d0 && prog0 < 2 && i > prog0) len = fill;   // (any missing arcs fill together)
+      lx.strokeStyle = rgba(qc, .22); lx.lineWidth = 1.4; lx.beginPath(); lx.arc(x, y, cell * .6, a0, a0 + full); lx.stroke();
+      if (len > .01) { lx.strokeStyle = rgba(mix(qc, P.qiHi, flash * .8), .95); lx.lineWidth = 2.4 + 1.1 * flash; lx.beginPath(); lx.arc(x, y, cell * .6, a0 + full * (1 - len) * (t >= GN.d0 ? 1 : 0), a0 + full * (t >= GN.d0 ? 1 : len)); lx.stroke(); }
+    }
+    lx.restore();
+  });
+  if (!overOn(o)) return null;
+  // ---- the qi: a painted drop lifts out of the spring and flies on an S-curve into the owner's next pip
+  const x0 = x, y0 = y - cell * .62, x3 = o.tx, y3 = o.ty, Ld = Math.hypot(x3 - x0, y3 - y0), sx = Math.sign(x3 - x0) || -1;
+  const x1 = x0 + sx * Ld * .08, y1 = y0 - Ld * .42, x2 = x3 - sx * Ld * .34, y2 = y3 + Ld * .24;
+  const bz = s => { const m = 1 - s; return [m * m * m * x0 + 3 * m * m * s * x1 + 3 * m * s * s * x2 + s * s * s * x3, m * m * m * y0 + 3 * m * m * s * y1 + 3 * m * s * s * y2 + s * s * s * y3]; };
+  const bzd = s => { const m = 1 - s; return [3 * m * m * (x1 - x0) + 6 * m * s * (x2 - x1) + 3 * s * s * (x3 - x2), 3 * m * m * (y1 - y0) + 6 * m * s * (y2 - y1) + 3 * s * s * (y3 - y2)]; };
+  const sAt = tt => E.inOutS(seg(tt, GN.f0, GN.f1));
+  const pathLen = cached(`glen|${x0 | 0},${y0 | 0},${x3 | 0},${y3 | 0}`, () => { let L = 0, p = bz(0); for (let i = 1; i <= 60; i++) { const q = bz(i / 60); L += Math.hypot(q[0] - p[0], q[1] - p[1]); p = q; } return L; });
+  const dw = set.drop.width / dpr;
+  if (t >= GN.rise && t < GN.f0) {   // rising out of the water
+    const kr = seg(t, GN.rise, GN.f0), py = lerp(y, y0, E.outC(kr)), d0 = bzd(0), a = Math.atan2(d0[1], d0[0]);
+    ctx.strokeStyle = rgba(qc, .5 * (1 - kr)); ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y - R * .2); ctx.lineTo(x, py + cell * .1); ctx.stroke();
+    drawTex(ctx, set.drop, x, py, dpr, .35 + .65 * E.outBack(seg(kr, 0, .7), 1.8), a, sst(0, .25, kr));
+  }
+  if (t >= GN.f0) {
+    const sH = sAt(t), sT = sAt(t - GN.lag);
+    if (sT < .999) {
+      const N = 36, pts = [], ss = []; for (let i = 0; i <= N; i++) { const s = lerp(sH, sT, i / N); pts.push(bz(s)); ss.push(s); }
+      const nz = cached('gnz|' + seed, () => noise1(seed + 21));
+      dryTrail(ctx, pts, ss, qc, P.dark ? 3.2 : 3.0, .92 * (1 - sst(.9, 1, sT)), nz, pathLen);
+    }
+    if (t < GN.f1) {   // the head: a painted 石青 (or gold) drop, pointing along its flight, stretched with speed
+      const [hx, hy] = bz(sH), dv = bzd(sH), a = Math.atan2(dv[1], dv[0]), spd = Math.min(1, 1.5 * 4 * sH * (1 - sH));
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(a); ctx.scale(1 + .3 * spd, 1 - .1 * spd); ctx.drawImage(set.drop, -dw / 2, -dw / 2, dw, dw); ctx.restore();
+    }
+    if (P.dark) {   // gold leaf shed along the path
+      const r = rng(seed * 7);
+      for (let i = 0; i < 10; i++) {
+        const tr = GN.f0 + 700 * (i + .5) / 10 + (r() - .5) * 40, age = (t - tr) / 480, sz = 1.4 + r() * 1.6, side = r() < .5 ? -1 : 1, rot0 = r() * TAU, fl = 3 + r() * 4;
+        if (age <= 0 || age >= 1) continue;
+        const s0 = sAt(tr), [px, py] = bz(s0), dv = bzd(s0), l = Math.hypot(dv[0], dv[1]) || 1, nx = -dv[1] / l * side, ny = dv[0] / l * side, e = E.outC(age);
+        const qx = px + nx * 9 * e, qy = py + ny * 9 * e + 7 * age * age, rot = rot0 + fl * age, w = Math.cos(rot * 1.3);
+        ctx.save(); ctx.translate(qx, qy); ctx.rotate(rot); ctx.scale(Math.max(.15, Math.abs(w)), 1); ctx.fillStyle = rgba(w > 0 ? P.goldHi : P.gold, .9 * (1 - age));
+        ctx.beginPath(); ctx.moveTo(-sz, -sz * .6); ctx.lineTo(sz * .8, -sz * .8); ctx.lineTo(sz, sz * .5); ctx.lineTo(-sz * .7, sz * .9); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+    }
+  }
+  // ---- arrival: the pip fills, a small ring of water, "+1" in brush script held for 700 ms
+  const ta = t - GN.f1;
+  if (ta > 0) {
+    const fill = E.outBack(seg(ta, 0, 220), 2.2), pc = P.dark ? P.gold : P.ink;
+    // game copy: o.pipFill === false leaves the pip to the page (its own lit pip pops in as the drop lands)
+    if (o.pipFill !== false) { ctx.fillStyle = rgba(pc, .95); ctx.beginPath(); ctx.arc(x3, y3, Math.max(0, pipR * fill), 0, TAU); ctx.fill(); }
+    const rq = seg(ta, 0, 460); if (rq < 1) drawTex(ctx, set.rip[1].c, x3, y3, dpr, lerp(pipR * 1.4, pipR * 4.2, E.outC(rq)) / cell, 1, .9 * (1 - rq));
+    const tA = sst(20, 110, ta) * (1 - sst(D - GN.f1 - 130, D - GN.f1, ta));
+    if (tA > 0) {
+      // the painted "+1" rises out of the pip on its own halo of paper; pops in, holds ~700 ms, fades
+      // game copy: o.plusX/plusY place it where the card has room (beside the pips, over the line it is about)
+      const tx = o.plusX != null ? o.plusX : x3 + pipR * 1.6, ty = (o.plusY != null ? o.plusY : y3 - pipR - 9) - 7 * E.outC(seg(ta, 0, 360)), s2 = 1 + .35 * (1 - E.outBack(seg(ta, 0, 200), 2));
+      drawTex(ctx, set.plus.h, tx, ty, dpr, s2, -.06, tA * .96);
+      drawTex(ctx, set.plus.g, tx, ty, dpr, s2, -.06, tA);
+    }
+  }
+  return null;
+};
+
+// ================================================================= 技能名 CAST — 书法 + 印
+// The glyph is analysed once: 飞白 streaks follow each stroke (line-integral convolution along the structure-tensor
+// orientation), dry gaps only where strokes thin, a darker wet rim (墨晕), stroke-order components for the writing reveal,
+// and four erosion stages for the dissolve.
+function fontsReady(F, text, glyph) {
+  // game copy: in the art worker the font set is self.fonts (document is only a canvas shim there)
+  const FS = (typeof document !== 'undefined' && document.fonts) || (typeof self !== 'undefined' && self.fonts);
+  try { return !FS || (FS.check(`${F}px "Zhi Mang Xing"`, text) && FS.check(`40px "Ma Shan Zheng"`, glyph)); } catch (e) { return true; }
+}
+function boxBlur(a, S, rad) {
+  const o = new Float32Array(S * S), t = new Float32Array(S * S), w = 2 * rad + 1;
+  for (let j = 0; j < S; j++) { let s = 0; for (let i = -rad; i <= rad; i++) s += a[j * S + clamp(i, 0, S - 1)]; for (let i = 0; i < S; i++) { t[j * S + i] = s / w; s += a[j * S + clamp(i + rad + 1, 0, S - 1)] - a[j * S + clamp(i - rad, 0, S - 1)]; } }
+  for (let i = 0; i < S; i++) { let s = 0; for (let j = -rad; j <= rad; j++) s += t[clamp(j, 0, S - 1) * S + i]; for (let j = 0; j < S; j++) { o[j * S + i] = s / w; s += t[clamp(j + rad + 1, 0, S - 1) * S + i] - t[clamp(j - rad, 0, S - 1) * S + i]; } }
+  return o;
+}
+function glyphBuild(ch, F, dpr, seed, P, rot) {
+  const S = Math.ceil(F * 1.35 * dpr), N = S * S, c0 = cvs(S, S), x0 = c0.getContext('2d');
+  x0.translate(S / 2, S / 2); x0.rotate(rot); x0.font = `${F * dpr}px "Zhi Mang Xing", "Ma Shan Zheng", serif`; x0.textAlign = 'center'; x0.textBaseline = 'middle'; x0.fillStyle = '#000'; x0.fillText(ch, 0, F * dpr * .03);
+  const src = x0.getImageData(0, 0, S, S).data, m = new Float32Array(N); for (let i = 0; i < N; i++) m[i] = src[i * 4 + 3] / 255;
+  const rad = Math.max(2, Math.round(F * dpr * .016)), b1 = boxBlur(boxBlur(m, S, rad), S, rad);
+  // ---- stroke orientation: structure tensor of the blurred mask's gradient
+  const gx = new Float32Array(N), gy = new Float32Array(N);
+  for (let j = 1; j < S - 1; j++) for (let i = 1; i < S - 1; i++) { const p = j * S + i; gx[p] = (b1[p + 1] - b1[p - 1]) * .5; gy[p] = (b1[p + S] - b1[p - S]) * .5; }
+  const jxx = new Float32Array(N), jxy = new Float32Array(N), jyy = new Float32Array(N);
+  for (let p = 0; p < N; p++) { jxx[p] = gx[p] * gx[p]; jxy[p] = gx[p] * gy[p]; jyy[p] = gy[p] * gy[p]; }
+  const r2 = rad * 2, Jxx = boxBlur(boxBlur(jxx, S, r2), S, r2), Jxy = boxBlur(boxBlur(jxy, S, r2), S, r2), Jyy = boxBlur(boxBlur(jyy, S, r2), S, r2);
+  const tx = new Float32Array(N), ty = new Float32Array(N);
+  for (let p = 0; p < N; p++) { if (b1[p] < .003 && m[p] < .003) continue; const th = .5 * Math.atan2(2 * Jxy[p], Jxx[p] - Jyy[p]) + PI / 2; tx[p] = Math.cos(th); ty[p] = Math.sin(th); }
+  // ---- 飞白 streaks: line-integral convolution of white noise along the strokes
+  const cs = 1.15 * dpr, GW = Math.ceil(S / cs) + 2, wr = rng(seed + 31), WN = new Float32Array(GW * GW); for (let i = 0; i < WN.length; i++) WN[i] = wr();
+  const wn = (px, py) => { const fx = px / cs, fy = py / cs, xi = fx | 0, yi = fy | 0, u = fx - xi, v = fy - yi, p = yi * GW + xi; return WN[p] * (1 - u) * (1 - v) + WN[p + 1] * u * (1 - v) + WN[p + GW] * (1 - u) * v + WN[p + GW + 1] * u * v; };
+  const LIC = new Float32Array(N), step = 1.4 * dpr, NS = 11; let sum = 0, sum2 = 0, cnt = 0;
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    const p = j * S + i; if (m[p] < .01) continue;
+    let acc = wn(i, j), n = 1;
+    for (const sg of [1, -1]) {
+      let px = i + .5, py = j + .5, vx = tx[p] * sg, vy = ty[p] * sg;
+      for (let s = 0; s < NS; s++) {
+        px += vx * step; py += vy * step; const qi = px | 0, qj = py | 0; if (qi < 1 || qj < 1 || qi >= S - 1 || qj >= S - 1) break;
+        const q = qj * S + qi; if (m[q] < .05) break; let nx = tx[q], ny = ty[q]; if (nx * vx + ny * vy < 0) { nx = -nx; ny = -ny; } vx = nx; vy = ny;
+        acc += wn(px, py); n++;
+      }
+    }
+    const v = acc / n; LIC[p] = v; sum += v; sum2 += v * v; cnt++;
+  }
+  const mean = sum / Math.max(1, cnt), sd = Math.sqrt(Math.max(1e-6, sum2 / Math.max(1, cnt) - mean * mean));
+  // ---- the ink
+  const n1 = noise2(seed), n3 = noise2(seed + 8), n4 = noise2(seed + 12), body = P.castInk, rimC = P.castRim;
+  const A = new Float32Array(N), id = x0.createImageData(S, S), d = id.data;
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) {
+    const p = j * S + i, mv = m[p], bv = b1[p]; if (bv < .004 && mv < .004) continue;
+    const u = i / dpr, v = j / dpr;
+    const streak = mv > .01 ? .5 + (LIC[p] - mean) / sd * .19 : .5;
+    const thin = .95 * sst(.7, .28, bv) * (.55 + .6 * n3(u * .03 + 5, v * .03));          // dry where the stroke thins out
+    const patch = .6 * sst(.56, .74, n1(u * .021 + 3, v * .021 - 2)) * sst(.95, .55, bv); // and where the brush ran dry
+    const D = Math.max(thin, patch);
+    let a = mv * sst(D - .07, D + .07, streak);
+    const edge = sst(.66, .4, bv) * mv;                                                   // 墨晕: denser, darker at the rim
+    a = Math.min(1, a * (.9 + .1 * (n1(u * .05, v * .05) - .5) + .14 * edge));
+    const bleed = Math.max(0, bv - mv) * .32 * sst(.3, .75, n3(u * 1.2, v * 1.2));
+    const aa = Math.max(a, bleed); if (aa <= .003) continue;
+    let col = mix(body, rimC, Math.min(1, edge + (aa === bleed ? .7 : 0)));
+    if (P.dark && mv > .5 && n4(u * .9, v * .9) > .8) col = mix(col, P.goldHi, .5);  // 泥金 glints
+    const q = p * 4; d[q] = col[0]; d[q + 1] = col[1]; d[q + 2] = col[2]; d[q + 3] = aa * 255; A[p] = aa;
+  }
+  const c = cvs(S, S); c.getContext('2d').putImageData(id, 0, 0);
+  // ---- stroke-order components (flood fill), small ones merged, a single blob split into bands
+  const lab = new Int32Array(N).fill(-1); let comps = [];
+  for (let p0 = 0; p0 < N; p0++) {
+    if (!(b1[p0] > .6 && m[p0] > .5) || lab[p0] >= 0) continue;
+    const id2 = comps.length, st = [p0], cp = { id: id2, area: 0, x0: S, y0: S, x1: 0, y1: 0, sx: 0, sy: 0, px: [] }; lab[p0] = id2;
+    while (st.length) { const p = st.pop(), i = p % S, j = (p / S) | 0; cp.area++; cp.sx += i; cp.sy += j; cp.px.push(p); if (i < cp.x0) cp.x0 = i; if (i > cp.x1) cp.x1 = i; if (j < cp.y0) cp.y0 = j; if (j > cp.y1) cp.y1 = j;
+      for (const q of [p - 1, p + 1, p - S, p + S]) if (q >= 0 && q < N && lab[q] < 0 && b1[q] > .6 && m[q] > .5 && Math.abs((q % S) - i) <= 1) { lab[q] = id2; st.push(q); } }
+    comps.push(cp);
+  }
+  const total = comps.reduce((s, q) => s + q.area, 0) || 1;
+  const merge = (a, b) => { for (const p of b.px) { lab[p] = a.id; a.px.push(p); } a.area += b.area; a.sx += b.sx; a.sy += b.sy; a.x0 = Math.min(a.x0, b.x0); a.y0 = Math.min(a.y0, b.y0); a.x1 = Math.max(a.x1, b.x1); a.y1 = Math.max(a.y1, b.y1); comps = comps.filter(q => q !== b); };
+  const gap = (a, b) => Math.max(0, Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1)) + Math.max(0, Math.max(a.y0, b.y0) - Math.min(a.y1, b.y1));
+  for (;;) { const small = comps.filter(q => q.area < total * .035).sort((a, b) => a.area - b.area)[0]; if (!small || comps.length < 2) break; let best = null, bd = 1e9; for (const q of comps) if (q !== small) { const g = gap(small, q); if (g < bd) { bd = g; best = q; } } merge(best, small); }
+  while (comps.length > 6) { const sm = comps.slice().sort((a, b) => a.area - b.area)[0]; let best = null, bd = 1e9; for (const q of comps) if (q !== sm) { const g = gap(sm, q); if (g < bd) { bd = g; best = q; } } merge(best, sm); }
+  if (comps.length < 3) {   // connected cursive: split the biggest component into bands (top → bottom) to keep a writing rhythm
+    const big = comps.slice().sort((a, b) => b.area - a.area)[0], nb = comps.length === 1 ? 3 : 2, ys = big.px.map(p => (p / S) | 0).sort((a, b) => a - b), cuts = []; for (let b = 1; b < nb; b++) cuts.push(ys[Math.floor(ys.length * b / nb)]);
+    comps = comps.filter(q => q !== big);
+    for (let b = 0; b < nb; b++) { const lo = b ? cuts[b - 1] : -1, hi = b < nb - 1 ? cuts[b] : 1e9, cp = { area: 0, x0: S, y0: S, x1: 0, y1: 0, sx: 0, sy: 0, px: [] }; for (const p of big.px) { const j = (p / S) | 0; if (j > lo && j <= hi) { const i = p % S; cp.px.push(p); cp.area++; cp.sx += i; cp.sy += j; if (i < cp.x0) cp.x0 = i; if (i > cp.x1) cp.x1 = i; if (j < cp.y0) cp.y0 = j; if (j > cp.y1) cp.y1 = j; } } if (cp.area) comps.push(cp); }
+  }
+  comps.sort((a, b) => (a.y0 + .5 * a.x0) - (b.y0 + .5 * b.x0));
+  comps.forEach((q, i) => { q.id = i; for (const p of q.px) lab[p] = i;
+    // the stroke's main axis (doubled-angle mean of the tangents), pointed down / right like a brush moves
+    let C2 = 0, S2 = 0; for (const p of q.px) { const th = Math.atan2(ty[p], tx[p]); C2 += Math.cos(2 * th); S2 += Math.sin(2 * th); }
+    const th = .5 * Math.atan2(S2, C2); let ax = Math.cos(th), ay = Math.sin(th); if (ax * .5 + ay < 0) { ax = -ax; ay = -ay; }
+    if (Math.hypot(C2, S2) < q.px.length * .25) { ax = .45; ay = .89; }   // no clear axis: top → bottom
+    q.ax = ax; q.ay = ay; });
+  // every inked pixel (bleed included) belongs to its nearest component (multi-source BFS)
+  const own = new Int32Array(N).fill(-1), Q = new Int32Array(N); let qh = 0, qt = 0;
+  for (let p = 0; p < N; p++) if (lab[p] >= 0 && A[p] > 0) { own[p] = lab[p]; Q[qt++] = p; }
+  while (qh < qt) { const p = Q[qh++], i = p % S; for (const q of [p - 1, p + 1, p - S, p + S]) if (q >= 0 && q < N && own[q] < 0 && Math.abs((q % S) - i) <= 1 && (A[q] > 0 || m[q] > 0)) { own[q] = own[p]; Q[qt++] = q; } }
+  const parts = comps.map(q => {
+    let X0 = S, Y0 = S, X1 = 0, Y1 = 0; for (let p = 0; p < N; p++) if (own[p] === q.id && A[p] > 0) { const i = p % S, j = (p / S) | 0; if (i < X0) X0 = i; if (i > X1) X1 = i; if (j < Y0) Y0 = j; if (j > Y1) Y1 = j; }
+    if (X1 < X0) return null;
+    const w = X1 - X0 + 1, h = Y1 - Y0 + 1, cc = cvs(w, h), cx = cc.getContext('2d'), im = cx.createImageData(w, h);
+    for (let j = Y0; j <= Y1; j++) for (let i = X0; i <= X1; i++) { const p = j * S + i; if (own[p] !== q.id) continue; const s4 = p * 4, t4 = ((j - Y0) * w + (i - X0)) * 4; im.data[t4] = d[s4]; im.data[t4 + 1] = d[s4 + 1]; im.data[t4 + 2] = d[s4 + 2]; im.data[t4 + 3] = d[s4 + 3]; }
+    cx.putImageData(im, 0, 0);
+    let pmin = 1e9, pmax = -1e9; for (let j = Y0; j <= Y1; j++) for (let i = X0; i <= X1; i++) { if (own[j * S + i] !== q.id) continue; const pr = (i - X0) * q.ax + (j - Y0) * q.ay; if (pr < pmin) pmin = pr; if (pr > pmax) pmax = pr; }
+    return { c: cc, x: X0, y: Y0, w, h, g: [q.ax * pmin, q.ay * pmin, q.ax * pmax, q.ay * pmax], area: q.area };
+  }).filter(Boolean);
+  // unowned specks go with the last part
+  // ---- halo + erosion stages for the dissolve (halo baked in, fading with the stages)
+  const haloA = P.dark ? .8 : .85, halo = tint(soften(c, Math.max(4, Math.round(F * dpr / 18)), 2), P.castHalo, 1);
+  const haloS = cvs(S, S); haloS.getContext('2d').drawImage(halo, -S * .02, -S * .02, S * 1.04, S * 1.04);
+  const nE = fbm2(seed + 40, 3), nH = noise2(seed + 44), ev = new Float32Array(N);
+  for (let p = 0; p < N; p++) if (A[p] > 0) { const i = p % S, j = (p / S) | 0, u = i / dpr, v = j / dpr; ev[p] = .88 * nE(u * .03, v * .03) + .12 * nH(u * .5 + v * .2, v * .5 - u * .2) - .25 * (i / S - .5); }
+  const stage = (th, ha) => {
+    const cc = cvs(S, S), cx = cc.getContext('2d'); cx.globalAlpha = haloA * ha; cx.drawImage(haloS, 0, 0); cx.globalAlpha = 1;
+    if (th > 0) { const tc = cvs(S, S), tx2 = tc.getContext('2d'), im = tx2.createImageData(S, S);
+      for (let p = 0; p < N; p++) { if (!(A[p] > 0)) continue; const e = ev[p] - th; if (e < -.03) continue; const s4 = p * 4, rimE = sst(.07, 0, e), col = mix([d[s4], d[s4 + 1], d[s4 + 2]], rimC, rimE * .8); im.data[s4] = col[0]; im.data[s4 + 1] = col[1]; im.data[s4 + 2] = col[2]; im.data[s4 + 3] = Math.min(255, d[s4 + 3] * (1 + .2 * rimE) * sst(-.03, .02, e)); }
+      tx2.putImageData(im, 0, 0); cx.drawImage(tc, 0, 0);
+    } else cx.drawImage(c, 0, 0);
+    return cc;
+  };
+  const stages = [stage(0, 1), stage(.34, .7), stage(.46, .45), stage(.56, .22), stage(.66, 0)];
+  // content box (halo included)
+  const dd = stages[0].getContext('2d').getImageData(0, 0, S, S).data; let X0 = S, Y0 = S, X1 = 0, Y1 = 0;
+  for (let j = 0; j < S; j++) for (let i = 0; i < S; i++) if (dd[(j * S + i) * 4 + 3] > 1) { if (i < X0) X0 = i; if (i > X1) X1 = i; if (j < Y0) Y0 = j; if (j > Y1) Y1 = j; }
+  const box = [Math.max(0, X0 - 2), Math.max(0, Y0 - 2), Math.min(S, X1 + 3) - Math.max(0, X0 - 2), Math.min(S, Y1 + 3) - Math.max(0, Y0 - 2)];
+  // flecks shed during the dissolve: taken from the inked pixels, leaving when their region erodes
+  const r = rng(seed + 99), flecks = []; let tries = 0;
+  while (flecks.length < 16 && tries++ < 30000) { const i = r() * S | 0, j = r() * S | 0, p = j * S + i; if (m[p] > .85) flecks.push({ u: i / S - .5, v: j / S - .5, e: ev[p], s: 1.4 + r() * 2.2, w: r(), seed: (r() * 6) | 0 }); }
+  return { S, c, parts, halo: haloS, haloA, stages, box, flecks };
+}
+// each character is analysed once and cached on its own (so prewarm can spread the work one glyph per idle slot)
+function glyphGet(ch, i, F, dpr, seed, P, theme, ready) {
+  const rot = i % 2 ? .05 : -.05, key = `glyph|${ch}|${F}|${dpr}|${seed + i * 7}|${theme}|${rot}`;
+  return ready ? cached(key, () => glyphBuild(ch, F, dpr, seed + i * 7, P, rot)) : glyphBuild(ch, F, dpr, seed + i * 7, P, rot);
+}
+function castSet(o, P, dpr, text, F, W, glyph) {
+  const make = ready => () => {
+    const seed = o.seed || 1, chars = [...text].map((ch, i) => glyphGet(ch, i, F, dpr, seed, P, o.T.name, ready));
+    const veil = cvs(96, 96), vx = veil.getContext('2d'), vg = vx.createRadialGradient(48, 48, 0, 48, 48, 48), vc = P.dark ? [16, 13, 10] : P.paper, va = P.dark ? .7 : .65;
+    vg.addColorStop(0, rgba(vc, va)); vg.addColorStop(.5, rgba(vc, va * .75)); vg.addColorStop(.8, rgba(vc, va * .3)); vg.addColorStop(1, rgba(vc, 0)); vx.fillStyle = vg; vx.fillRect(0, 0, 96, 96);
+    return { chars, veil, seal: sealTex(glyph, Math.round(F * .3 * dpr), P.red, seed + 5) };
+  };
+  const key = `cast3|${text}|${glyph}|${F}|${W}|${dpr}|${o.seed}|${o.T.name}`;
+  if (CACHE.has(key)) return CACHE.get(key);
+  if (!fontsReady(F, text, glyph)) return slot('castTmp', key + '|nofont', make(false));   // never freeze fallback glyphs in the cache
+  return cached(key, make(true));
+}
+function sealTex(ch, Spx, col, seed) {
+  return cached(`seal|${ch}|${Spx}|${col}|${seed}`, () => {
+    const c = cvs(Spx, Spx), x = c.getContext('2d'), r = rng(seed), pad = Spx * .07, n = fbm2(seed, 4);
+    x.fillStyle = rgba(col, 1); x.beginPath();
+    const jit = () => (r() - .5) * Spx * .022; x.moveTo(pad + jit(), pad + jit()); x.lineTo(Spx - pad + jit(), pad + jit()); x.lineTo(Spx - pad + jit(), Spx - pad + jit()); x.lineTo(pad + jit(), Spx - pad + jit()); x.closePath(); x.fill();
+    x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
+    x.font = `${Spx * .68}px "Ma Shan Zheng", serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ch, Spx / 2, Spx * .53);
+    x.lineWidth = Spx * .032; x.strokeStyle = '#000'; x.strokeRect(pad + Spx * .07, pad + Spx * .07, Spx - 2 * pad - Spx * .14, Spx - 2 * pad - Spx * .14);
+    for (let i = 0; i < Spx * Spx / 18; i++) { const px = r() * Spx, py = r() * Spx, e = Math.min(px, py, Spx - px, Spx - py) / Spx; if (n(px / Spx * 7, py / Spx * 7) > .64 - (e < .1 ? .2 : 0)) { x.globalAlpha = .4 + r() * .6; x.beginPath(); x.arc(px, py, Spx * (.004 + r() * .014), 0, TAU); x.fill(); } }
+    x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+    const id = x.getImageData(0, 0, Spx, Spx), d = id.data, n2 = noise2(seed + 3);
+    for (let j = 0; j < Spx; j++) for (let i = 0; i < Spx; i++) { const q = (j * Spx + i) * 4; if (!d[q + 3]) continue; d[q + 3] *= .82 + .18 * n2(i * .12, j * .12); }
+    x.putImageData(id, 0, 0);
+    return c;
+  });
+}
+const CST = { veil: 150, w0: 40, write: 380, seal0: 420, seal1: 520, out0: 870 };
+FX.cast = function (ctx, k, o) {
+  if (!overOn(o)) return null;   // the title lives entirely above the board
+  const P = pal(o.T), dpr = dprOf(ctx, o), D = FX.dur.cast, t = k * D, W = o.W || 390;
+  const text = o.text || '震荡', glyph = o.glyph || FX.skills[text] || [...text][0], n = [...text].length;
+  const cx = o.cx != null ? o.cx : W / 2, cy = o.cy != null ? o.cy : (o.H || 844) / 2, F = Math.round(o.size || Math.min(W * .36, 150));
+  const set = castSet(o, P, dpr, text, F, W, glyph), out = seg(t, CST.out0, D);
+  // the veil: paper (or lacquer) light behind the words, an ellipse W*.5 by F*.75
+  const vin = E.outC(seg(t, 0, CST.veil)) * (1 - E.inOutS(out));
+  if (vin > 0) { const rx = W * .5, ry = F * .75; ctx.globalAlpha = vin; ctx.drawImage(set.veil, cx - rx, cy - ry, rx * 2, ry * 2); ctx.globalAlpha = 1; }
+  const gap = F * .88, x0 = cx - (n - 1) * gap / 2 - F * .1, per = CST.write / n;
+  set.chars.forEach((G, ci) => {
+    const S = G.S, px = x0 + ci * gap, py = cy + (ci % 2 ? F * .05 : -F * .05), k2 = 1 / dpr, B = G.box;
+    const c0 = CST.w0 + ci * per, prog = seg(t, c0, c0 + per);
+    if (prog <= 0) return;
+    const ox = px - S / 2 * k2, oy = py - S / 2 * k2;
+    if (t < c0 + per) {
+      // writing: the parts in stroke order, each with its own short directional wipe and a darker wet leading edge
+      ctx.globalAlpha = G.haloA * sst(0, .8, prog); ctx.drawImage(G.halo, B[0], B[1], B[2], B[3], ox + B[0] * k2, oy + B[1] * k2, B[2] * k2, B[3] * k2); ctx.globalAlpha = 1;
+      const np = G.parts.length, pd = per / (np * .8 + .2);
+      G.parts.forEach((pt, j) => {
+        const q = seg(t, c0 + j * pd * .8, c0 + j * pd * .8 + pd); if (q <= 0) return;
+        if (q >= 1) { ctx.drawImage(pt.c, ox + pt.x * k2, oy + pt.y * k2, pt.w * k2, pt.h * k2); return; }
+        const L = tmp('castP', pt.w, pt.h), lx = L.x, e = E.outQ(q); lx.drawImage(pt.c, 0, 0);
+        const g = lx.createLinearGradient(...pt.g), f = -.12 + 1.24 * e;
+        g.addColorStop(clamp(f - .12, 0, 1), 'rgba(0,0,0,1)'); g.addColorStop(clamp(f, 0, 1), 'rgba(0,0,0,0)');
+        lx.globalCompositeOperation = 'destination-in'; lx.fillStyle = g; lx.fillRect(0, 0, pt.w, pt.h);
+        const g2 = lx.createLinearGradient(...pt.g), wc = P.dark ? [150, 108, 40] : [0, 0, 0];
+        g2.addColorStop(clamp(f - .2, 0, 1), rgba(wc, 0)); g2.addColorStop(clamp(f - .06, 0, 1), rgba(wc, .55)); g2.addColorStop(clamp(f, 0, 1), rgba(wc, 0));
+        lx.globalCompositeOperation = 'source-atop'; lx.fillStyle = g2; lx.fillRect(0, 0, pt.w, pt.h); lx.globalCompositeOperation = 'source-over';
+        ctx.drawImage(L.c, 0, 0, pt.w, pt.h, ox + pt.x * k2, oy + pt.y * k2, pt.w * k2, pt.h * k2);
+      });
+      return;
+    }
+    // hold, then dissolve through four pre-baked erosion stages, drifting up with the wind
+    const dq = out * 4.6, i0 = Math.min(4, Math.floor(dq)), f = dq - i0, dy = -F * .07 * E.inQ(out), sc = 1 + .05 * out;
+    const blit = (img, a) => { if (a <= .004) return; ctx.globalAlpha = Math.min(1, a); const hw = S / 2 * k2 * sc; ctx.drawImage(img, B[0], B[1], B[2], B[3], px - hw + B[0] * k2 * sc, py + dy - hw + B[1] * k2 * sc, B[2] * k2 * sc, B[3] * k2 * sc); };
+    if (out <= 0) blit(G.stages[0], 1);
+    else { blit(G.stages[i0], i0 === 4 ? 1 - f * 1.7 : 1); if (i0 < 4) blit(G.stages[i0 + 1], f); }
+    ctx.globalAlpha = 1;
+    if (out > 0) for (const fk of G.flecks) {   // ink flecks carried off by the wind as their region erodes
+      const TH = [.34, .46, .56, .66]; let si = 0; while (si < 3 && fk.e >= TH[si]) si++;
+      const tl = (out - ((si + 1) / 4.6 - .12)) * (D - CST.out0) / 280; if (tl <= 0 || tl >= 1) continue;
+      const st = stainTex(840 + fk.seed, Math.max(2, Math.round(fk.s * dpr)), P.castInk, .6), e = E.outC(tl);
+      drawTex(ctx, st, px + fk.u * S * k2 * sc + F * (.18 + .3 * fk.w) * e, py + dy + fk.v * S * k2 * sc - F * (.12 + .2 * fk.w) * e, dpr, 1 - .4 * tl, -.5, .8 * (1 - tl) * (1 - sst(.6, 1, out)));   // game copy: gone by k = 1 (was cut off mid-flight)
+    }
+  });
+  // the seal stamps beside the last character
+  const kk = seg(t, CST.seal0, CST.seal1);
+  if (kk > 0) {
+    const ss = set.seal.width, e = E.outBack(kk, 2.2), sc = lerp(1.8, 1, e), sx = cx + (n - 1) * gap / 2 + F * .5, sy = cy + F * .36;
+    ctx.save(); ctx.translate(sx, sy); ctx.rotate(-.05 + .12 * (1 - e)); ctx.globalAlpha = sst(0, .25, kk) * (1 - sst(.2, .8, out));
+    ctx.drawImage(set.seal, -ss / 2 / dpr * sc, -ss / 2 / dpr * sc, ss / dpr * sc, ss / dpr * sc); ctx.restore(); ctx.globalAlpha = 1;
+  }
+  return { shake: castShake(k) };
+};
+function castShake(k) { const t = k * FX.dur.cast - (CST.seal0 + 30); return t > 0 && t < 160 ? [0, 2 * Math.exp(-t / 40) * Math.cos(t / 14)] : [0, 0]; }
+
+// ================================================================= API
+FX.dur = { fog: 1700, shock: 1700, turn: 1400, gain: 2000, cast: 1150, fogVeil: 1600, reveal: 1000, recover: 900 };   // game copy: shock 1900 → 1700 (no shatter) + the three new ones
+FX.names = { fog: '迷雾', shock: '震荡', turn: '策反', gain: '泉眼', cast: '技能名' };
+FX.skills = { '封印': '封', '回溯': '溯', '移形': '移', '迷雾': '雾', '震荡': '震', '策反': '策' };
+FX.shakeOf = function (name, k, o) { return name === 'shock' ? shockShake(k, o) : name === 'cast' ? castShake(k) : [0, 0]; };
+// one job per effect, and for cast one per character (+ one cheap assembly job per skill name) — run them in idle slots,
+// after the fonts have loaded
+FX.prewarmJobs = function (ctx, o, names) {
+  names = names || ['fog', 'shock', 'turn', 'gain', 'cast'];
+  const d = dprOf(ctx, o), sc = cvs(8, 8).getContext('2d'); sc.setTransform(d, 0, 0, d, 0, 0);
+  const run = (n, extra) => () => { const oo = Object.assign({ x: 0, y: 0, tx: 40, ty: 40, p: 1, dpr: d }, o, extra); for (const k of [0, .1, .2, .3, .4, .5, .7, .9, 1]) FX[n](sc, k, oo); };
+  const jobs = [];
+  for (const n of names) {
+    if (n === 'cast') for (const text of (o.texts || Object.keys(FX.skills))) {
+      const glyph = FX.skills[text] || [...text][0], F = Math.round(o.size || Math.min((o.W || 390) * .36, 150));
+      [...text].forEach((ch, i) => jobs.push(() => { if (fontsReady(F, text, glyph)) glyphGet(ch, i, F, d, o.seed || 1, pal(o.T), o.T.name, true); }));   // ~150 ms each (dpr 2)
+      jobs.push(run('cast', { text, glyph }));   // assembles from the cached glyphs + seal: cheap
+    }
+    else jobs.push(run(n));
+  }
+  return jobs;
+};
+FX.prewarm = function (ctx, o, names) { const t0 = performance.now(); for (const j of FX.prewarmJobs(ctx, o, names)) j(); return performance.now() - t0; };
+FX._cache = CACHE;   // game copy: the page installs textures the art worker built
+window.FX2 = FX;
+})();
+</script>
+
 <script>
 // =====================================================================================================
 // 技能五子棋 · 宣纸水墨 — presentation layer.
@@ -3336,14 +4544,14 @@ window.FX1 = FX;
 //               same painters (window.AP) run here instead, one job per idle slot, most urgent first.
 //   app part 1: basics, fonts, sprites, painted decorations (.dk), paper, menu / lobby / game background art
 //   app part 2: board geometry, static board sheet, live board drawing
-//   app part 3: effect dispatch (FX1 now; FX2 drops in by adding FXR entries)
+//   app part 3: effect dispatch (FX1 + FX2 through the FXR registry)
 //   app part 4: game flow, overlays, online transports (unchanged behaviour)
 // =====================================================================================================
 const AQ = (() => {
   const Q = { mode: 'main', lanes: {}, seq: 0, pend: new Map(), mainQ: [], mainT: 0, wFonts: null, fontGen: 0, fontWait: [], stats: { worker: 0, main: 0 } };
-  // ---- the worker's own runtime (stringified; runs after ink + AP + FX1 inside the worker)
+  // ---- the worker's own runtime (stringified; runs after ink + AP + FX1 + FX2 inside the worker)
   function workerMain() {
-    const AP = self.AP, FX1 = self.FX1, q = [], sent = new Set();
+    const AP = self.AP, FX1 = self.FX1, FX2 = self.FX2, q = [], sent = new Set(), sent2 = new Set();
     let fontState = 'none', fontGen = 0, busy = false;   // none: the page has not sent the fonts yet — font jobs wait
     const isOC = v => typeof OffscreenCanvas !== 'undefined' && v instanceof OffscreenCanvas;
     const isCX = v => typeof OffscreenCanvasRenderingContext2D !== 'undefined' && v instanceof OffscreenCanvasRenderingContext2D;
@@ -3364,9 +4572,9 @@ const AQ = (() => {
     async function run(m) {
       const t0 = performance.now(), tr = [];
       let res = AP.RUN[m.fn](m.a);
-      if (m.fn === 'fx1') {   // hand over every texture FX1 built in this job (FX1 on the page then never builds them)
-        const out = [];
-        for (const [k, v] of FX1._cache) { if (sent.has(k)) continue; sent.add(k); try { out.push([k, await pack(v, true, tr)]); } catch (e) { } }
+      if (m.fn === 'fx1' || m.fn === 'fx2') {   // hand over every texture FX1 / FX2 built in this job (the page then never builds them)
+        const out = [], C = m.fn === 'fx1' ? FX1._cache : FX2._cache, sn = m.fn === 'fx1' ? sent : sent2;
+        for (const [k, v] of C) { if (sn.has(k)) continue; sn.add(k); try { out.push([k, await pack(v, true, tr)]); } catch (e) { } }
         res = out;
       } else if (m.out === 'png') res = await res.convertToBlob({ type: 'image/png' });
       else res = await pack(res, false, tr);
@@ -3387,7 +4595,7 @@ const AQ = (() => {
       if (m.t === 'job') { q.push(m); setTimeout(next, 0); return; }
       if (m.t === 'pri') { const j = q.find(x => x.id === m.id); if (j) j.pri = Math.min(j.pri, m.pri); return; }
       if (m.t === 'drop') { for (let i = q.length - 1; i >= 0; i--) if (m.ids.includes(q[i].id)) { postMessage({ t: 'err', id: q[i].id, msg: 'dropped' }); q.splice(i, 1); } return; }
-      if (m.t === 'fxReset') { const keep = new RegExp(m.keep); for (const k of [...FX1._cache.keys()]) if (!keep.test(k)) { FX1._cache.delete(k); sent.delete(k); } return; }
+      if (m.t === 'fxReset') { const keep = new RegExp(m.keep); for (const k of [...FX1._cache.keys()]) if (!keep.test(k)) { FX1._cache.delete(k); sent.delete(k); } if (FX2 && m.keep2) { const k2 = new RegExp(m.keep2); for (const k of [...FX2._cache.keys()]) if (!k2.test(k)) { FX2._cache.delete(k); sent2.delete(k); } } return; }
       if (m.t === 'fonts') {   // the latest message wins (none for now at the cut-off, the real files when they land)
         const g = fontGen = m.gen; fontState = 'loading';
         const ok = !!(self.fonts && self.FontFace) && m.list.length;
@@ -3405,8 +4613,8 @@ const AQ = (() => {
       if (window.GOMOKU_NO_WORKER || typeof OffscreenCanvas === 'undefined' || !window.Worker || !window.Blob || !URL.createObjectURL) return;
       const t = new OffscreenCanvas(4, 4), x = t.getContext('2d'); if (!x || !t.convertToBlob || !t.transferToImageBitmap) return;
       const src = id => { const e = document.getElementById(id); return e ? e.textContent : ''; };
-      const ink = src('jsInk'), art = src('jsArt'), fx1 = src('jsFx1'); if (!ink || !art || !fx1) return;
-      const code = '"use strict";self.window=self;self.document={createElement:function(){return new OffscreenCanvas(1,1);}};\n' + ink + '\n' + art + '\n' + fx1 + '\n(' + workerMain.toString() + ')();';
+      const ink = src('jsInk'), art = src('jsArt'), fx1 = src('jsFx1'), fx2 = src('jsFx2'); if (!ink || !art || !fx1 || !fx2) return;
+      const code = '"use strict";self.window=self;self.document={createElement:function(){return new OffscreenCanvas(1,1);}};\n' + ink + '\n' + art + '\n' + fx1 + '\n' + fx2 + '\n(' + workerMain.toString() + ')();';
       const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
       Q.mode = 'worker';
       // ui: small urgent pictures (decorations, scroll mounts, sprites, seals); fx: the board sheet and effect textures;
@@ -3469,7 +4677,7 @@ const AQ = (() => {
       res = AP.RUN[j.fn](j.a);
       Q.pend.delete(j.id); Q.stats.main++;
       if (j.out === 'png') { const c = res; c.toBlob(b => { c.width = c.height = 0; b ? j.ok(b) : j.no('toBlob'); }); }
-      else j.ok(j.fn === 'fx1' ? null : res);
+      else j.ok(j.fn === 'fx1' || j.fn === 'fx2' ? null : res);
     } catch (e) { Q.pend.delete(j.id); console.error(e); j.no(e); }
     kickMain();
   }
@@ -3489,7 +4697,7 @@ const AQ = (() => {
   // the workers load the web fonts from the page's own files (by then in the HTTP cache)
   // (sent again with the real files when they arrive after the cut-off: the workers then load them and take font jobs again)
   function fonts(list, check) { if (Q.mode !== 'worker') { Q.wFonts = false; return; } const gen = ++Q.fontGen; if (list.length) Q.wFonts = null; for (const L of Object.values(Q.lanes)) if (!L.dead) L.w.postMessage({ t: 'fonts', list, check, gen }); }
-  function fxReset(keep) { for (const L of Object.values(Q.lanes)) if (!L.dead) L.w.postMessage({ t: 'fxReset', keep }); }
+  function fxReset(keep, keep2) { for (const L of Object.values(Q.lanes)) if (!L.dead) L.w.postMessage({ t: 'fxReset', keep, keep2 }); }
   start();
   return { run, bump, drop, fonts, fxReset, get mode() { return Q.mode; }, get wFonts() { return Q.wFonts; }, Q };
 })();
@@ -3920,7 +5128,9 @@ const blit=(x,c,cx,cy,a)=>{const s=G.dpr;if(a!=null)x.globalAlpha=a;x.drawImage(
 const visAt=(i,v)=>{const p=S.board[i];if(!p)return 0;if(S.hidden[i]!=null&&p!==v&&S.phase!=='over')return 0;return p;};
 function stoneAt(x,cx,cy,p,a){FX1.stone(x,cx,cy,G.cell*.44,p,TH,{dpr:G.dpr,a});}
 const FOG_A=.72;
-// 震荡: a stunned stone stays on its point, paled and cracked, ringed in 石青: one arc per turn of its owner still to come
+// 震荡: a stunned stone stays on its point, paled and cracked, ringed in 石青: one arc per turn of its owner still to come.
+// Its cracks are FX2's own (the same picture the strike left: FX2.crackDraw, seeded by the point), so the effect's last
+// frame and the board are one and the same; the plain sprite below is only the fallback without FX2.
 const STUN_A=.62;
 function stunCrack(p){
   const key='crack'+p;if(LS[key])return LS[key];
@@ -3935,14 +5145,20 @@ function stunRing(x,cx,cy,n,a,grow){   // n arcs, one per turn left; grow ∈ [0
   if(!(a>0)||!(n>0))return;const R=G.cell*.545,lw=Math.max(1.3,G.cell*.075),g=grow==null?1:grow;
   for(let q=0;q<n;q++){const a0=-1.25+q*Math.PI,sw=(Math.PI-.62)*g;if(sw>.02)I.arcStroke(x,cx,cy,R,R*.97,0,a0,a0+sw,lw,IP.qing,.92*a);}
 }
-function stunStone(x,cx,cy,p,n,o){   // o: a (black's alpha: 1 = live … STUN_A = stunned), crack (alpha), ring (alpha), grow, dx
-  o=o||{};const s=G.dpr,c=stunCrack(p),dx=o.dx||0,ca=o.crack==null?1:o.crack,f=(1-(o.a==null?STUN_A:o.a))/(1-STUN_A);
+// o: f (how stunned: 0 live … 1), seed, kc / k2 / glow (its cracks: reveal from the impact point, hairlines, light along
+// them — see FX2.crackDraw), ring (alpha of the arcs), grow (draws them in), dx
+function stunStone(x,cx,cy,p,n,o){
+  o=o||{};const dx=o.dx||0,f=o.f==null?1:o.f,kc=o.kc==null?1:o.kc;
   // black pales to grey; white would vanish into the paper that way, so it stays and goes dull and stony instead
   stoneAt(x,cx+dx,cy,p,p===1?1-(1-STUN_A)*f:1-.2*f);
   if(p!==1&&f>0){x.fillStyle=`rgba(98,90,80,${(.24*f).toFixed(3)})`;x.beginPath();x.arc(cx+dx,cy,G.cell*.42,0,7);x.fill();}
-  if(ca>0){x.globalAlpha=ca;x.drawImage(c,cx+dx-c.width/s/2,cy-c.height/s/2,c.width/s,c.height/s);x.globalAlpha=1;}
+  if(kc>0){
+    if(window.FX2&&!stunFx2Off)try{FX2.crackDraw(x,cx+dx,cy,{cell:G.cell,r:G.cell*.44,seed:o.seed||1,p,T:TH,dpr:Math.min(2,G.dpr)},{kc,k2:o.k2,glow:o.glow});}catch(err){console.error(err);stunFx2Off=true;}
+    else{const s=G.dpr,c=stunCrack(p);x.globalAlpha=Math.min(1,kc);x.drawImage(c,cx+dx-c.width/s/2,cy-c.height/s/2,c.width/s,c.height/s);x.globalAlpha=1;}
+  }
   stunRing(x,cx,cy,n,o.ring==null?1:o.ring,o.grow);
 }
+let stunFx2Off=false;
 function fogStone(x,cx,cy,p,t){stoneAt(x,cx,cy,p,FOG_A);fogVeilOn(x,cx,cy,p,t,1);}
 // my hidden 迷雾 stone: half-seen through drifting mist, a dashed ring in its own colour, a 祥云 curl only I can see
 function fogVeilOn(x,cx,cy,p,t,a){
@@ -3997,7 +5213,7 @@ function drawBoard(now){
     if(hid){if(FXP.hidden)fxMark(x,i,p,px,py,fogT(i,now),'over');else fogStone(x,px,py,p,fogT(i,now));}
     else if(i===shiftSel){const g=x.createRadialGradient(px+cell*.04,py+cell*.08,0,px+cell*.04,py+cell*.08,cell*.5);g.addColorStop(0,'rgba(40,30,18,.32)');g.addColorStop(1,'rgba(40,30,18,0)');
       x.fillStyle=g;x.beginPath();x.arc(px+cell*.04,py+cell*.08,cell*.5,0,7);x.fill();stoneAt(x,px,py-lift,p);}
-    else if(S.stun&&S.stun[i]!=null)stunStone(x,px,py,p,S.stun[i]);
+    else if(S.stun&&S.stun[i]!=null)stunStone(x,px,py,p,S.stun[i],{seed:shockSeed(i)});
     else stoneAt(x,px,py,p);
   }
   for(const [i,p] of H.ghost)if(p){const [px,py]=pos(i);stoneAt(x,px,py,p);}   // points a waiting effect keeps as they were
@@ -4048,19 +5264,17 @@ function lastMark(x,i,k){
 //   skip / skipAfter  tap-to-skip target k and the ms after which it is allowed
 //   heavy           drawn at ≤2x while it plays (board-wide effects)
 //   lead            {kind, at, opts(e)}: another effect played first (FX2 cast); this one starts at lead k = at
+//   under           a 'screen' entry that is also called with pass 'under' on the board canvas (FX2 gain's water)
 //   blocksResult    the result sheet waits until it has finished (win)
 //   end(e)          called once when it finishes
 // r.shake moves the whole #app; r.vignette drives the #fxVig DOM overlay (never drawn on a canvas).
 // Persistent per-stone marks go through FXP (FXP.hidden draws the viewer's own 迷雾 stone, both passes).
 // Prewarm providers go in FXPROV ({ready(), jobs(ctx,o) → [{name, when:'boot'|'game'|'late', fn}]}).
-// FX2 integration = add/replace FXR entries, set FXP.hidden, push a provider; e.g.
-//   shock:{dur:()=>FX2.dur.shock,layer:'two',hide:e=>[e.i],lead:{kind:'cast',at:.74,opts:e=>({text:'震荡'})},
-//          draw:(c,k,e,pass)=>FX2.shock(c,k,Object.assign({},e.o,{layer:pass}))}
-//   cast:{dur:()=>FX2.dur.cast,draw:(c,k,e)=>FX2.cast(c,k,e.o)}   gain:{layer:'screen',dabs:e=>[e.i],..}
-//   FXP.hidden=(c,q)=>FX2.fogMark(c,q.t,Object.assign(fxO({i:q.i,p:q.p,seed:3}),{layer:q.pass}))
-//     (q.t: seconds since that stone's fog effect finished, so fog k=1 hands over to fogMark t=0 without a jump;
-//      a stone that arrived with an adopted state, no effect played, is long settled: page time)
-//   FXPROV.push({ready:()=>!!window.FX2,jobs:(c,o)=>FX2.prewarmJobs(c,o).map((fn,n)=>({name:'fx2:'+n,when:'game',fn}))})
+// FX2 (迷雾 fog/fogVeil/reveal · 震荡 shock/recover · 策反 turn · 泉眼 gain · 技能名 cast) is wired in below: its entries
+// in FXR, FXP.hidden = FX2.fogMark (q.t: seconds since that stone's fog effect finished, so fog k=1 hands over to fogMark
+// t=0 without a jump; a stone that arrived with an adopted state, no effect played, is long settled: page time), and an
+// FXPROV provider that builds its textures in the art worker (fixed seeds per effect, so everything is built ahead).
+// 震荡's stone, from its strike to its last frame, is painted by the board's stunStone (part 2): no jump at the hand-over.
 // An effect waiting for its lead (or its delay) shows its points as this viewer saw them before the move (fxStart
 // records it from the last frame): the stone 震荡 removed stays, 策反's stone keeps its old colour, 迷雾's new stone
 // is not there yet; the effect takes the point over when it starts (a 'place' fades its new stone in itself).
@@ -4077,7 +5291,12 @@ const sst=(a,b,v)=>I.smooth(a,b,v);
 // the board's top-left inside the game screen (CSS px), for the screen layer and the vignette
 function boardOrigin(){const b=cv.getBoundingClientRect(),g=$('scGame').getBoundingClientRect();return [b.left-g.left,b.top-g.top,b.width/(G.size||1)];}
 // centre of player p's energy pip k (board coordinates)
-function pipAt(p,k){const el=document.querySelectorAll('#p'+p+' .energy .pip')[Math.max(0,Math.min(2,k))];if(!el)return null;const r=el.getBoundingClientRect(),b=cv.getBoundingClientRect(),q=G.size/(b.width||1);return [(r.left+r.width/2-b.left)*q,(r.top+r.height/2-b.top)*q];}
+// (+ its radius, and where FX2 gain's "+1" goes: just past the last pip, over the line it is about)
+function pipAt(p,k){
+  const all=document.querySelectorAll('#p'+p+' .energy .pip'),el=all[Math.max(0,Math.min(2,k))];if(!el)return null;
+  const r=el.getBoundingClientRect(),z=all[all.length-1].getBoundingClientRect(),b=cv.getBoundingClientRect(),q=G.size/(b.width||1),w=el.offsetWidth||14;
+  return [(r.left+r.width/2-b.left)*q,(r.top+r.height/2-b.top)*q,w*.3*q,(z.right+16-b.left)*q,(z.top+z.height/2-b.top)*q];
+}
 // options object every effect receives (lengths in board CSS px). Textures are built at ≤2x (soft ink loses nothing);
 // stones that sit still are drawn by the game itself at full resolution.
 function fxO(e){
@@ -4085,7 +5304,7 @@ function fxO(e){
     drawStone:(c,x,y,r,p,a)=>FX1.stone(c,x,y,r,p,TH,{dpr:G.dpr,a})};
   if(e.i!=null){const [x,y]=pos(e.i);o.x=x;o.y=y;}
   if(e.j!=null){const [x,y]=pos(e.j);o.tx=x;o.ty=y;}
-  if(e.pip){const q=pipAt(e.pip[0],e.pip[1]);if(q){o.tx=q[0];o.ty=q[1];}o.clip=[0,0,G.size,G.size];}
+  if(e.pip){const q=pipAt(e.pip[0],e.pip[1]);if(q){o.tx=q[0];o.ty=q[1];o.pipR=q[2];o.plusX=q[3];o.plusY=q[4];}o.clip=[0,0,G.size,G.size];}
   if(e.line)o.line=e.line.map(pos);
   if(e.avoid)o.avoid=e.avoid.map(pos);
   if(e.extra)Object.assign(o,e.extra);
@@ -4093,7 +5312,6 @@ function fxO(e){
 }
 // stones this viewer can see, minus the effect's own points (FX1 keeps its ink off them)
 function visibleStones(except){const v=viewer(),out=[];for(let i=0;i<NN;i++)if(visAt(i,v)&&!except.includes(i))out.push(i);return out;}
-const fi=name=>(c,k,e)=>{FXI.prep();return FXI[name](c,k,e);};   // interim effects build their few textures on first use
 // FX1's paper wash feathers over the outer 1.4 cells of the sheet, but the outer lines sit only .92 cell in: this fills
 // the feather back in (behind the effect's own drawing) so stones on the edge rows step back like all the others
 const edgeVeil={key:'',c:null};
@@ -4117,6 +5335,20 @@ function drawLose(x,k,o){
   if(add>0){x.save();x.globalCompositeOperation='destination-over';x.globalAlpha=add;x.fillStyle='#f4eedf';x.fillRect(0,0,G.size,G.size);x.restore();}
   drawEdgeVeil(x,winVeilA(kk));
 }
+// ---- FX2 helpers
+const fx2o=(e,pass,extra)=>Object.assign({},e.o,{layer:pass},extra);
+// seeds are fixed per effect (two for 震荡, by point), so the art worker can build every texture they need ahead
+const SEED2={fog:3,turn:5,gain:2,cast:6};
+const shockSeed=i=>i%2+1;
+// the board's stunned-stone painter, handed to FX2 (n: the arcs of turns still to come)
+const stunPainter=(e,n)=>(x,cx,cy,q)=>stunStone(x,cx,cy,e.p,n,Object.assign({seed:e.seed},q));
+// a skill's name is brushed across the board first; its own effect starts as the title dissolves (k=.7, under 1.1 s
+// in all). The title keeps clear of the point (the lower third when the point is high up), except 迷雾's: it always sits
+// in the upper third, so the caster's opponent learns nothing from where it is written.
+const CAST_MS=1000,CAST_AT=.7,CAST_NAME={seal:'封印',shift:'移形',fog:'迷雾',shock:'震荡',turn:'策反'};
+const castSize=()=>Math.round(Math.min(G.size*.34,180));
+function castOpts(text,i){const B=G.size,low=i!=null&&pos(i)[1]<B*.5;return {text,size:castSize(),cx:B/2,cy:low?B*.72:B*.28};}
+function castLead(text,fixed){return {kind:'cast',at:CAST_AT,opts:e=>castOpts(text,fixed?null:e.i)};}
 const FXR={
   place:{dur:()=>FX1.dur.place,hide:e=>[e.i],draw:(c,k,e)=>FX1.place(c,k,e.o)},
   seal:{dur:()=>FX1.dur.seal,marks:['seal'],shake:1,draw:(c,k,e)=>FX1.seal(c,k,e.o)},
@@ -4124,17 +5356,21 @@ const FXR={
   shift:{dur:()=>FX1.dur.shift,hide:e=>[e.j],draw:(c,k,e)=>FX1.shift(c,k,e.o)},
   win:{dur:()=>FX1.dur.win,heavy:1,skip:FX1.skip.win,skipAfter:FX1.skipAfter.win,shake:1,blocksResult:1,draw:(c,k,e)=>{const r=FX1.win(c,k,e.o);drawEdgeVeil(c,winVeilA(k));return r;},end:()=>render()},
   lose:{dur:()=>FX1.dur.win*LOSE_K+500,heavy:1,skip:1,skipAfter:300,blocksResult:1,draw:(c,k,e)=>drawLose(c,k,e.o),end:()=>render()},
-  // ---- interim ink versions until FX2 lands (built from the ink library; no rings of light, no glow)
-  fog:{dur:()=>1050,hide:e=>[e.i],draw:fi('fog')},
-  fogVeil:{dur:()=>1400,draw:fi('fogVeil')},
-  reveal:{dur:()=>950,draw:fi('reveal')},
-  shock:{dur:()=>1150,shake:1,hide:e=>[e.i],draw:fi('shock')},
-  recover:{dur:()=>850,hide:e=>[e.i],draw:fi('recover')},
-  turn:{dur:()=>850,hide:e=>[e.i],draw:fi('turn')},
-  gain:{dur:()=>1500,draw:fi('gain')},
+  // ---- FX2. Each skill (but 回溯, whose FX1 effect writes 溯 itself) is first named in big brush script (cast)
+  fog:{dur:()=>FX2.dur.fog,layer:'two',hide:e=>[e.i],lead:castLead('迷雾',1),draw:(c,k,e,pass)=>FX2.fog(c,k,fx2o(e,pass))},
+  fogVeil:{dur:()=>FX2.dur.fogVeil,lead:castLead('迷雾',1),draw:(c,k,e)=>FX2.fogVeil(c,k,fx2o(e,'over'))},
+  reveal:{dur:()=>FX2.dur.reveal,layer:'two',hide:e=>[e.i],draw:(c,k,e,pass)=>FX2.reveal(c,k,fx2o(e,pass,{from:e.from,mark:e.mark}))},
+  shock:{dur:()=>FX2.dur.shock,layer:'two',shake:1,hide:e=>[e.i],lead:castLead('震荡'),draw:(c,k,e,pass)=>FX2.shock(c,k,fx2o(e,pass,{stunStone:stunPainter(e,2)}))},
+  recover:{dur:()=>FX2.dur.recover,layer:'two',hide:e=>[e.i],draw:(c,k,e,pass)=>FX2.recover(c,k,fx2o(e,pass,{stunStone:stunPainter(e,1)}))},
+  turn:{dur:()=>FX2.dur.turn,layer:'two',hide:e=>[e.i],lead:castLead('策反'),draw:(c,k,e,pass)=>FX2.turn(c,k,fx2o(e,pass,{p:3-e.p}))},
+  gain:{dur:()=>FX2.dur.gain,layer:'screen',under:1,dabs:e=>[e.i],draw:(c,k,e,pass)=>FX2.gain(c,k,fx2o(e,pass,{prog0:2,prog:e.prog||0,pipFill:false}))},
+  cast:{dur:()=>CAST_MS,draw:(c,k,e)=>FX2.cast(c,k,e.o)},
 };
-// persistent per-stone marks (FX2 replaces .hidden with its fogMark); a failing mark falls back to the ink version
-const FXP={hidden:null};
+FXR.seal.lead=castLead('封印');FXR.shift.lead=castLead('移形');
+// the shift's stone leaves from e.i: while the title is written it still sits there (the state already moved it)
+FXR.shift.hide=e=>[e.i,e.j];
+// persistent per-stone marks: FX2's fogMark for this viewer's own hidden stones; a failing mark falls back to the board's
+const FXP={hidden:window.FX2?(c,q)=>FX2.fogMark(c,q.t,Object.assign(fxO({i:q.i,p:q.p,seed:SEED2.fog}),{layer:q.pass})):null};
 function fxMark(x,i,p,px,py,t,pass){
   x.save();
   try{FXP.hidden(x,{i,p,x:px,y:py,t,pass});}
@@ -4142,12 +5378,13 @@ function fxMark(x,i,p,px,py,t,pass){
   x.restore();
 }
 // the board changed size: drop every texture built for the old size (FX1 keeps one set per size otherwise)
-const FX1_KEEP=/^(roles|tile|bloom|oil|vortex|puff)\b/;
+const FX1_KEEP=/^(roles|tile|bloom|oil|vortex|puff)\b/,FX2_KEEP=/^pal\|/;
 function fxSizeChanged(){
   winHold.key='';if(winHold.c){winHold.c.width=winHold.c.height=0;winHold.c=null;}
-  edgeVeil.key='';edgeVeil.c=null;FXI.key='';FXI.pend='';FXI.puff=FXI.band=FXI.band2=FXI.splash=FXI.crack=null;
+  edgeVeil.key='';edgeVeil.c=null;castWarmKey='';
   if(window.FX1&&FX1._cache)for(const k of [...FX1._cache.keys()])if(!FX1_KEEP.test(k))FX1._cache.delete(k);
-  AQ.fxReset(FX1_KEEP.source);
+  if(window.FX2&&FX2._cache)for(const k of [...FX2._cache.keys()])if(!FX2_KEEP.test(k))FX2._cache.delete(k);
+  AQ.fxReset(FX1_KEEP.source,FX2_KEEP.source);
 }
 function fxStart(kind,e){
   const spec=FXR[kind];if(!spec||!G.size)return null;
@@ -4167,7 +5404,7 @@ function fxStart(kind,e){
 const SEEN=new Uint8Array(NN);   // the stone this viewer saw at each point in the last board frame (drawBoard keeps it)
 const fogEnd=new Map();   // point → when its fog effect finished (performance.now ms)
 function fogT(i,now){return RM?0:(fogEnd.has(i)?Math.max(0,now-fogEnd.get(i)):now)/1000;}
-function fxClear(){effects=[];fogEnd.clear();SEEN.fill(0);winHold.key='';document.getElementById('app').style.transform='';fxVignette(null);fxScreenFree();}
+function fxClear(){effects=[];fogEnd.clear();gainHold=null;SEEN.fill(0);winHold.key='';document.getElementById('app').style.transform='';fxVignette(null);fxScreenFree();}
 function fxKOf(e,now){return I.clamp((now-e.t0)/e.dur,0,1);}
 function fxHidden(now){
   const H={cells:new Set(),marks:new Set(),dabs:new Set(),fade:new Map(),ghost:new Map(),lastFade(i){return H.fade.has(i)?H.fade.get(i):1;}};
@@ -4175,6 +5412,7 @@ function fxHidden(now){
     const sp=e.spec;
     if(now<e.t0&&e.kind!=='place'){   // not started yet (a lead is still playing): its points look as they did before
       if(e.before)for(const [q,c] of e.before){H.cells.add(q);H.ghost.set(q,c);}
+      if(sp.marks)for(const m of sp.marks)H.marks.add(m);   // a seal waiting for its title is not on the board yet
       continue;
     }
     if(sp.hide)for(const q of sp.hide(e))H.cells.add(q);
@@ -4199,7 +5437,7 @@ const heavyD=()=>Math.min(2,G.dpr,Math.max(1,1300/G.size));   // ≤2x, and ≤1
 function fxPass(x,now,pass){
   let sx=0,sy=0,vig=null;
   if(pass==='under'){
-    for(const e of effects){if(e.spec.layer!=='two'||now<e.t0)continue;e.o=fxO(e);x.save();try{e.spec.draw(x,fxKOf(e,now),e,'under');}catch(err){fxFail(e,err);}x.restore();}
+    for(const e of effects){if((e.spec.layer!=='two'&&!e.spec.under)||now<e.t0)continue;e.o=fxO(e);x.save();try{e.spec.draw(x,fxKOf(e,now),e,'under');}catch(err){fxFail(e,err);}x.restore();}
     return null;
   }
   const done=[],live=effects.filter(e=>now>=e.t0);
@@ -4266,16 +5504,17 @@ function fxFromState(f){
     }
     return;
   }
-  if(f.kind==='seal'){fxStart('seal',{i,p:f.p,seed});setTimeout(()=>haptic(14),FX1.dur.seal*.22*SPD);return;}
+  const at=(e,ms)=>Math.max(0,(e?e.t0-performance.now():0)+ms*SPD);   // haptics land with the strike, after the title
+  if(f.kind==='seal'){const e=fxStart('seal',{i,p:f.p,seed});setTimeout(()=>haptic(14),at(e,FX1.dur.seal*.22));return;}
   if(f.kind==='rewind'){fxStart('rewind',{i,p:3-f.p,seed});return;}
   if(f.kind==='shift'){fxStart('shift',{i,j:f.cells[1],p:f.p,seed:3});return;}
-  if(f.kind==='reveal'){fxStart('reveal',{i,p:S.board[i]||3-f.p,seed});return;}
-  if(f.kind==='shock'){fxStart('shock',{i,p:3-f.p,seed});setTimeout(()=>haptic(22),180*SPD);return;}
-  if(f.kind==='turn'){fxStart('turn',{i,p:f.p,seed});return;}
+  if(f.kind==='reveal'){const p=S.board[i]||3-f.p,own=p===v;fxStart('reveal',{i,p,seed:SEED2.fog,from:own?.6:0,mark:own?1:0});return;}
+  if(f.kind==='shock'){const e=fxStart('shock',{i,p:3-f.p,seed:shockSeed(i)});setTimeout(()=>haptic(22),at(e,400));return;}
+  if(f.kind==='turn'){fxStart('turn',{i,p:f.p,seed:SEED2.turn});return;}
 }
 // ---------------- prewarm: textures are built in real idle time, in the order they are needed ----------------
 //   'boot'  (FX1 place)            once the menu art is up
-//   'game'  (seal, rewind, shift, interim effects)   while a game is open and nobody is touching the screen
+//   'game'  (seal, rewind, shift, FX2)   while a game is open and nobody is touching the screen
 //   'late'  (win)                  after a few moves — nobody can win before the 9th stone
 // FX1 builds one effect per call, so a job is one effect; FX textures are capped at 2x, which keeps each job short.
 // o without functions or the theme (both are put back inside the worker)
@@ -4295,22 +5534,50 @@ const FXPROV=[
       out.push({name:'fx1:'+n,when,fn:()=>FX1.prewarm(c,o,[n]),off:{fn:'fx1',a:{names:[n],full:true,o:plain,sd:G.dpr},fonts:n==='win'||n==='seal'||n==='rewind',pri:n==='place'?2:n==='win'?5:4,put:r=>fx1Put(sk,r)}});
     }
     return out;}},
-  {ready:()=>true,jobs:()=>[{name:'fxi',when:'game',fn:()=>FXI.prep(),off:{fn:'fxi',a:{g:{size:G.size,cell:G.cell},s:G.dpr},pri:4,put:r=>FXI.set(r,G.size+'@'+G.dpr)}}]},
+  {ready:()=>!!window.FX2,jobs:(c,o)=>fx2Jobs(c,o,null)},
 ];
+// FX2: one job per (effect, variant, prewarm job); a cast only for the skills of this game (one job per character)
+function fx2Put(sk,list){if(sk!==fxSizeKey()||!list||!window.FX2)return;for(const [k,v] of list){if(!FX2._cache.has(k))FX2._cache.set(k,v);}}
+let castWarmKey='';
+function castTexts(){const out=new Set();if(S&&S.loadout)for(const p of [1,2])for(const k of (S.loadout[p]||[]))if(CAST_NAME[k])out.add(CAST_NAME[k]);return [...out];}
+function fx2Jobs(c,o,only){
+  const plain=fx1Plain(o),sk=fxSizeKey(),out=[],V=[];
+  if(!only){
+    V.push(['fog',{seed:SEED2.fog}],['turn',{seed:SEED2.turn}],['gain',{seed:SEED2.gain}]);
+    for(const seed of [1,2])for(const p of [1,2])V.push(['shock',{seed,p}],['recover',{seed,p}]);
+  }
+  const texts=castTexts();
+  if(texts.length){V.push(['cast',{seed:SEED2.cast,texts,size:castSize()}]);castWarmKey=texts.join()+'|'+sk;}
+  V.forEach(([n,x],vi)=>{
+    const oo=Object.assign({},o,x),pa=Object.assign({},plain,x),cnt=FX2.prewarmJobs(c,oo,[n]).length;
+    for(let j=0;j<cnt;j++)out.push({name:`fx2:${n}:${vi}:${j}`,when:'game',fn:()=>{const js=FX2.prewarmJobs(c,oo,[n]);if(js[j])js[j]();},
+      off:{fn:'fx2',a:{name:n,j,o:pa,sd:G.dpr},fonts:n==='cast',pri:n==='cast'?3:4,put:r=>fx2Put(sk,r)}});
+  });
+  return out;
+}
+// the skills are known once both sides have picked: their titles are built then
+function fxCastWarm(){
+  if(!window.FX2||!G.size||!S)return;const t=castTexts();if(!t.length||t.join()+'|'+fxSizeKey()===castWarmKey)return;
+  try{pwAdd(fx2Jobs(fxL.x||ctx,fxPrewarmO(),'cast'));}catch(e){console.error(e);}
+}
 const PW={gen:0,queue:[],t:0,lastInput:0,busy:false,off:0};
 window.addEventListener('pointerdown',()=>{PW.lastInput=performance.now();},true);
 window.addEventListener('keydown',()=>{PW.lastInput=performance.now();},true);
+function fxPrewarmO(){const o=fxO({p:1,seed:1});o.avoid=[];return o;}
 function fxPrewarm(){
   if(!G.size)return;
-  PW.gen++;const o=fxO({p:1,seed:1});o.avoid=[];const c=fxL.x||ctx;
-  PW.queue=[];for(const pr of FXPROV){try{if(pr.ready())PW.queue.push(...pr.jobs(c,o));}catch(e){console.error(e);}}
+  PW.gen++;const o=fxPrewarmO(),c=fxL.x||ctx,jobs=[];
+  PW.queue=[];for(const pr of FXPROV){try{if(pr.ready())jobs.push(...pr.jobs(c,o));}catch(e){console.error(e);}}
+  pwAdd(jobs);
+}
+function pwAdd(jobs){
   // where the art workers run, every job that can be built there goes at once (the page's thread is not touched)
   if(AQ.mode==='worker'){
-    const offs=PW.queue.filter(j=>j.off),grps=new Set(offs.map(j=>j.name));
-    PW.queue=PW.queue.filter(j=>!j.off&&!grps.has(j.grp));
+    const offs=jobs.filter(j=>j.off),grps=new Set(offs.map(j=>j.name));
+    jobs=jobs.filter(j=>!j.off&&!grps.has(j.grp));
     for(const j of offs){PW.off++;const f=j.off;AQ.run(f.fn,f.a,{lane:'fx',pri:f.pri==null?5:f.pri,fonts:!!f.fonts}).then(r=>{PW.off--;if(r!=null)f.put(r);},()=>{PW.off--;});}
   }
-  pwKick();
+  PW.queue.push(...jobs);pwKick();
 }
 // main-thread jobs run in real idle time only: no effect playing, nobody touching the screen, no scroll open
 function pwWhen(j){
@@ -4332,67 +5599,6 @@ function pwTick(){
     PW.queue.splice(PW.queue.indexOf(j),1);try{j.fn();}catch(e){console.error(e);}pwKick();};
   window.requestIdleCallback?requestIdleCallback(run,{timeout:2000}):setTimeout(run,0);
 }
-
-// ---------------- interim effects (ink library) ----------------
-const FXI={key:'',pend:'',
-  set(r,key){if(!r||key!==G.size+'@'+G.dpr)return;FXI.puff=r.puff;FXI.band=r.band;FXI.band2=r.band2;FXI.splash=r.splash;FXI.crack=r.crack;FXI.key=key;},
-  prep(){
-    const key=G.size+'@'+G.dpr;if(FXI.key===key)return;
-    FXI.set(AP.fxi({size:G.size,cell:G.cell},G.dpr),key);
-  },
-  // keep the ink off every stone the viewer can see (as FX1 does): clip to the board minus their discs
-  avoid(x,o,rr){x.beginPath();x.rect(-4,-4,G.size+8,G.size+8);for(const [ax,ay] of (o.avoid||[])){x.moveTo(ax+rr,ay);x.arc(ax,ay,rr,0,6.2832);}x.clip('evenodd');},
-  puffAt(x,cx,cy,scale,a,rot){if(!FXI.puff||a<=0)return;const s=G.dpr,w=FXI.puff.width/s*scale;x.save();x.globalAlpha=a;x.translate(cx,cy);x.rotate(rot||0);x.drawImage(FXI.puff,-w/2,-w/2,w,w);x.restore();},
-  fog(x,k,e){   // caster: mist gathers round the stone, which sinks to half-seen; the 祥云 mark settles
-    const o=e.o,env=sst(0,.22,k)*(1-sst(.62,1,k));
-    stoneAt(x,o.x,o.y,e.p,1-(1-FOG_A)*sst(.25,.75,k));
-    FXI.puffAt(x,o.x,o.y,.55+.55*I.ease.out(k),.95*env,k*.6);
-    FXI.puffAt(x,o.x-G.cell*.3,o.y+G.cell*.1,.4+.4*k,.7*env,-k*.8);
-    fogVeilOn(x,o.x,o.y,e.p,RM?0:(k-1)*e.dur/1000,sst(.6,1,k));   // hands over to the board's own fog stone (its t=0 is this k=1)
-  },
-  fogVeil(x,k,e){   // the other side: mist rolls across the whole board — no position given away
-    if(!FXI.band)return;const s=G.dpr,B=G.size,env=Math.sin(Math.PI*k);
-    x.save();x.beginPath();x.rect(0,0,B,B);x.clip();
-    x.fillStyle=`rgba(244,239,227,${.32*env})`;x.fillRect(0,0,B,B);
-    const bw=FXI.band.width/s,bh=FXI.band.height/s;
-    x.globalAlpha=.95*env;x.drawImage(FXI.band,-bw*.35+bw*.25*k-B*.1,B*.12,bw,bh);x.drawImage(FXI.band,-bw*.05-bw*.22*k,B*.48,bw,bh);
-    x.globalAlpha=.4*env;x.drawImage(FXI.band2,-bw*.2+bw*.18*k,B*.3,FXI.band2.width/s,FXI.band2.height/s);
-    x.restore();x.globalAlpha=1;
-  },
-  reveal(x,k,e){   // the mist that hid a stone tears open where it was struck
-    const o=e.o,a=(1-sst(.15,1,k));
-    x.save();FXI.avoid(x,o,o.r*.9);FXI.puffAt(x,o.x,o.y,.7+.9*I.ease.out(k),.9*a,k);
-    const R=o.r*(1.1+1.4*I.ease.out(k));I.arcStroke(x,o.x,o.y,R,R*.95,0,-2.4+k,2.2+k,Math.max(1,G.cell*.06),[60,56,52],.55*a);x.restore();
-  },
-  shock(x,k,e){   // 震荡: ink strikes the stone, it trembles, cracks run through it and it pales; two arcs of 石青 close
-                  // round it (its owner's two turns). The last frame is exactly the board's stunned stone
-    const o=e.o,s=G.dpr,ki=.3,j=k<ki?G.cell*.05*Math.sin(k*140)*(1-k/ki):0,t=sst(.12,.75,k);
-    if(FXI.splash){const sc=.5+.45*I.ease.out(sst(.06,.6,k)),w=FXI.splash.width/s*sc,al=.5*sst(.04,.14,k)*(1-sst(.3,.85,k));
-      if(al>0){x.save();FXI.avoid(x,o,o.r*1.02);x.globalAlpha=al;x.translate(o.x,o.y);x.rotate(e.seed*.7);x.drawImage(FXI.splash,-w/2,-w/2,w,w);x.restore();}}
-    stunStone(x,o.x,o.y,e.p,2,{dx:j,a:1-(1-STUN_A)*t,crack:sst(.1,.4,k),ring:1,grow:sst(.45,.95,k)});
-    const ts=sst(0,.08,k)*(1-sst(.08,.3,k));return {shake:[0,3*ts*Math.sin(k*120)]};
-  },
-  recover(x,k,e){   // the stunned stone comes back: the cracks close, the ink returns, the last arc of 石青 lets go
-    const o=e.o,t=sst(.1,.8,k);
-    stunStone(x,o.x,o.y,e.p,1,{a:STUN_A+(1-STUN_A)*t,crack:1-sst(0,.55,k),ring:1-sst(.2,.7,k)});
-    const R=o.r*(1.25+.8*I.ease.out(sst(.25,1,k))),al=.5*sst(.2,.35,k)*(1-sst(.5,1,k));
-    if(al>0)I.arcStroke(x,o.x,o.y,R,R*.96,0,-1.2,4.4,Math.max(1,G.cell*.05),IP.qing,al);
-  },
-  turn(x,k,e){   // 策反: an ink enso closes round the stone while it flips like a coin to the new colour
-    const o=e.o,f=sst(.12,.72,k),c=Math.cos(Math.PI*f),from=3-e.p,to=e.p;
-    x.save();x.translate(o.x,o.y);x.scale(Math.max(.05,Math.abs(c)),1);x.translate(-o.x,-o.y);stoneAt(x,o.x,o.y,f<.5?from:to,1);x.restore();
-    const R=o.r*1.42,a0=-1.9,sw=6.0*sst(0,.6,k),fade=1-sst(.7,1,k);
-    if(sw>.05)I.arcStroke(x,o.x,o.y,R,R*.96,.2,a0,a0+sw,Math.max(1.4,G.cell*.09),[30,27,24],.78*fade);
-  },
-  gain(x,k,e){   // 泉眼 pays out: 石青 rings in the water and a brushed +1 rising toward the board
-    const o=e.o;x.save();FXI.avoid(x,o,o.r*1.02);
-    for(let q=0;q<3;q++){const t=I.clamp((k-q*.14)/.7,0,1);if(t<=0||t>=1)continue;const R=G.cell*(.45+1.5*I.ease.out(t)),a=.75*(1-t);
-      I.arcStroke(x,o.x,o.y,R,R*.9,0,q*1.3,q*1.3+4.6,Math.max(1,G.cell*.07)*(1-t*.5),IP.qing,a);}
-    const t=sst(.1,.9,k),dirx=o.x<G.size/2?1:-1,diry=o.y<G.size/2?1:-1;
-    x.save();x.globalAlpha=sst(.05,.25,k)*(1-sst(.75,1,k));x.font=`${G.cell*.95}px "Ma Shan Zheng",serif`;x.textAlign='center';x.textBaseline='middle';x.fillStyle=rgba(IP.qing,.95);
-    x.fillText('+1',o.x+dirx*G.cell*(1.1+.4*t),o.y+diry*G.cell*(.9+.9*t));x.restore();x.restore();
-  },
-};
 // =====================================================================================================
 // app part 4 — game flow, overlays and the online transports. Rules, state, message formats, undo, resume and
 // reconnect behave exactly as before; what changed is how everything is shown.
@@ -4713,7 +5919,7 @@ function logLines(){
 function render(){
   if(!S)return;
   boardDirty=true;
-  syncFx();syncGain();
+  syncFx();syncGain();fxCastWarm();
   renderPick();
   const vw=viewer();
   for(const p of [1,2]){
@@ -4723,7 +5929,7 @@ function render(){
     const e=S.energy[p];
     const need=Math.max(0,3-S.place[p]);
     const lo=S.loadout[p]||[];
-    const prevE=prevEnergy?prevEnergy[p]:e;
+    const prevE=prevEnergy?prevEnergy[p]:e,gh=gainHold&&gainHold.p===p&&gainHold.t>performance.now()?gainHold:null;
     const mySprings=SPRINGS.filter(sp=>S.board[sp]===p&&(S.hidden[sp]==null||p===vw||S.phase==='over'));
     let springTxt='',best=0;
     if(mySprings.length){
@@ -4731,7 +5937,7 @@ function render(){
       springTxt=e>=3?`泉眼×${mySprings.length} · 能量满暂停`:`泉眼×${mySprings.length} · 再${3-best}回合+1`;
     }
     setHTML(el,`<div class="who"><i class="st ${p===1?'b':'w'}" aria-hidden="true"></i><span class="nm">${who(p)}${mode==='local'?'':`<i>·</i>${p===1?'黑':'白'}`}</span><span class="chips">${lo.map(k=>`<i class="chip k-${k}${SK[k].once&&S.once[p]?' used':''}" title="${SK[k].n}"></i>`).join('')||'<small>选技能中</small>'}</span></div>
-      <div class="energy" aria-label="能量 ${e}/3">${[0,1,2].map(k=>`<i class="pip${k<e?' on':''}${k<e&&k>=prevE?' new':''}"></i>`).join('')}<em>${e>=3?'能量已满':`再下 ${need} 手 +1`}</em></div>
+      <div class="energy" aria-label="能量 ${e}/3">${[0,1,2].map(k=>{const gw=gh&&gh.k===k&&k<e?Math.round(gh.t-performance.now()):0;return `<i class="pip${k<e?' on':''}${k<e&&k>=prevE?' new':''}"${gw>0?` data-g style="--ga:${gw}ms"`:''}></i>`;}).join('')}<em>${e>=3?'能量已满':`再下 ${need} 手 +1`}</em></div>
       <div class="springline${e>=3&&mySprings.length?' pz':''}">${mySprings.length?`<i class="s${best}"></i><span>${springTxt}</span>`:'<i class="s0"></i><span class="no">未占泉眼</span>'}</div>`);
   }
   prevEnergy=S.energy.slice();
@@ -4839,11 +6045,11 @@ cv.addEventListener('click',e=>{
 
 // ---------- effects from state changes ----------
 // 震荡: a stone whose stun ends on a move plays its recovery (never on undo or a quietly adopted state)
-let stunPrev={};
+let stunPrev={},gainHold=null;
 function stunSync(play){
   const cur=(S&&S.stun)||{},nx={};
   for(const k in cur)nx[k]=S.board[+k];
-  if(play)for(const k in stunPrev)if(cur[k]==null&&S.board[+k]===stunPrev[k])fxStart('recover',{i:+k,p:stunPrev[k],seed:+k%89+1});
+  if(play)for(const k in stunPrev)if(cur[k]==null&&S.board[+k]===stunPrev[k])fxStart('recover',{i:+k,p:stunPrev[k],seed:shockSeed(+k)});
   stunPrev=nx;
 }
 function syncFx(){
@@ -4865,7 +6071,9 @@ function syncGain(){
   for(const sp of g.src||[]){
     if(typeof sp!=='number')continue;
     if(S.hidden[sp]!=null&&g.p!==v&&S.phase!=='over')continue; // a hidden stone's spring stays secret
-    fxStart('gain',{i:sp,p:g.p,seed:sp%7+1,pip:[g.p,Math.min(2,Math.max(0,(S.energy[g.p]||1)-1))]});
+    const k=Math.min(2,Math.max(0,(S.energy[g.p]||1)-1)),e=fxStart('gain',{i:sp,p:g.p,seed:SEED2.gain,prog:Math.min(3,S.tick[sp]||0),pip:[g.p,k]});
+    // the pip lights when the drop of qi lands in it (render() holds it unlit until then)
+    if(e&&window.FX2)gainHold={p:g.p,k,t:e.t0+e.dur*FX2.gainArrive/FX2.dur.gain};
   }
   if(g.p===v)tock(880);
 }
